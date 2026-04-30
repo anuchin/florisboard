@@ -165,7 +165,7 @@ class FlorisImeService : LifecycleInputMethodService() {
 
         fun performClipboardPaste() {
             val ims = FlorisImeServiceReference.get() ?: return
-            ims.currentInputConnection?.performContextMenuAction(android.view.inputmethod.InputConnection.COMMAND_PASTE)
+            ims.currentInputConnection?.performContextMenuAction(android.R.id.paste)
         }
     }
 
