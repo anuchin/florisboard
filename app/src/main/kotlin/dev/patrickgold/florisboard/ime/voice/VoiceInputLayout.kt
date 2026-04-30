@@ -70,21 +70,6 @@ import org.florisboard.lib.snygg.ui.SnyggBox
 import org.florisboard.lib.snygg.ui.SnyggColumn
 import org.florisboard.lib.snygg.ui.SnyggRow
 
-enum class VoiceInputState {
-    IDLE,
-    RECORDING,
-    PROCESSING,
-    SUCCESS,
-    ERROR,
-}
-
-data class VoiceInputUiState(
-    val state: VoiceInputState = VoiceInputState.IDLE,
-    val transcribedText: String = "",
-    val errorMessage: String = "",
-    val amplitude: Float = 0f,
-)
-
 @Composable
 fun VoiceInputLayout(
     modifier: Modifier = Modifier,
@@ -209,14 +194,16 @@ private fun RecordingContent(
             contentAlignment = Alignment.Center,
         ) {
             // Amplitude ring
-            val ringRadius = 50.dp + (amplitude * 30.dp)
+            val ringRadius = (50f + amplitude * 30f).dp
             val ringRadiusPx = with(LocalDensity.current) { ringRadius.toPx() }
+            val ringColor = MaterialTheme.colorScheme.error.copy(alpha = 0.3f)
+            val strokeWidth = with(LocalDensity.current) { 4.dp.toPx() }
             Canvas(modifier = Modifier.size(160.dp)) {
                 drawCircle(
-                    color = MaterialTheme.colorScheme.error.copy(alpha = 0.3f),
+                    color = ringColor,
                     radius = ringRadiusPx,
                     center = center,
-                    style = Stroke(width = 4.dp.toPx()),
+                    style = Stroke(width = strokeWidth),
                 )
             }
 

@@ -181,7 +181,7 @@ fun VoiceScreen() = FlorisScreen {
                             VoiceProvider.CUSTOM -> "Provide your own OpenAI-compatible endpoint"
                         },
                         onClick = {
-                            prefs.voice.provider.set(entry)
+                            scope.launch { prefs.voice.provider.set(entry) }
                             showProviderDialog = false
                         },
                     )
@@ -201,7 +201,7 @@ fun VoiceScreen() = FlorisScreen {
             },
             confirmLabel = "Save",
             onConfirm = {
-                currentApiKeyPref.set(apiKey.trim())
+                scope.launch { currentApiKeyPref.set(apiKey.trim()) }
                 showApiKeyDialog = false
                 validationResult = null
             },
@@ -222,7 +222,7 @@ fun VoiceScreen() = FlorisScreen {
             title = "Custom Endpoint URL",
             confirmLabel = "Save",
             onConfirm = {
-                prefs.voice.customEndpointUrl.set(endpointUrl.trimEnd('/'))
+                scope.launch { prefs.voice.customEndpointUrl.set(endpointUrl.trimEnd('/')) }
                 showEndpointDialog = false
                 validationResult = null
             },
@@ -260,9 +260,11 @@ fun VoiceScreen() = FlorisScreen {
             title = "Select Model",
             confirmLabel = "Save",
             onConfirm = {
-                prefs.voice.model.set(selectedModel)
-                if (provider == VoiceProvider.CUSTOM) {
-                    prefs.voice.customModel.set(selectedModel)
+                scope.launch {
+                    prefs.voice.model.set(selectedModel)
+                    if (provider == VoiceProvider.CUSTOM) {
+                        prefs.voice.customModel.set(selectedModel)
+                    }
                 }
                 showModelDialog = false
             },
@@ -295,7 +297,7 @@ fun VoiceScreen() = FlorisScreen {
             title = "Language",
             confirmLabel = "Save",
             onConfirm = {
-                prefs.voice.language.set(languageValue.trim())
+                scope.launch { prefs.voice.language.set(languageValue.trim()) }
                 showLanguageDialog = false
             },
             dismissLabel = "Cancel",
