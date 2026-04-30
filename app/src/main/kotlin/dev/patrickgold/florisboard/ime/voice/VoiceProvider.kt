@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2021-2025 The FlorisBoard Contributors
+ * Copyright (C) 2025 The FlorisBoard Contributors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,17 +14,10 @@
  * limitations under the License.
  */
 
-package dev.patrickgold.florisboard.ime
+package dev.patrickgold.florisboard.ime.voice
 
-enum class ImeUiMode(val value: Int) {
-    TEXT(0),
-    MEDIA(1),
-    CLIPBOARD(2),
-    VOICE(3);
-
-    companion object {
-        fun fromInt(int: Int) = entries.firstOrNull { it.value == int } ?: TEXT
-    }
-
-    fun toInt(): Int = value
+enum class VoiceProvider {
+    OPENAI,
+    GROQ,
+    CUSTOM;
 }
