@@ -16,6 +16,7 @@
 
 package dev.patrickgold.florisboard.ime.voice
 
+import android.content.Context
 import android.media.AudioFormat
 import android.media.AudioRecord
 import android.media.MediaRecorder
@@ -26,7 +27,7 @@ import kotlinx.coroutines.withContext
 import java.io.ByteArrayOutputStream
 import java.io.DataOutputStream
 
-class AudioRecorder {
+class AudioRecorder(private val context: Context) {
 
     private val sampleRate = 16000
     private val channelConfig = AudioFormat.CHANNEL_IN_MONO
@@ -42,11 +43,25 @@ class AudioRecorder {
         sampleRate, channelConfig, audioFormat,
     )
 
+    fun hasRecordAudioPermission(): Boolean {
+        return context.checkCallingOrSelfPermission(android.Manifest.permission.RECORD_AUDIO) ==
+            android.content.pm.PackageManager.PERMISSION_GRANTED
+    }
+
     /**
      * Starts recording from the microphone and suspends until [stop] is called.
      * Returns the recorded audio as a WAV byte array (16kHz mono 16-bit PCM).
+     * Throws IllegalStateException if permission is not granted or AudioRecord fails to initialize.
      */
     suspend fun record(): ByteArray = withContext(Dispatchers.IO) {
+        if (!hasRecordAudioPermission()) {
+            throw SecurityException("RECORD_AUDIO permission not granted")
+        }
+
+        if (bufferSize == AudioRecord.ERROR || bufferSize == AudioRecord.ERROR_BAD_VALUE) {
+            throw IllegalStateException("AudioRecord: invalid buffer size")
+        }
+
         val record = AudioRecord(
             MediaRecorder.AudioSource.MIC,
             sampleRate,
@@ -54,6 +69,12 @@ class AudioRecorder {
             audioFormat,
             bufferSize * 2,
         )
+
+        if (record.state != AudioRecord.STATE_INITIALIZED) {
+            record.release()
+            throw IllegalStateException("AudioRecord failed to initialize. Check RECORD_AUDIO permission.")
+        }
+
         audioRecord = record
         record.startRecording()
         isRecording = true
@@ -61,25 +82,27 @@ class AudioRecorder {
         val allSamples = mutableListOf<Short>()
         val buffer = ShortArray(bufferSize / 2)
 
-        while (isRecording) {
-            val read = record.read(buffer, 0, buffer.size)
-            if (read > 0) {
-                for (i in 0 until read) {
-                    allSamples.add(buffer[i])
+        try {
+            while (isRecording) {
+                val read = record.read(buffer, 0, buffer.size)
+                if (read > 0) {
+                    for (i in 0 until read) {
+                        allSamples.add(buffer[i])
+                    }
+                    var max = 0
+                    for (i in 0 until read) {
+                        val abs = kotlin.math.abs(buffer[i].toInt())
+                        if (abs > max) max = abs
+                    }
+                    _amplitude.value = max.toFloat() / Short.MAX_VALUE
                 }
-                var max = 0
-                for (i in 0 until read) {
-                    val abs = kotlin.math.abs(buffer[i].toInt())
-                    if (abs > max) max = abs
-                }
-                _amplitude.value = max.toFloat() / Short.MAX_VALUE
             }
+        } finally {
+            record.stop()
+            record.release()
+            audioRecord = null
+            _amplitude.value = 0f
         }
-
-        record.stop()
-        record.release()
-        audioRecord = null
-        _amplitude.value = 0f
 
         pcmToWav(allSamples.toShortArray())
     }

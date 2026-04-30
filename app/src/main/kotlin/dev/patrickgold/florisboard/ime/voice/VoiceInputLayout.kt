@@ -61,6 +61,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import android.content.Intent
+import dev.patrickgold.florisboard.app.FlorisAppActivity
 import dev.patrickgold.florisboard.ime.keyboard.FlorisImeSizing
 import dev.patrickgold.florisboard.ime.media.KeyboardLikeButton
 import dev.patrickgold.florisboard.ime.text.keyboard.TextKeyData
@@ -110,6 +112,7 @@ fun VoiceInputLayout(
                     errorMessage = uiState.errorMessage,
                     onRetry = { voiceInputManager.startRecording() },
                 )
+                VoiceInputState.PERMISSION_REQUIRED -> PermissionRequiredContent()
             }
         }
 
@@ -321,6 +324,37 @@ private fun ErrorContent(
         TextButton(onClick = onRetry) {
             Text(
                 text = "Retry",
+                fontWeight = FontWeight.Bold,
+            )
+        }
+    }
+}
+
+@Composable
+private fun PermissionRequiredContent() {
+    val context = LocalContext.current
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
+    ) {
+        Text(
+            text = "Microphone access is required for voice input.",
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            fontSize = 16.sp,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.padding(horizontal = 24.dp),
+        )
+        Spacer(modifier = Modifier.height(16.dp))
+        TextButton(onClick = {
+            // Open app settings where the user can grant the permission
+            val intent = Intent(context, FlorisAppActivity::class.java).apply {
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                action = "REQUEST_RECORD_AUDIO"
+            }
+            context.startActivity(intent)
+        }) {
+            Text(
+                text = "Grant Permission",
                 fontWeight = FontWeight.Bold,
             )
         }

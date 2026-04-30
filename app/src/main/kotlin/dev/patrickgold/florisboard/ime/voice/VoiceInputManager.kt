@@ -33,6 +33,7 @@ enum class VoiceInputState {
     PROCESSING,
     SUCCESS,
     ERROR,
+    PERMISSION_REQUIRED,
 }
 
 data class VoiceInputUiState(
@@ -45,6 +46,7 @@ data class VoiceInputUiState(
 class VoiceInputManager(context: Context) {
     private val prefs by FlorisPreferenceStore
     private val editorInstance by context.editorInstance()
+    private val appContext = context.applicationContext
     private val scope = CoroutineScope(Dispatchers.Default + SupervisorJob())
 
     private val _uiState = MutableStateFlow(VoiceInputUiState())
@@ -52,8 +54,18 @@ class VoiceInputManager(context: Context) {
 
     private var audioRecorder: AudioRecorder? = null
 
+    fun hasRecordAudioPermission(): Boolean {
+        return appContext.checkCallingOrSelfPermission(android.Manifest.permission.RECORD_AUDIO) ==
+            android.content.pm.PackageManager.PERMISSION_GRANTED
+    }
+
     fun startRecording() {
-        val recorder = AudioRecorder()
+        if (!hasRecordAudioPermission()) {
+            _uiState.value = VoiceInputUiState(state = VoiceInputState.PERMISSION_REQUIRED)
+            return
+        }
+
+        val recorder = AudioRecorder(appContext)
         audioRecorder = recorder
         _uiState.value = VoiceInputUiState(state = VoiceInputState.RECORDING)
         scope.launch {
