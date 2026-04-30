@@ -41,11 +41,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowLeft
-import androidx.compose.material.icons.automirrored.outlined.Redo
-import androidx.compose.material.icons.automirrored.outlined.Undo
 import androidx.compose.material.icons.filled.ContentPaste
 import androidx.compose.material.icons.filled.KeyboardReturn
 import androidx.compose.material.icons.filled.Mic
@@ -58,10 +54,8 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -71,7 +65,6 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -79,9 +72,7 @@ import androidx.compose.ui.unit.sp
 import dev.patrickgold.florisboard.FlorisImeService
 import dev.patrickgold.florisboard.app.FlorisAppActivity
 import dev.patrickgold.florisboard.ime.ImeUiMode
-import dev.patrickgold.florisboard.ime.editor.EditorInstance
 import dev.patrickgold.florisboard.ime.keyboard.FlorisImeSizing
-import dev.patrickgold.florisboard.ime.keyboard.KeyboardManager
 import dev.patrickgold.florisboard.ime.media.KeyboardLikeButton
 import dev.patrickgold.florisboard.ime.text.keyboard.TextKeyData
 import dev.patrickgold.florisboard.ime.theme.FlorisImeUi
@@ -89,8 +80,6 @@ import dev.patrickgold.florisboard.keyboardManager
 import org.florisboard.lib.snygg.ui.SnyggBox
 import org.florisboard.lib.snygg.ui.SnyggColumn
 import org.florisboard.lib.snygg.ui.SnyggRow
-
-private val PunctuationButtons = listOf(".", ",", "?", "!", ";", ":", "-", "(", ")")
 
 @Composable
 fun VoiceInputLayout(
@@ -109,15 +98,13 @@ fun VoiceInputLayout(
             .pointerInput(Unit) {
                 detectDragGestures { change, dragAmount ->
                     change.consume()
-                    val swipeThreshold = 100f
-                    if (dragAmount.x < -swipeThreshold) {
-                        // Swipe left -> back to text keyboard
+                    if (dragAmount.x < -100f) {
                         keyboardManager.activeState.imeUiMode = ImeUiMode.TEXT
                     }
                 }
             },
     ) {
-        // Main content area (status + transcript)
+        // Main area — mic button centered + status text
         Box(
             modifier = Modifier
                 .weight(1f)
@@ -125,11 +112,11 @@ fun VoiceInputLayout(
             contentAlignment = Alignment.Center,
         ) {
             when (uiState.state) {
-                VoiceInputState.IDLE -> IdleContent(
+                VoiceInputState.IDLE -> IdleMicContent(
                     onStartRecording = { voiceInputManager.startRecording() },
                     onStopRecording = { voiceInputManager.stopRecording() },
                 )
-                VoiceInputState.RECORDING -> RecordingContent(
+                VoiceInputState.RECORDING -> RecordingMicContent(
                     amplitude = uiState.amplitude,
                     onStopRecording = { voiceInputManager.stopRecording() },
                 )
@@ -148,57 +135,34 @@ fun VoiceInputLayout(
             }
         }
 
-        // Punctuation strip
-        PunctuationStrip(keyboardManager = keyboardManager)
-
-        // Bottom action row: undo, redo, backspace, paste | mic | ABC
-        ActionRow(
-            keyboardManager = keyboardManager,
-            voiceInputManager = voiceInputManager,
-            uiState = uiState,
-        )
+        // Bottom row: Backspace | Enter | Paste ... ABC
+        BottomRow(keyboardManager = keyboardManager)
     }
 }
 
 @Composable
-private fun PunctuationStrip(keyboardManager: KeyboardManager) {
+private fun BottomRow(keyboardManager: dev.patrickgold.florisboard.ime.keyboard.KeyboardManager) {
     SnyggRow(
         elementName = FlorisImeUi.MediaBottomRow.elementName,
         modifier = Modifier
             .fillMaxWidth()
-            .height(FlorisImeSizing.keyboardRowBaseHeight * 0.55f),
-        horizontalArrangement = Arrangement.SpaceEvenly,
+            .height(FlorisImeSizing.keyboardRowBaseHeight * 0.8f),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        PunctuationButtons.forEach { symbol ->
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxHeight()
-                    .clip(RoundedCornerShape(4.dp))
-                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
-                    .pointerInput(Unit) {
-                        detectTapGestures {
-                            FlorisImeService.commitText(symbol)
-                        }
-                    },
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(
-                    text = symbol,
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    fontFamily = FontFamily.Monospace,
-                )
-            }
+        // Backspace
+        KeyboardLikeButton(
+            elementName = FlorisImeUi.MediaBottomRowButton.elementName,
+            inputEventDispatcher = keyboardManager.inputEventDispatcher,
+            keyData = TextKeyData.DELETE,
+            modifier = Modifier.weight(1f).fillMaxHeight(),
+        ) {
+            Text("⌫", fontSize = 18.sp)
         }
-        // Newline button
+        // Enter
         Box(
             modifier = Modifier
                 .weight(1f)
                 .fillMaxHeight()
-                .clip(RoundedCornerShape(4.dp))
-                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
                 .pointerInput(Unit) {
                     detectTapGestures {
                         FlorisImeService.sendDownAndUpKeyEvent(KeyEvent.KEYCODE_ENTER)
@@ -210,62 +174,20 @@ private fun PunctuationStrip(keyboardManager: KeyboardManager) {
                 imageVector = Icons.Filled.KeyboardReturn,
                 contentDescription = "Enter",
                 tint = MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier.size(18.dp),
+                modifier = Modifier.size(22.dp),
             )
-        }
-    }
-}
-
-@Composable
-private fun ActionRow(
-    keyboardManager: KeyboardManager,
-    voiceInputManager: VoiceInputManager,
-    uiState: VoiceInputUiState,
-) {
-    SnyggRow(
-        elementName = FlorisImeUi.MediaBottomRow.elementName,
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(FlorisImeSizing.keyboardRowBaseHeight * 0.8f),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        // Undo
-        IconButton(
-            onClick = { FlorisImeService.sendDownAndUpKeyEvent(KeyEvent.KEYCODE_Z, metaCtrl = true) },
-            modifier = Modifier.weight(1f).fillMaxHeight(),
-        ) {
-            Icon(
-                imageVector = Icons.AutoMirrored.Outlined.Undo,
-                contentDescription = "Undo",
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(20.dp),
-            )
-        }
-        // Redo
-        IconButton(
-            onClick = { FlorisImeService.sendDownAndUpKeyEvent(KeyEvent.KEYCODE_Z, metaCtrl = true, metaShift = true) },
-            modifier = Modifier.weight(1f).fillMaxHeight(),
-        ) {
-            Icon(
-                imageVector = Icons.AutoMirrored.Outlined.Redo,
-                contentDescription = "Redo",
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(20.dp),
-            )
-        }
-        // Backspace
-        KeyboardLikeButton(
-            elementName = FlorisImeUi.MediaBottomRowButton.elementName,
-            inputEventDispatcher = keyboardManager.inputEventDispatcher,
-            keyData = TextKeyData.DELETE,
-            modifier = Modifier.weight(1f).fillMaxHeight(),
-        ) {
-            Text("⌫", fontSize = 18.sp)
         }
         // Paste
-        IconButton(
-            onClick = { FlorisImeService.performClipboardPaste() },
-            modifier = Modifier.weight(1f).fillMaxHeight(),
+        Box(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxHeight()
+                .pointerInput(Unit) {
+                    detectTapGestures {
+                        FlorisImeService.performClipboardPaste()
+                    }
+                },
+            contentAlignment = Alignment.Center,
         ) {
             Icon(
                 imageVector = Icons.Filled.ContentPaste,
@@ -275,92 +197,24 @@ private fun ActionRow(
             )
         }
 
-        Spacer(modifier = Modifier.width(4.dp))
+        Spacer(modifier = Modifier.weight(1.5f))
 
-        // Mic button (hold-to-record or tap-to-toggle)
-        MicButton(
-            uiState = uiState,
-            onStartRecording = { voiceInputManager.startRecording() },
-            onStopRecording = { voiceInputManager.stopRecording() },
-            modifier = Modifier.weight(1.2f).fillMaxHeight(),
-        )
-
-        Spacer(modifier = Modifier.width(4.dp))
-
-        // ABC button to switch back to keyboard
+        // ABC — back to keyboard
         KeyboardLikeButton(
             elementName = FlorisImeUi.MediaBottomRowButton.elementName,
             inputEventDispatcher = keyboardManager.inputEventDispatcher,
             keyData = TextKeyData.IME_UI_MODE_TEXT,
             modifier = Modifier.weight(1.5f).fillMaxHeight(),
         ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.Center,
-            ) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Outlined.KeyboardArrowLeft,
-                    contentDescription = null,
-                    modifier = Modifier.size(16.dp),
-                )
-                Text(
-                    text = "ABC",
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 14.sp,
-                )
-            }
+            Text(text = "ABC", fontWeight = FontWeight.Bold)
         }
     }
 }
 
-@Composable
-private fun MicButton(
-    uiState: VoiceInputUiState,
-    onStartRecording: () -> Unit,
-    onStopRecording: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val isRecording = uiState.state == VoiceInputState.RECORDING
-
-    val backgroundColor = when {
-        isRecording -> MaterialTheme.colorScheme.error
-        uiState.state == VoiceInputState.IDLE -> MaterialTheme.colorScheme.primary
-        else -> MaterialTheme.colorScheme.surfaceVariant
-    }
-    val contentColor = when {
-        isRecording || uiState.state == VoiceInputState.IDLE -> Color.White
-        else -> MaterialTheme.colorScheme.onSurfaceVariant
-    }
-
-    Box(
-        modifier = modifier
-            .clip(CircleShape)
-            .background(backgroundColor)
-            .pointerInput(Unit) {
-                detectTapGestures(
-                    onPress = {
-                        // Hold-to-record: start on press, stop on release
-                        onStartRecording()
-                        val released = tryAwaitRelease()
-                        if (released) {
-                            onStopRecording()
-                        }
-                    },
-                )
-            },
-        contentAlignment = Alignment.Center,
-    ) {
-        Icon(
-            imageVector = if (isRecording) Icons.Default.Stop else Icons.Default.Mic,
-            contentDescription = if (isRecording) "Stop" else "Record",
-            tint = contentColor,
-            modifier = Modifier.size(24.dp),
-        )
-    }
-}
+// ── IDLE: Big centered mic, hold-to-record ──
 
 @Composable
-private fun IdleContent(
+private fun IdleMicContent(
     onStartRecording: () -> Unit,
     onStopRecording: () -> Unit,
 ) {
@@ -368,31 +222,49 @@ private fun IdleContent(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
+        Box(
+            modifier = Modifier
+                .size(72.dp)
+                .clip(CircleShape)
+                .background(MaterialTheme.colorScheme.primary)
+                .pointerInput(Unit) {
+                    detectTapGestures(
+                        onPress = {
+                            onStartRecording()
+                            tryAwaitRelease()
+                            onStopRecording()
+                        },
+                    )
+                },
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                imageVector = Icons.Default.Mic,
+                contentDescription = "Record",
+                tint = Color.White,
+                modifier = Modifier.size(36.dp),
+            )
+        }
+        Spacer(modifier = Modifier.height(10.dp))
         Text(
-            text = "Hold mic to record, or tap",
+            text = "Hold to speak",
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            fontSize = 15.sp,
-            textAlign = TextAlign.Center,
-        )
-        Spacer(modifier = Modifier.height(4.dp))
-        Text(
-            text = "Swipe left to return to keyboard",
-            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-            fontSize = 12.sp,
-            textAlign = TextAlign.Center,
+            fontSize = 14.sp,
         )
     }
 }
 
+// ── RECORDING: Big mic with waveform, hold to continue ──
+
 @Composable
-private fun RecordingContent(
+private fun RecordingMicContent(
     amplitude: Float,
     onStopRecording: () -> Unit,
 ) {
     val infiniteTransition = rememberInfiniteTransition(label = "voice_pulse")
     val pulseScale by infiniteTransition.animateFloat(
         initialValue = 1f,
-        targetValue = 1.15f,
+        targetValue = 1.12f,
         animationSpec = infiniteRepeatable(
             animation = tween(durationMillis = 600, easing = LinearEasing),
             repeatMode = RepeatMode.Reverse,
@@ -405,11 +277,12 @@ private fun RecordingContent(
         verticalArrangement = Arrangement.Center,
     ) {
         Box(contentAlignment = Alignment.Center) {
-            val ringRadius = (40f + amplitude * 25f).dp
+            // Amplitude ring
+            val ringRadius = (45f + amplitude * 25f).dp
             val ringRadiusPx = with(LocalDensity.current) { ringRadius.toPx() }
             val ringColor = MaterialTheme.colorScheme.error.copy(alpha = 0.3f)
-            val strokeWidth = with(LocalDensity.current) { 3.dp.toPx() }
-            Canvas(modifier = Modifier.size(120.dp)) {
+            val strokeWidth = with(LocalDensity.current) { 4.dp.toPx() }
+            Canvas(modifier = Modifier.size(140.dp)) {
                 drawCircle(
                     color = ringColor,
                     radius = ringRadiusPx,
@@ -417,9 +290,11 @@ private fun RecordingContent(
                     style = Stroke(width = strokeWidth),
                 )
             }
+
+            // Pulsing stop/mic button
             Box(
                 modifier = Modifier
-                    .size(64.dp)
+                    .size(72.dp)
                     .scale(pulseScale)
                     .clip(CircleShape)
                     .background(MaterialTheme.colorScheme.error),
@@ -429,11 +304,11 @@ private fun RecordingContent(
                     imageVector = Icons.Default.Stop,
                     contentDescription = "Stop",
                     tint = Color.White,
-                    modifier = Modifier.size(28.dp),
+                    modifier = Modifier.size(32.dp),
                 )
             }
         }
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(10.dp))
         Text(
             text = "Listening...",
             color = MaterialTheme.colorScheme.error,
@@ -448,6 +323,8 @@ private fun RecordingContent(
     }
 }
 
+// ── PROCESSING ──
+
 @Composable
 private fun ProcessingContent() {
     Column(
@@ -455,18 +332,16 @@ private fun ProcessingContent() {
         verticalArrangement = Arrangement.Center,
     ) {
         CircularProgressIndicator(
-            modifier = Modifier.size(40.dp),
+            modifier = Modifier.size(44.dp),
             color = MaterialTheme.colorScheme.primary,
             strokeWidth = 3.dp,
         )
         Spacer(modifier = Modifier.height(12.dp))
-        Text(
-            text = "Transcribing...",
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            fontSize = 14.sp,
-        )
+        Text("Transcribing...", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 14.sp)
     }
 }
+
+// ── SUCCESS: Show text, Insert / Redo / Cancel ──
 
 @Composable
 private fun SuccessContent(
@@ -478,15 +353,11 @@ private fun SuccessContent(
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(horizontal = 16.dp, vertical = 8.dp),
+        modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp, vertical = 4.dp),
     ) {
         SnyggBox(
             elementName = FlorisImeUi.Media.elementName,
-            modifier = Modifier
-                .fillMaxWidth()
-                .weight(1f),
+            modifier = Modifier.fillMaxWidth().weight(1f),
             contentAlignment = Alignment.Center,
         ) {
             Text(
@@ -495,25 +366,21 @@ private fun SuccessContent(
                 fontSize = 16.sp,
                 textAlign = TextAlign.Center,
                 modifier = Modifier.padding(12.dp),
-                maxLines = 4,
+                maxLines = 5,
             )
         }
-        Spacer(modifier = Modifier.height(8.dp))
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            TextButton(onClick = onDismiss) {
-                Text("Cancel", fontSize = 13.sp)
-            }
-            TextButton(onClick = onRecordAgain) {
-                Text("Redo", fontSize = 13.sp)
-            }
+        Spacer(modifier = Modifier.height(6.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            TextButton(onClick = onDismiss) { Text("Cancel", fontSize = 13.sp) }
+            TextButton(onClick = onRecordAgain) { Text("Redo", fontSize = 13.sp) }
             TextButton(onClick = onInsert) {
                 Text("Insert", fontWeight = FontWeight.Bold, fontSize = 13.sp)
             }
         }
     }
 }
+
+// ── ERROR ──
 
 @Composable
 private fun ErrorContent(
@@ -537,6 +404,8 @@ private fun ErrorContent(
         }
     }
 }
+
+// ── PERMISSION ──
 
 @Composable
 private fun PermissionRequiredContent() {
