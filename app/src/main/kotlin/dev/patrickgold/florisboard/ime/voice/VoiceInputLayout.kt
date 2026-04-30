@@ -73,9 +73,9 @@ import org.florisboard.lib.snygg.ui.SnyggRow
 @Composable
 fun VoiceInputLayout(
     modifier: Modifier = Modifier,
-    voiceInputManager: VoiceInputManager = remember { VoiceInputManager(LocalContext.current) },
 ) {
     val context = LocalContext.current
+    val voiceInputManager = remember { VoiceInputManager(context) }
     val keyboardManager by context.keyboardManager()
     val uiState by voiceInputManager.uiState.collectAsState()
 
