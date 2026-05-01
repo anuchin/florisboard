@@ -44,7 +44,10 @@ jobs:
         run: |
           echo "=== BUILD LOG (last 200 lines) ==="
           tail -200 build.log || true
+      - name: List APK files
+        run: find app/build/outputs -name "*.apk" -type f 2>/dev/null || echo "No APKs found"
       - uses: actions/upload-artifact@v4
+        if: always()
         with:
           name: florisboard-debug-apk
-          path: app/build/outputs/apk/**/*.apk
+          path: app/build/outputs/
