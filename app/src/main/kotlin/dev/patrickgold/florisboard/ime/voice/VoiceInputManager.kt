@@ -41,6 +41,7 @@ data class VoiceInputUiState(
     val state: VoiceInputState = VoiceInputState.IDLE,
     val transcribedText: String = "",
     val rawTranscribedText: String = "",
+    val refinedText: String = "",
     val isRefined: Boolean = false,
     val errorMessage: String = "",
     val amplitude: Float = 0f,
@@ -148,6 +149,7 @@ class VoiceInputManager(context: Context) {
                     state = VoiceInputState.SUCCESS,
                     transcribedText = refined,
                     rawTranscribedText = rawText,
+                    refinedText = refined,
                     isRefined = true,
                 )
             } catch (e: Exception) {
@@ -165,10 +167,11 @@ class VoiceInputManager(context: Context) {
 
     fun toggleRefined() {
         val current = _uiState.value
-        if (current.rawTranscribedText.isBlank()) return
+        if (current.rawTranscribedText.isBlank() || current.refinedText.isBlank()) return
+        val showingRefined = current.isRefined
         _uiState.value = current.copy(
-            transcribedText = if (current.isRefined) current.rawTranscribedText else current.rawTranscribedText,
-            isRefined = !current.isRefined,
+            transcribedText = if (showingRefined) current.rawTranscribedText else current.refinedText,
+            isRefined = !showingRefined,
         )
     }
 

@@ -135,7 +135,7 @@ fun VoiceInputLayout(
                 VoiceInputState.SUCCESS -> SuccessContent(
                     transcribedText = uiState.transcribedText,
                     isRefined = uiState.isRefined,
-                    hasRawText = uiState.rawTranscribedText.isNotBlank(),
+                    hasRawText = uiState.rawTranscribedText.isNotBlank() && uiState.refinedText.isNotBlank(),
                     refinementEnabled = voiceInputManager.isRefinementEnabled(),
                     onInsert = { voiceInputManager.commitText() },
                     onDismiss = { voiceInputManager.reset() },
