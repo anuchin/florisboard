@@ -16,6 +16,7 @@
 
 package dev.patrickgold.florisboard.app
 
+import android.Manifest
 import android.content.Context
 import android.content.Intent
 import android.content.res.Configuration
@@ -164,6 +165,10 @@ class FlorisAppActivity : ComponentActivity() {
         }
         if (intent.action == Intent.ACTION_SEND && intent.clipData != null) {
             intentToBeHandled = intent
+            return
+        }
+        if (intent.action == "REQUEST_RECORD_AUDIO") {
+            requestPermissions(arrayOf(Manifest.permission.RECORD_AUDIO), 1001)
             return
         }
         intentToBeHandled = null

@@ -146,6 +146,27 @@ class FlorisImeService : LifecycleInputMethodService() {
             val ims = FlorisImeServiceReference.get() ?: return null
             return ims.windowController
         }
+
+        fun commitText(text: String) {
+            val ims = FlorisImeServiceReference.get() ?: return
+            ims.currentInputConnection?.commitText(text, 1)
+        }
+
+        fun sendDownAndUpKeyEvent(keyCode: Int, metaCtrl: Boolean = false, metaShift: Boolean = false) {
+            val ims = FlorisImeServiceReference.get() ?: return
+            val ic = ims.currentInputConnection ?: return
+            var metaState = 0
+            if (metaCtrl) metaState = metaState or KeyEvent.META_CTRL_ON
+            if (metaShift) metaState = metaState or KeyEvent.META_SHIFT_ON
+            val now = System.currentTimeMillis()
+            ic.sendKeyEvent(KeyEvent(now, now, KeyEvent.ACTION_DOWN, keyCode, 0, metaState))
+            ic.sendKeyEvent(KeyEvent(now, now, KeyEvent.ACTION_UP, keyCode, 0, metaState))
+        }
+
+        fun performClipboardPaste() {
+            val ims = FlorisImeServiceReference.get() ?: return
+            ims.currentInputConnection?.performContextMenuAction(android.R.id.paste)
+        }
     }
 
     fun hideUi() {

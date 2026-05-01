@@ -50,6 +50,9 @@ import dev.patrickgold.florisboard.ime.text.key.KeyCode
 import dev.patrickgold.florisboard.ime.text.key.KeyHintConfiguration
 import dev.patrickgold.florisboard.ime.text.key.KeyHintMode
 import dev.patrickgold.florisboard.ime.text.key.UtilityKeyAction
+import dev.patrickgold.florisboard.ime.voice.RefinementStyle
+import dev.patrickgold.florisboard.ime.voice.SavedEndpoint
+import dev.patrickgold.florisboard.ime.voice.VoiceProvider
 import dev.patrickgold.florisboard.ime.text.keyboard.TextKeyData
 import dev.patrickgold.florisboard.ime.theme.ThemeMode
 import dev.patrickgold.florisboard.ime.theme.extCoreTheme
@@ -745,6 +748,78 @@ abstract class FlorisPreferenceModel : PreferenceModel() {
         val editorLevel = enum(
             key = "theme__editor_level",
             default = SnyggLevel.ADVANCED,
+        )
+    }
+
+    val voice = Voice()
+    inner class Voice {
+        val provider = enum(
+            key = "voice__provider",
+            default = VoiceProvider.OPENAI,
+        )
+        val openaiApiKey = string(
+            key = "voice__openai_api_key",
+            default = "",
+        )
+        val groqApiKey = string(
+            key = "voice__groq_api_key",
+            default = "",
+        )
+        val customEndpointUrl = string(
+            key = "voice__custom_endpoint_url",
+            default = "",
+        )
+        val customApiKey = string(
+            key = "voice__custom_api_key",
+            default = "",
+        )
+        val customModel = string(
+            key = "voice__custom_model",
+            default = "whisper-1",
+        )
+        val model = string(
+            key = "voice__model",
+            default = "whisper-1",
+        )
+        val language = string(
+            key = "voice__language",
+            default = "",
+        )
+        val autoCommit = boolean(
+            key = "voice__auto_commit",
+            default = true,
+        )
+        val savedEndpoints = string(
+            key = "voice__saved_endpoints",
+            default = "[]",
+        )
+        val activeEndpointId = string(
+            key = "voice__active_endpoint_id",
+            default = "",
+        )
+        val refinementEnabled = boolean(
+            key = "voice__refinement_enabled",
+            default = false,
+        )
+        val refinementAutoRefine = boolean(
+            key = "voice__refinement_auto_refine",
+            default = false,
+        )
+        val refinementStyle = enum(
+            key = "voice__refinement_style",
+            default = RefinementStyle.CLEAN_UP,
+        )
+        val refinementCustomPrompt = string(
+            key = "voice__refinement_custom_prompt",
+            default = "",
+        )
+        val llmSavedEndpoints = string(
+            key = "voice__llm_saved_endpoints",
+            default = "[]",
+        )
+        val llmActiveEndpointId = string(
+            key = "voice__llm_active_endpoint_id",
+            default = "",
         )
     }
 
