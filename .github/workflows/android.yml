@@ -38,7 +38,12 @@ jobs:
       - name: Set up CMake and Ninja
         uses: lukka/get-cmake@v4.0.2
       - name: Build with Gradle
-        run: ./gradlew clean assembleDebug
+        run: ./gradlew clean assembleDebug --stacktrace 2>&1 | tee build.log
+      - name: Print build log on failure
+        if: failure()
+        run: |
+          echo "=== BUILD LOG (last 200 lines) ==="
+          tail -200 build.log || true
       - uses: actions/upload-artifact@v4
         with:
           name: app-debug.apk
