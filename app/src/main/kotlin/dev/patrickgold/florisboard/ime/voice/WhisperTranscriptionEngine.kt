@@ -36,6 +36,11 @@ data class ValidationResult(
     val errorMessage: String? = null,
 )
 
+data class ModelsResult(
+    val models: List<String>,
+    val error: String? = null,
+)
+
 interface TranscriptionEngine {
     suspend fun transcribe(audioBytes: ByteArray, config: TranscriptionConfig): TranscriptionResult
     suspend fun validateApiKey(): ValidationResult

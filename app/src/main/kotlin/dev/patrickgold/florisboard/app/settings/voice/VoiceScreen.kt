@@ -16,14 +16,19 @@
 
 package dev.patrickgold.florisboard.app.settings.voice
 
-import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -31,12 +36,13 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.delay
 import dev.patrickgold.florisboard.app.FlorisPreferenceModel
 import dev.patrickgold.florisboard.app.FlorisPreferenceStore
 import dev.patrickgold.florisboard.ime.voice.LlmApiClient
 import dev.patrickgold.florisboard.ime.voice.RefinementStyle
+import dev.patrickgold.florisboard.ime.voice.ModelsResult
 import dev.patrickgold.florisboard.ime.voice.SavedEndpoint
 import dev.patrickgold.florisboard.ime.voice.ValidationResult
 import dev.patrickgold.florisboard.ime.voice.VoiceProvider
@@ -450,6 +456,27 @@ fun VoiceScreen() = FlorisScreen {
         var epModel by remember { mutableStateOf(editingEndpoint?.model ?: "whisper-1") }
         var epValidating by remember { mutableStateOf(false) }
         var epValidationResult by remember { mutableStateOf<ValidationResult?>(null) }
+        var epModels by remember { mutableStateOf<List<String>>(emptyList()) }
+        var epFetchingModels by remember { mutableStateOf(false) }
+        var epModelExpanded by remember { mutableStateOf(false) }
+        var epManualModel by remember { mutableStateOf(false) }
+
+        LaunchedEffect(epUrl, epApiKey) {
+            if (epUrl.isNotBlank() && epApiKey.isNotBlank()) {
+                delay(800)
+                epFetchingModels = true
+                val client = WhisperApiClient(epUrl.trimEnd('/'), epApiKey.trim())
+                val result = client.fetchModels()
+                if (result.error == null && result.models.isNotEmpty()) {
+                    epModels = result.models
+                    if (epModel !in result.models) epModel = result.models.first()
+                } else {
+                    epManualModel = true
+                    epModels = emptyList()
+                }
+                epFetchingModels = false
+            }
+        }
 
         JetPrefAlertDialog(
             title = if (isEdit) "Edit Endpoint" else "Add Endpoint",
@@ -494,35 +521,65 @@ fun VoiceScreen() = FlorisScreen {
                 JetPrefTextField(value = epApiKey, onValueChange = { epApiKey = it })
                 Spacer(modifier = Modifier.height(8.dp))
                 Text("Model", modifier = Modifier.padding(bottom = 4.dp))
-                JetPrefTextField(value = epModel, onValueChange = { epModel = it })
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = when {
-                        epValidating -> "Checking..."
-                        epValidationResult?.isSuccess == true -> "Valid!"
-                        epValidationResult?.isSuccess == false -> epValidationResult?.errorMessage ?: "Failed"
-                        else -> "Validate this endpoint"
-                    },
-                    color = when {
-                        epValidating -> MaterialTheme.colorScheme.onSurfaceVariant
-                        epValidationResult?.isSuccess == true -> Color(0xFF4CAF50)
-                        epValidationResult?.isSuccess == false -> MaterialTheme.colorScheme.error
-                        else -> MaterialTheme.colorScheme.primary
-                    },
-                    modifier = Modifier.pointerInput(Unit) {
-                        detectTapGestures {
-                            if (epUrl.isNotBlank() && epApiKey.isNotBlank()) {
-                                epValidating = true
-                                epValidationResult = null
-                                scope.launch {
-                                    val client = WhisperApiClient(epUrl.trimEnd('/'), epApiKey.trim())
-                                    epValidationResult = client.validateApiKey()
-                                    epValidating = false
-                                }
+                if (epModels.isNotEmpty() && !epManualModel) {
+                    Box {
+                        OutlinedButton(
+                            onClick = { epModelExpanded = true },
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            Text(epModel.ifBlank { "Select model..." })
+                        }
+                        DropdownMenu(
+                            expanded = epModelExpanded,
+                            onDismissRequest = { epModelExpanded = false },
+                        ) {
+                            epModels.forEach { modelId ->
+                                DropdownMenuItem(
+                                    text = { Text(modelId, maxLines = 1) },
+                                    onClick = {
+                                        epModel = modelId
+                                        epModelExpanded = false
+                                    },
+                                )
                             }
                         }
+                    }
+                } else {
+                    JetPrefTextField(value = epModel, onValueChange = { epModel = it })
+                    if (epFetchingModels) {
+                        Text(
+                            "Fetching models...",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+                OutlinedButton(
+                    onClick = {
+                        epValidating = true
+                        epValidationResult = null
+                        scope.launch {
+                            val client = WhisperApiClient(epUrl.trimEnd('/'), epApiKey.trim())
+                            epValidationResult = client.validateApiKey()
+                            epValidating = false
+                        }
                     },
-                )
+                    enabled = epUrl.isNotBlank() && epApiKey.isNotBlank() && !epValidating,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text(if (epValidating) "Validating..." else "Validate Endpoint")
+                }
+                if (epValidationResult != null) {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = if (epValidationResult!!.isSuccess) "Connection successful"
+                               else epValidationResult!!.errorMessage ?: "Validation failed",
+                        color = if (epValidationResult!!.isSuccess) Color(0xFF4CAF50)
+                               else MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                }
             }
         }
     }
@@ -608,6 +665,27 @@ fun VoiceScreen() = FlorisScreen {
         var epModel by remember { mutableStateOf(editingLlmEndpoint?.model ?: "gpt-4o-mini") }
         var epValidating by remember { mutableStateOf(false) }
         var epValidationResult by remember { mutableStateOf<ValidationResult?>(null) }
+        var epModels by remember { mutableStateOf<List<String>>(emptyList()) }
+        var epFetchingModels by remember { mutableStateOf(false) }
+        var epModelExpanded by remember { mutableStateOf(false) }
+        var epManualModel by remember { mutableStateOf(false) }
+
+        LaunchedEffect(epUrl, epApiKey) {
+            if (epUrl.isNotBlank() && epApiKey.isNotBlank()) {
+                delay(800)
+                epFetchingModels = true
+                val client = LlmApiClient(epUrl.trimEnd('/'), epApiKey.trim(), epModel.trim())
+                val result = client.fetchModels()
+                if (result.error == null && result.models.isNotEmpty()) {
+                    epModels = result.models
+                    if (epModel !in result.models) epModel = result.models.first()
+                } else {
+                    epManualModel = true
+                    epModels = emptyList()
+                }
+                epFetchingModels = false
+            }
+        }
 
         JetPrefAlertDialog(
             title = if (isEdit) "Edit LLM Endpoint" else "Add LLM Endpoint",
@@ -652,35 +730,65 @@ fun VoiceScreen() = FlorisScreen {
                 JetPrefTextField(value = epApiKey, onValueChange = { epApiKey = it })
                 Spacer(modifier = Modifier.height(8.dp))
                 Text("Model", modifier = Modifier.padding(bottom = 4.dp))
-                JetPrefTextField(value = epModel, onValueChange = { epModel = it })
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = when {
-                        epValidating -> "Checking..."
-                        epValidationResult?.isSuccess == true -> "Valid!"
-                        epValidationResult?.isSuccess == false -> epValidationResult?.errorMessage ?: "Failed"
-                        else -> "Validate this endpoint"
-                    },
-                    color = when {
-                        epValidating -> MaterialTheme.colorScheme.onSurfaceVariant
-                        epValidationResult?.isSuccess == true -> Color(0xFF4CAF50)
-                        epValidationResult?.isSuccess == false -> MaterialTheme.colorScheme.error
-                        else -> MaterialTheme.colorScheme.primary
-                    },
-                    modifier = Modifier.pointerInput(Unit) {
-                        detectTapGestures {
-                            if (epUrl.isNotBlank() && epApiKey.isNotBlank()) {
-                                epValidating = true
-                                epValidationResult = null
-                                scope.launch {
-                                    val client = LlmApiClient(epUrl.trimEnd('/'), epApiKey.trim(), epModel.trim())
-                                    epValidationResult = client.validateApiKey()
-                                    epValidating = false
-                                }
+                if (epModels.isNotEmpty() && !epManualModel) {
+                    Box {
+                        OutlinedButton(
+                            onClick = { epModelExpanded = true },
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            Text(epModel.ifBlank { "Select model..." })
+                        }
+                        DropdownMenu(
+                            expanded = epModelExpanded,
+                            onDismissRequest = { epModelExpanded = false },
+                        ) {
+                            epModels.forEach { modelId ->
+                                DropdownMenuItem(
+                                    text = { Text(modelId, maxLines = 1) },
+                                    onClick = {
+                                        epModel = modelId
+                                        epModelExpanded = false
+                                    },
+                                )
                             }
                         }
+                    }
+                } else {
+                    JetPrefTextField(value = epModel, onValueChange = { epModel = it })
+                    if (epFetchingModels) {
+                        Text(
+                            "Fetching models...",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+                OutlinedButton(
+                    onClick = {
+                        epValidating = true
+                        epValidationResult = null
+                        scope.launch {
+                            val client = LlmApiClient(epUrl.trimEnd('/'), epApiKey.trim(), epModel.trim())
+                            epValidationResult = client.validateApiKey()
+                            epValidating = false
+                        }
                     },
-                )
+                    enabled = epUrl.isNotBlank() && epApiKey.isNotBlank() && !epValidating,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text(if (epValidating) "Validating..." else "Validate Endpoint")
+                }
+                if (epValidationResult != null) {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = if (epValidationResult!!.isSuccess) "Connection successful"
+                               else epValidationResult!!.errorMessage ?: "Validation failed",
+                        color = if (epValidationResult!!.isSuccess) Color(0xFF4CAF50)
+                               else MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                }
             }
         }
     }

@@ -26,6 +26,8 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.Arrangement
@@ -53,6 +55,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.setValue
@@ -236,6 +239,8 @@ private fun MicContent(
     onStartRecording: () -> Unit,
     onStopRecording: () -> Unit,
 ) {
+    var gestureStartedRecording by remember { mutableStateOf(false) }
+
     val isRecording = state == VoiceInputState.RECORDING
     val infiniteTransition = rememberInfiniteTransition(label = "voice_pulse")
     val pulseScale by infiniteTransition.animateFloat(
@@ -279,13 +284,32 @@ private fun MicContent(
                         else MaterialTheme.colorScheme.primary,
                     )
                     .pointerInput(Unit) {
-                        detectTapGestures(
-                            onPress = {
+                        awaitEachGesture {
+                            val down = awaitFirstDown(requireUnconsumed = false)
+                            val pressStartTime = System.currentTimeMillis()
+
+                            if (!isRecording) {
                                 onStartRecording()
-                                tryAwaitRelease()
+                                gestureStartedRecording = true
+                            } else {
+                                gestureStartedRecording = false
+                            }
+
+                            // Wait for finger up
+                            awaitPointerEvent()
+                            val pressDuration = System.currentTimeMillis() - pressStartTime
+
+                            if (pressDuration < 200L) {
+                                // Short tap: toggle mode
+                                if (!gestureStartedRecording) {
+                                    onStopRecording()
+                                }
+                                // If we started recording, let it continue
+                            } else {
+                                // Long press: push-to-talk, always stop
                                 onStopRecording()
-                            },
-                        )
+                            }
+                        }
                     },
                 contentAlignment = Alignment.Center,
             ) {
@@ -306,13 +330,13 @@ private fun MicContent(
                 fontWeight = FontWeight.Medium,
             )
             Text(
-                text = "Release to stop",
+                text = "Tap or release to stop",
                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
                 fontSize = 12.sp,
             )
         } else {
             Text(
-                text = "Hold to speak",
+                text = "Tap or hold to speak",
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 fontSize = 14.sp,
             )

@@ -19,6 +19,7 @@ package dev.patrickgold.florisboard.ime.voice
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import okhttp3.MediaType.Companion.toMediaType
@@ -91,6 +92,35 @@ class WhisperApiClient(
                 }
             } catch (e: Exception) {
                 ValidationResult(isSuccess = false, errorMessage = e.message ?: "Connection failed")
+            }
+        }
+
+    suspend fun fetchModels(): ModelsResult =
+        withContext(Dispatchers.IO) {
+            try {
+                val request = Request.Builder()
+                    .url("$baseUrl/v1/models")
+                    .addHeader("Authorization", "Bearer $apiKey")
+                    .get()
+                    .build()
+
+                val response = client.newCall(request).execute()
+                val responseBody = response.body?.string()
+                    ?: return@withContext ModelsResult(emptyList(), "Empty response")
+
+                if (!response.isSuccessful) {
+                    return@withContext ModelsResult(emptyList(), "API returned ${response.code}")
+                }
+
+                val jsonResponse = json.parseToJsonElement(responseBody).jsonObject
+                val dataArray = jsonResponse["data"]?.jsonArray
+                val modelIds = dataArray?.mapNotNull { element ->
+                    element.jsonObject["id"]?.jsonPrimitive?.content
+                }?.sorted() ?: emptyList()
+
+                ModelsResult(modelIds)
+            } catch (e: Exception) {
+                ModelsResult(emptyList(), e.message ?: "Connection failed")
             }
         }
 }
