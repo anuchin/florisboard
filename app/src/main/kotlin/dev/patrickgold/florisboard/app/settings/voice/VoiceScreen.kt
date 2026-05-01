@@ -243,7 +243,7 @@ fun VoiceScreen() = FlorisScreen {
                 title = "Custom Prompt",
                 summary = refinementCustomPrompt.ifBlank { "Not set" },
                 onClick = { showCustomPromptDialog = true },
-                visibleIf = { prefs.voice.refinementEnabled isEqualTo true and (prefs.voice.refinementStyle isEqualTo RefinementStyle.CUSTOM) },
+                visibleIf = { prefs.voice.refinementStyle isEqualTo RefinementStyle.CUSTOM },
             )
         }
 
