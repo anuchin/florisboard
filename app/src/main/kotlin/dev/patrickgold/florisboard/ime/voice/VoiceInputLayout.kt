@@ -26,8 +26,8 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
-import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -37,6 +37,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -48,20 +49,21 @@ import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
@@ -90,19 +92,30 @@ fun VoiceInputLayout(
     val keyboardManager by context.keyboardManager()
     val uiState by voiceInputManager.uiState.collectAsState()
 
+    // Horizontal swipe offset for visual feedback
+    var swipeOffsetX by remember { mutableFloatStateOf(0f) }
+
     SnyggColumn(
         elementName = FlorisImeUi.Media.elementName,
         modifier = modifier
             .fillMaxWidth()
             .height(FlorisImeSizing.imeUiHeight())
+            // Horizontal drag for swipe-to-keyboard, only on edges / empty areas
             .pointerInput(Unit) {
-                detectDragGestures { change, dragAmount ->
+                detectHorizontalDragGestures(
+                    onDragEnd = {
+                        if (swipeOffsetX < -150f) {
+                            keyboardManager.activeState.imeUiMode = ImeUiMode.TEXT
+                        }
+                        swipeOffsetX = 0f
+                    },
+                    onDragCancel = { swipeOffsetX = 0f },
+                ) { change, dragAmount ->
                     change.consume()
-                    if (dragAmount.x < -100f) {
-                        keyboardManager.activeState.imeUiMode = ImeUiMode.TEXT
-                    }
+                    swipeOffsetX = (swipeOffsetX + dragAmount).coerceIn(-300f, 0f)
                 }
-            },
+            }
+            .graphicsLayer { translationX = swipeOffsetX },
     ) {
         // Main area — mic button centered + status text
         Box(
@@ -277,7 +290,6 @@ private fun RecordingMicContent(
         verticalArrangement = Arrangement.Center,
     ) {
         Box(contentAlignment = Alignment.Center) {
-            // Amplitude ring
             val ringRadius = (45f + amplitude * 25f).dp
             val ringRadiusPx = with(LocalDensity.current) { ringRadius.toPx() }
             val ringColor = MaterialTheme.colorScheme.error.copy(alpha = 0.3f)
@@ -290,8 +302,6 @@ private fun RecordingMicContent(
                     style = Stroke(width = strokeWidth),
                 )
             }
-
-            // Pulsing stop/mic button
             Box(
                 modifier = Modifier
                     .size(72.dp)
@@ -341,7 +351,7 @@ private fun ProcessingContent() {
     }
 }
 
-// ── SUCCESS: Show text, Insert / Redo / Cancel ──
+// ── SUCCESS ──
 
 @Composable
 private fun SuccessContent(

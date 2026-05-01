@@ -50,6 +50,7 @@ import dev.patrickgold.florisboard.ime.text.key.KeyCode
 import dev.patrickgold.florisboard.ime.text.key.KeyHintConfiguration
 import dev.patrickgold.florisboard.ime.text.key.KeyHintMode
 import dev.patrickgold.florisboard.ime.text.key.UtilityKeyAction
+import dev.patrickgold.florisboard.ime.voice.SavedEndpoint
 import dev.patrickgold.florisboard.ime.voice.VoiceProvider
 import dev.patrickgold.florisboard.ime.text.keyboard.TextKeyData
 import dev.patrickgold.florisboard.ime.theme.ThemeMode
@@ -786,6 +787,14 @@ abstract class FlorisPreferenceModel : PreferenceModel() {
         val autoCommit = boolean(
             key = "voice__auto_commit",
             default = true,
+        )
+        val savedEndpoints = string(
+            key = "voice__saved_endpoints",
+            default = "[]",
+        )
+        val activeEndpointId = string(
+            key = "voice__active_endpoint_id",
+            default = "",
         )
     }
 

@@ -93,7 +93,7 @@ class VoiceInputManager(context: Context) {
         try {
             val client = buildClient()
             val config = TranscriptionConfig(
-                model = prefs.voice.model.get(),
+                model = getActiveModel(),
                 language = prefs.voice.language.get(),
             )
             val result = client.transcribe(audioBytes, config)
@@ -125,6 +125,20 @@ class VoiceInputManager(context: Context) {
     }
 
     private fun buildClient(): WhisperApiClient {
+        // Check for active saved endpoint first
+        val activeId = prefs.voice.activeEndpointId.get()
+        if (activeId.isNotBlank()) {
+            val endpoints = SavedEndpoint.deserializeList(prefs.voice.savedEndpoints.get())
+            val active = endpoints.find { it.id == activeId }
+            if (active != null) {
+                return WhisperApiClient(
+                    baseUrl = active.baseUrl.trimEnd('/'),
+                    apiKey = active.apiKey,
+                )
+            }
+        }
+
+        // Fall back to provider-based config
         val provider = prefs.voice.provider.get()
         return when (provider) {
             VoiceProvider.OPENAI -> WhisperApiClient(
@@ -140,6 +154,16 @@ class VoiceInputManager(context: Context) {
                 apiKey = prefs.voice.customApiKey.get(),
             )
         }
+    }
+
+    fun getActiveModel(): String {
+        val activeId = prefs.voice.activeEndpointId.get()
+        if (activeId.isNotBlank()) {
+            val endpoints = SavedEndpoint.deserializeList(prefs.voice.savedEndpoints.get())
+            val active = endpoints.find { it.id == activeId }
+            if (active != null) return active.model
+        }
+        return prefs.voice.model.get()
     }
 
     fun validateCurrentProvider(onResult: (ValidationResult) -> Unit) {

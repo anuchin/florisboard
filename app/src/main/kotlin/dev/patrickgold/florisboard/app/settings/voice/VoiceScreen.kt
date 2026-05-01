@@ -16,6 +16,7 @@
 
 package dev.patrickgold.florisboard.app.settings.voice
 
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
@@ -29,9 +30,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
 import dev.patrickgold.florisboard.app.FlorisPreferenceModel
 import dev.patrickgold.florisboard.app.FlorisPreferenceStore
+import dev.patrickgold.florisboard.ime.voice.SavedEndpoint
 import dev.patrickgold.florisboard.ime.voice.ValidationResult
 import dev.patrickgold.florisboard.ime.voice.VoiceProvider
 import dev.patrickgold.florisboard.ime.voice.WhisperApiClient
@@ -68,6 +72,15 @@ fun VoiceScreen() = FlorisScreen {
     var showEndpointDialog by remember { mutableStateOf(false) }
     var showModelDialog by remember { mutableStateOf(false) }
     var showLanguageDialog by remember { mutableStateOf(false) }
+    var showAddEndpointDialog by remember { mutableStateOf(false) }
+    var editingEndpoint by remember { mutableStateOf<SavedEndpoint?>(null) }
+    var showDeleteEndpointConfirm by remember { mutableStateOf<SavedEndpoint?>(null) }
+
+    val savedEndpointsRaw by prefs.voice.savedEndpoints.collectAsState()
+    val savedEndpoints = remember(savedEndpointsRaw) {
+        SavedEndpoint.deserializeList(savedEndpointsRaw)
+    }
+    val activeEndpointId by prefs.voice.activeEndpointId.collectAsState()
 
     var isValidating by remember { mutableStateOf(false) }
     var validationResult by remember { mutableStateOf<ValidationResult?>(null) }
@@ -89,6 +102,38 @@ fun VoiceScreen() = FlorisScreen {
                     VoiceProvider.CUSTOM -> "Custom"
                 },
                 onClick = { showProviderDialog = true },
+            )
+        }
+
+        // Saved endpoints
+        PreferenceGroup(title = "Saved Endpoints") {
+            if (savedEndpoints.isEmpty()) {
+                Preference(
+                    title = "No saved endpoints",
+                    summary = "Add a custom endpoint to use multiple providers",
+                )
+            } else {
+                savedEndpoints.forEach { endpoint ->
+                    val isActive = endpoint.id == activeEndpointId
+                    Preference(
+                        title = endpoint.name,
+                        summary = "${endpoint.baseUrl} • ${endpoint.model}" +
+                            if (isActive) " (active)" else "",
+                        onClick = {
+                            scope.launch {
+                                if (isActive) {
+                                    prefs.voice.activeEndpointId.set("")
+                                } else {
+                                    prefs.voice.activeEndpointId.set(endpoint.id)
+                                }
+                            }
+                        },
+                    )
+                }
+            }
+            Preference(
+                title = "Add Endpoint",
+                onClick = { showAddEndpointDialog = true },
             )
         }
 
@@ -319,22 +364,114 @@ fun VoiceScreen() = FlorisScreen {
             }
         }
     }
-}
 
-private fun buildClientFromPrefs(prefs: FlorisPreferenceModel): WhisperApiClient {
-    val provider = prefs.voice.provider.get()
-    return when (provider) {
-        VoiceProvider.OPENAI -> WhisperApiClient(
-            baseUrl = "https://api.openai.com",
-            apiKey = prefs.voice.openaiApiKey.get(),
-        )
-        VoiceProvider.GROQ -> WhisperApiClient(
-            baseUrl = "https://api.groq.com/openai",
-            apiKey = prefs.voice.groqApiKey.get(),
-        )
-        VoiceProvider.CUSTOM -> WhisperApiClient(
-            baseUrl = prefs.voice.customEndpointUrl.get().trimEnd('/'),
-            apiKey = prefs.voice.customApiKey.get(),
-        )
+    // Add/Edit endpoint dialog
+    if (showAddEndpointDialog || editingEndpoint != null) {
+        val isEdit = editingEndpoint != null
+        var epName by remember { mutableStateOf(editingEndpoint?.name ?: "") }
+        var epUrl by remember { mutableStateOf(editingEndpoint?.baseUrl ?: "") }
+        var epApiKey by remember { mutableStateOf(editingEndpoint?.apiKey ?: "") }
+        var epModel by remember { mutableStateOf(editingEndpoint?.model ?: "whisper-1") }
+        var epValidating by remember { mutableStateOf(false) }
+        var epValidationResult by remember { mutableStateOf<ValidationResult?>(null) }
+
+        JetPrefAlertDialog(
+            title = if (isEdit) "Edit Endpoint" else "Add Endpoint",
+            confirmLabel = "Save",
+            onConfirm = {
+                val id = editingEndpoint?.id ?: java.util.UUID.randomUUID().toString()
+                val endpoint = SavedEndpoint(
+                    id = id,
+                    name = epName.trim(),
+                    baseUrl = epUrl.trimEnd('/'),
+                    apiKey = epApiKey.trim(),
+                    model = epModel.trim(),
+                )
+                val current = SavedEndpoint.deserializeList(prefs.voice.savedEndpoints.get())
+                val updated = if (isEdit) {
+                    current.map { if (it.id == id) endpoint else it }
+                } else {
+                    current + endpoint
+                }
+                scope.launch {
+                    prefs.voice.savedEndpoints.set(SavedEndpoint.serializeList(updated))
+                    prefs.voice.activeEndpointId.set(id)
+                }
+                showAddEndpointDialog = false
+                editingEndpoint = null
+            },
+            dismissLabel = "Cancel",
+            onDismiss = {
+                showAddEndpointDialog = false
+                editingEndpoint = null
+            },
+            confirmEnabled = epName.isNotBlank() && epUrl.isNotBlank() && epApiKey.isNotBlank(),
+        ) {
+            Column {
+                Text("Name", modifier = Modifier.padding(bottom = 4.dp))
+                JetPrefTextField(value = epName, onValueChange = { epName = it })
+                Spacer(modifier = Modifier.height(8.dp))
+                Text("Base URL", modifier = Modifier.padding(bottom = 4.dp))
+                JetPrefTextField(value = epUrl, onValueChange = { epUrl = it })
+                Spacer(modifier = Modifier.height(8.dp))
+                Text("API Key", modifier = Modifier.padding(bottom = 4.dp))
+                JetPrefTextField(value = epApiKey, onValueChange = { epApiKey = it })
+                Spacer(modifier = Modifier.height(8.dp))
+                Text("Model", modifier = Modifier.padding(bottom = 4.dp))
+                JetPrefTextField(value = epModel, onValueChange = { epModel = it })
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    title = "Validate",
+                    color = when {
+                        epValidating -> MaterialTheme.colorScheme.onSurfaceVariant
+                        epValidationResult?.isSuccess == true -> Color(0xFF4CAF50)
+                        epValidationResult?.isSuccess == false -> MaterialTheme.colorScheme.error
+                        else -> MaterialTheme.colorScheme.primary
+                    },
+                    text = when {
+                        epValidating -> "Checking..."
+                        epValidationResult?.isSuccess == true -> "Valid!"
+                        epValidationResult?.isSuccess == false -> epValidationResult?.errorMessage ?: "Failed"
+                        else -> "Validate this endpoint"
+                    },
+                    modifier = Modifier.pointerInput(Unit) {
+                        detectTapGestures {
+                            if (epUrl.isNotBlank() && epApiKey.isNotBlank()) {
+                                epValidating = true
+                                epValidationResult = null
+                                scope.launch {
+                                    val client = WhisperApiClient(epUrl.trimEnd('/'), epApiKey.trim())
+                                    epValidationResult = client.validateApiKey()
+                                    epValidating = false
+                                }
+                            }
+                        }
+                    },
+                )
+            }
+        }
+    }
+
+    // Delete endpoint confirm dialog
+    showDeleteEndpointConfirm?.let { endpoint ->
+        JetPrefAlertDialog(
+            title = "Delete Endpoint",
+            confirmLabel = "Delete",
+            onConfirm = {
+                val current = SavedEndpoint.deserializeList(prefs.voice.savedEndpoints.get())
+                val updated = current.filter { it.id != endpoint.id }
+                scope.launch {
+                    prefs.voice.savedEndpoints.set(SavedEndpoint.serializeList(updated))
+                    if (prefs.voice.activeEndpointId.get() == endpoint.id) {
+                        prefs.voice.activeEndpointId.set("")
+                    }
+                }
+                showDeleteEndpointConfirm = null
+            },
+            dismissLabel = "Cancel",
+            onDismiss = { showDeleteEndpointConfirm = null },
+        ) {
+            Text("Delete \"${endpoint.name}\"?")
+        }
     }
 }
