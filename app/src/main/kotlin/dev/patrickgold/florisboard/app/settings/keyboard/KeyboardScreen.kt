@@ -50,6 +50,11 @@ fun KeyboardScreen() = FlorisScreen {
             title = stringRes(R.string.pref__keyboard__number_row__label),
             summary = stringRes(R.string.pref__keyboard__number_row__summary),
         )
+        SwitchPreference(
+            prefs.keyboard.coderToolbarEnabled,
+            title = stringRes(R.string.pref__keyboard__coder_toolbar_enabled__label),
+            summary = stringRes(R.string.pref__keyboard__coder_toolbar_enabled__summary),
+        )
         ListPreference(
             listPref = prefs.keyboard.hintedNumberRowMode,
             switchPref = prefs.keyboard.hintedNumberRowEnabled,

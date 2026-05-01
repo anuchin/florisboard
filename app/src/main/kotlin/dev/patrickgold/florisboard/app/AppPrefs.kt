@@ -484,6 +484,10 @@ abstract class FlorisPreferenceModel : PreferenceModel() {
             key = "keyboard__number_row",
             default = false,
         )
+        val coderToolbarEnabled = boolean(
+            key = "keyboard__coder_toolbar_enabled",
+            default = false,
+        )
         val hintedNumberRowEnabled = boolean(
             key = "keyboard__hinted_number_row_enabled",
             default = true,

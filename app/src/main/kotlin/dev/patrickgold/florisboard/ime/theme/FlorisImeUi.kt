@@ -249,6 +249,15 @@ enum class FlorisImeUi(val elementName: String, val resId: Int?) {
         resId = R.string.snygg__rule_element__media_bottom_row_button,
     ),
 
+    CoderToolbarRow(
+        elementName = "coder-toolbar-row",
+        resId = R.string.snygg__rule_element__coder_toolbar_row,
+    ),
+    CoderToolbarButton(
+        elementName = "coder-toolbar-button",
+        resId = R.string.snygg__rule_element__coder_toolbar_button,
+    ),
+
     OneHandedPanel(
         elementName = "one-handed-panel",
         resId = R.string.snygg__rule_element__one_handed_panel,
