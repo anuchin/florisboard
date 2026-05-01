@@ -126,20 +126,24 @@ fun VoiceInputLayout(
             contentAlignment = Alignment.Center,
         ) {
             when (uiState.state) {
-                VoiceInputState.IDLE -> IdleMicContent(
+                VoiceInputState.IDLE, VoiceInputState.RECORDING -> MicContent(
+                    state = uiState.state,
+                    amplitude = uiState.amplitude,
                     onStartRecording = { voiceInputManager.startRecording() },
                     onStopRecording = { voiceInputManager.stopRecording() },
                 )
-                VoiceInputState.RECORDING -> RecordingMicContent(
-                    amplitude = uiState.amplitude,
-                    onStopRecording = { voiceInputManager.stopRecording() },
-                )
-                VoiceInputState.PROCESSING -> ProcessingContent()
+                VoiceInputState.PROCESSING -> ProcessingContent("Transcribing...")
+                VoiceInputState.REFINING -> ProcessingContent("Refining text...")
                 VoiceInputState.SUCCESS -> SuccessContent(
                     transcribedText = uiState.transcribedText,
+                    isRefined = uiState.isRefined,
+                    hasRawText = uiState.rawTranscribedText.isNotBlank(),
+                    refinementEnabled = voiceInputManager.isRefinementEnabled(),
                     onInsert = { voiceInputManager.commitText() },
                     onDismiss = { voiceInputManager.reset() },
                     onRecordAgain = { voiceInputManager.startRecording() },
+                    onRefine = { voiceInputManager.refineText() },
+                    onToggleRawRefined = { voiceInputManager.toggleRefined() },
                 )
                 VoiceInputState.ERROR -> ErrorContent(
                     errorMessage = uiState.errorMessage,
@@ -225,56 +229,16 @@ private fun BottomRow(keyboardManager: dev.patrickgold.florisboard.ime.keyboard.
     }
 }
 
-// ── IDLE: Big centered mic, hold-to-record ──
+// ── MIC: Unified IDLE + RECORDING — stays mounted across state transitions ──
 
 @Composable
-private fun IdleMicContent(
+private fun MicContent(
+    state: VoiceInputState,
+    amplitude: Float,
     onStartRecording: () -> Unit,
     onStopRecording: () -> Unit,
 ) {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center,
-    ) {
-        Box(
-            modifier = Modifier
-                .size(72.dp)
-                .clip(CircleShape)
-                .background(MaterialTheme.colorScheme.primary)
-                .pointerInput(Unit) {
-                    detectTapGestures(
-                        onPress = {
-                            onStartRecording()
-                            tryAwaitRelease()
-                            onStopRecording()
-                        },
-                    )
-                },
-            contentAlignment = Alignment.Center,
-        ) {
-            Icon(
-                imageVector = Icons.Default.Mic,
-                contentDescription = "Record",
-                tint = Color.White,
-                modifier = Modifier.size(36.dp),
-            )
-        }
-        Spacer(modifier = Modifier.height(10.dp))
-        Text(
-            text = "Hold to speak",
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            fontSize = 14.sp,
-        )
-    }
-}
-
-// ── RECORDING: Big mic with waveform, hold to continue ──
-
-@Composable
-private fun RecordingMicContent(
-    amplitude: Float,
-    onStopRecording: () -> Unit,
-) {
+    val isRecording = state == VoiceInputState.RECORDING
     val infiniteTransition = rememberInfiniteTransition(label = "voice_pulse")
     val pulseScale by infiniteTransition.animateFloat(
         initialValue = 1f,
@@ -291,53 +255,77 @@ private fun RecordingMicContent(
         verticalArrangement = Arrangement.Center,
     ) {
         Box(contentAlignment = Alignment.Center) {
-            val ringRadius = (45f + amplitude * 25f).dp
-            val ringRadiusPx = with(LocalDensity.current) { ringRadius.toPx() }
-            val ringColor = MaterialTheme.colorScheme.error.copy(alpha = 0.3f)
-            val strokeWidth = with(LocalDensity.current) { 4.dp.toPx() }
-            Canvas(modifier = Modifier.size(140.dp)) {
-                drawCircle(
-                    color = ringColor,
-                    radius = ringRadiusPx,
-                    center = center,
-                    style = Stroke(width = strokeWidth),
-                )
+            // Waveform ring (only while recording)
+            if (isRecording) {
+                val ringRadius = (45f + amplitude * 25f).dp
+                val ringRadiusPx = with(LocalDensity.current) { ringRadius.toPx() }
+                val ringColor = MaterialTheme.colorScheme.error.copy(alpha = 0.3f)
+                val strokeWidth = with(LocalDensity.current) { 4.dp.toPx() }
+                Canvas(modifier = Modifier.size(140.dp)) {
+                    drawCircle(
+                        color = ringColor,
+                        radius = ringRadiusPx,
+                        center = center,
+                        style = Stroke(width = strokeWidth),
+                    )
+                }
             }
+            // Mic button — always mounted so pointerInput survives state changes
             Box(
                 modifier = Modifier
                     .size(72.dp)
-                    .scale(pulseScale)
+                    .then(if (isRecording) Modifier.scale(pulseScale) else Modifier)
                     .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.error),
+                    .background(
+                        if (isRecording) MaterialTheme.colorScheme.error
+                        else MaterialTheme.colorScheme.primary,
+                    )
+                    .pointerInput(Unit) {
+                        detectTapGestures(
+                            onPress = {
+                                onStartRecording()
+                                tryAwaitRelease()
+                                onStopRecording()
+                            },
+                        )
+                    },
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
-                    imageVector = Icons.Default.Stop,
-                    contentDescription = "Stop",
+                    imageVector = if (isRecording) Icons.Default.Stop else Icons.Default.Mic,
+                    contentDescription = if (isRecording) "Stop" else "Record",
                     tint = Color.White,
-                    modifier = Modifier.size(32.dp),
+                    modifier = Modifier.size(if (isRecording) 32.dp else 36.dp),
                 )
             }
         }
         Spacer(modifier = Modifier.height(10.dp))
-        Text(
-            text = "Listening...",
-            color = MaterialTheme.colorScheme.error,
-            fontSize = 14.sp,
-            fontWeight = FontWeight.Medium,
-        )
-        Text(
-            text = "Release to stop",
-            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-            fontSize = 12.sp,
-        )
+        if (isRecording) {
+            Text(
+                text = "Listening...",
+                color = MaterialTheme.colorScheme.error,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Medium,
+            )
+            Text(
+                text = "Release to stop",
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                fontSize = 12.sp,
+            )
+        } else {
+            Text(
+                text = "Hold to speak",
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                fontSize = 14.sp,
+            )
+        }
     }
 }
 
 // ── PROCESSING ──
 
 @Composable
-private fun ProcessingContent() {
+private fun ProcessingContent(label: String = "Processing...") {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
@@ -348,7 +336,7 @@ private fun ProcessingContent() {
             strokeWidth = 3.dp,
         )
         Spacer(modifier = Modifier.height(12.dp))
-        Text("Transcribing...", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 14.sp)
+        Text(label, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 14.sp)
     }
 }
 
@@ -357,9 +345,14 @@ private fun ProcessingContent() {
 @Composable
 private fun SuccessContent(
     transcribedText: String,
+    isRefined: Boolean,
+    hasRawText: Boolean,
+    refinementEnabled: Boolean,
     onInsert: () -> Unit,
     onDismiss: () -> Unit,
     onRecordAgain: () -> Unit,
+    onRefine: () -> Unit,
+    onToggleRawRefined: () -> Unit,
 ) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -384,6 +377,15 @@ private fun SuccessContent(
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             TextButton(onClick = onDismiss) { Text("Cancel", fontSize = 13.sp) }
             TextButton(onClick = onRecordAgain) { Text("Redo", fontSize = 13.sp) }
+            if (refinementEnabled && !isRefined) {
+                TextButton(onClick = onRefine) { Text("Refine", fontSize = 13.sp) }
+            }
+            if (hasRawText && isRefined) {
+                TextButton(onClick = onToggleRawRefined) { Text("Raw", fontSize = 13.sp) }
+            }
+            if (hasRawText && !isRefined && refinementEnabled) {
+                // do nothing - refine button already shown
+            }
             TextButton(onClick = onInsert) {
                 Text("Insert", fontWeight = FontWeight.Bold, fontSize = 13.sp)
             }

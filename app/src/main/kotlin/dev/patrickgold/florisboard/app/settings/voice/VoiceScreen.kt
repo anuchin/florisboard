@@ -35,6 +35,8 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
 import dev.patrickgold.florisboard.app.FlorisPreferenceModel
 import dev.patrickgold.florisboard.app.FlorisPreferenceStore
+import dev.patrickgold.florisboard.ime.voice.LlmApiClient
+import dev.patrickgold.florisboard.ime.voice.RefinementStyle
 import dev.patrickgold.florisboard.ime.voice.SavedEndpoint
 import dev.patrickgold.florisboard.ime.voice.ValidationResult
 import dev.patrickgold.florisboard.ime.voice.VoiceProvider
@@ -75,12 +77,27 @@ fun VoiceScreen() = FlorisScreen {
     var showAddEndpointDialog by remember { mutableStateOf(false) }
     var editingEndpoint by remember { mutableStateOf<SavedEndpoint?>(null) }
     var showDeleteEndpointConfirm by remember { mutableStateOf<SavedEndpoint?>(null) }
+    var showRefinementStyleDialog by remember { mutableStateOf(false) }
+    var showCustomPromptDialog by remember { mutableStateOf(false) }
+    var showAddLlmEndpointDialog by remember { mutableStateOf(false) }
+    var editingLlmEndpoint by remember { mutableStateOf<SavedEndpoint?>(null) }
+    var showDeleteLlmEndpointConfirm by remember { mutableStateOf<SavedEndpoint?>(null) }
 
     val savedEndpointsRaw by prefs.voice.savedEndpoints.collectAsState()
     val savedEndpoints = remember(savedEndpointsRaw) {
         SavedEndpoint.deserializeList(savedEndpointsRaw)
     }
     val activeEndpointId by prefs.voice.activeEndpointId.collectAsState()
+
+    val llmSavedEndpointsRaw by prefs.voice.llmSavedEndpoints.collectAsState()
+    val llmSavedEndpoints = remember(llmSavedEndpointsRaw) {
+        SavedEndpoint.deserializeList(llmSavedEndpointsRaw)
+    }
+    val llmActiveEndpointId by prefs.voice.llmActiveEndpointId.collectAsState()
+
+    val refinementEnabled by prefs.voice.refinementEnabled.collectAsState()
+    val refinementStyle by prefs.voice.refinementStyle.collectAsState()
+    val refinementCustomPrompt by prefs.voice.refinementCustomPrompt.collectAsState()
 
     var isValidating by remember { mutableStateOf(false) }
     var validationResult by remember { mutableStateOf<ValidationResult?>(null) }
@@ -200,6 +217,65 @@ fun VoiceScreen() = FlorisScreen {
                 prefs.voice.autoCommit,
                 title = "Auto-commit transcription",
                 summary = "Automatically insert transcribed text into the input field",
+            )
+        }
+
+        // Text Refinement settings
+        PreferenceGroup(title = "Text Refinement") {
+            SwitchPreference(
+                prefs.voice.refinementEnabled,
+                title = "Enable text refinement",
+                summary = "Use an LLM to clean up transcribed speech",
+            )
+            SwitchPreference(
+                prefs.voice.refinementAutoRefine,
+                title = "Auto-refine",
+                summary = "Automatically refine text after transcription",
+                visibleIf = { prefs.voice.refinementEnabled isEqualTo true },
+            )
+            Preference(
+                title = "Refinement Style",
+                summary = refinementStyle.displayName(),
+                onClick = { showRefinementStyleDialog = true },
+                visibleIf = { prefs.voice.refinementEnabled isEqualTo true },
+            )
+            Preference(
+                title = "Custom Prompt",
+                summary = refinementCustomPrompt.ifBlank { "Not set" },
+                onClick = { showCustomPromptDialog = true },
+                visibleIf = { prefs.voice.refinementEnabled isEqualTo true and (prefs.voice.refinementStyle isEqualTo RefinementStyle.CUSTOM) },
+            )
+        }
+
+        // LLM Provider settings
+        PreferenceGroup(title = "LLM Provider") {
+            if (llmSavedEndpoints.isEmpty()) {
+                Preference(
+                    title = "No LLM endpoints saved",
+                    summary = "Add an LLM endpoint for text refinement",
+                )
+            } else {
+                llmSavedEndpoints.forEach { endpoint ->
+                    val isActive = endpoint.id == llmActiveEndpointId
+                    Preference(
+                        title = endpoint.name,
+                        summary = "${endpoint.baseUrl} • ${endpoint.model}" +
+                            if (isActive) " (active)" else "",
+                        onClick = {
+                            scope.launch {
+                                if (isActive) {
+                                    prefs.voice.llmActiveEndpointId.set("")
+                                } else {
+                                    prefs.voice.llmActiveEndpointId.set(endpoint.id)
+                                }
+                            }
+                        },
+                    )
+                }
+            }
+            Preference(
+                title = "Add LLM Endpoint",
+                onClick = { showAddLlmEndpointDialog = true },
             )
         }
     }
@@ -469,6 +545,164 @@ fun VoiceScreen() = FlorisScreen {
             },
             dismissLabel = "Cancel",
             onDismiss = { showDeleteEndpointConfirm = null },
+        ) {
+            Text("Delete \"${endpoint.name}\"?")
+        }
+    }
+
+    // Refinement style selection dialog
+    if (showRefinementStyleDialog) {
+        JetPrefAlertDialog(
+            title = "Refinement Style",
+            confirmLabel = "Cancel",
+            onConfirm = { showRefinementStyleDialog = false },
+            onDismiss = { showRefinementStyleDialog = false },
+        ) {
+            Column {
+                RefinementStyle.entries.forEach { style ->
+                    Preference(
+                        title = style.displayName(),
+                        summary = style.systemPrompt().take(60) + "...",
+                        onClick = {
+                            scope.launch { prefs.voice.refinementStyle.set(style) }
+                            showRefinementStyleDialog = false
+                        },
+                    )
+                }
+            }
+        }
+    }
+
+    // Custom prompt dialog
+    if (showCustomPromptDialog) {
+        var promptValue by remember { mutableStateOf(refinementCustomPrompt) }
+        JetPrefAlertDialog(
+            title = "Custom Refinement Prompt",
+            confirmLabel = "Save",
+            onConfirm = {
+                scope.launch { prefs.voice.refinementCustomPrompt.set(promptValue.trim()) }
+                showCustomPromptDialog = false
+            },
+            dismissLabel = "Cancel",
+            onDismiss = { showCustomPromptDialog = false },
+        ) {
+            Column {
+                Text(
+                    "Enter the system prompt that will be used to refine transcribed text.",
+                    modifier = Modifier.padding(bottom = 8.dp),
+                )
+                JetPrefTextField(
+                    value = promptValue,
+                    onValueChange = { promptValue = it },
+                )
+            }
+        }
+    }
+
+    // Add/Edit LLM endpoint dialog
+    if (showAddLlmEndpointDialog || editingLlmEndpoint != null) {
+        val isEdit = editingLlmEndpoint != null
+        var epName by remember { mutableStateOf(editingLlmEndpoint?.name ?: "") }
+        var epUrl by remember { mutableStateOf(editingLlmEndpoint?.baseUrl ?: "") }
+        var epApiKey by remember { mutableStateOf(editingLlmEndpoint?.apiKey ?: "") }
+        var epModel by remember { mutableStateOf(editingLlmEndpoint?.model ?: "gpt-4o-mini") }
+        var epValidating by remember { mutableStateOf(false) }
+        var epValidationResult by remember { mutableStateOf<ValidationResult?>(null) }
+
+        JetPrefAlertDialog(
+            title = if (isEdit) "Edit LLM Endpoint" else "Add LLM Endpoint",
+            confirmLabel = "Save",
+            onConfirm = {
+                val id = editingLlmEndpoint?.id ?: java.util.UUID.randomUUID().toString()
+                val endpoint = SavedEndpoint(
+                    id = id,
+                    name = epName.trim(),
+                    baseUrl = epUrl.trimEnd('/'),
+                    apiKey = epApiKey.trim(),
+                    model = epModel.trim(),
+                )
+                val current = SavedEndpoint.deserializeList(prefs.voice.llmSavedEndpoints.get())
+                val updated = if (isEdit) {
+                    current.map { if (it.id == id) endpoint else it }
+                } else {
+                    current + endpoint
+                }
+                scope.launch {
+                    prefs.voice.llmSavedEndpoints.set(SavedEndpoint.serializeList(updated))
+                    prefs.voice.llmActiveEndpointId.set(id)
+                }
+                showAddLlmEndpointDialog = false
+                editingLlmEndpoint = null
+            },
+            dismissLabel = "Cancel",
+            onDismiss = {
+                showAddLlmEndpointDialog = false
+                editingLlmEndpoint = null
+            },
+            confirmEnabled = epName.isNotBlank() && epUrl.isNotBlank() && epApiKey.isNotBlank(),
+        ) {
+            Column {
+                Text("Name", modifier = Modifier.padding(bottom = 4.dp))
+                JetPrefTextField(value = epName, onValueChange = { epName = it })
+                Spacer(modifier = Modifier.height(8.dp))
+                Text("Base URL", modifier = Modifier.padding(bottom = 4.dp))
+                JetPrefTextField(value = epUrl, onValueChange = { epUrl = it })
+                Spacer(modifier = Modifier.height(8.dp))
+                Text("API Key", modifier = Modifier.padding(bottom = 4.dp))
+                JetPrefTextField(value = epApiKey, onValueChange = { epApiKey = it })
+                Spacer(modifier = Modifier.height(8.dp))
+                Text("Model", modifier = Modifier.padding(bottom = 4.dp))
+                JetPrefTextField(value = epModel, onValueChange = { epModel = it })
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = when {
+                        epValidating -> "Checking..."
+                        epValidationResult?.isSuccess == true -> "Valid!"
+                        epValidationResult?.isSuccess == false -> epValidationResult?.errorMessage ?: "Failed"
+                        else -> "Validate this endpoint"
+                    },
+                    color = when {
+                        epValidating -> MaterialTheme.colorScheme.onSurfaceVariant
+                        epValidationResult?.isSuccess == true -> Color(0xFF4CAF50)
+                        epValidationResult?.isSuccess == false -> MaterialTheme.colorScheme.error
+                        else -> MaterialTheme.colorScheme.primary
+                    },
+                    modifier = Modifier.pointerInput(Unit) {
+                        detectTapGestures {
+                            if (epUrl.isNotBlank() && epApiKey.isNotBlank()) {
+                                epValidating = true
+                                epValidationResult = null
+                                scope.launch {
+                                    val client = LlmApiClient(epUrl.trimEnd('/'), epApiKey.trim(), epModel.trim())
+                                    epValidationResult = client.validateApiKey()
+                                    epValidating = false
+                                }
+                            }
+                        }
+                    },
+                )
+            }
+        }
+    }
+
+    // Delete LLM endpoint confirm dialog
+    showDeleteLlmEndpointConfirm?.let { endpoint ->
+        JetPrefAlertDialog(
+            title = "Delete LLM Endpoint",
+            confirmLabel = "Delete",
+            onConfirm = {
+                val current = SavedEndpoint.deserializeList(prefs.voice.llmSavedEndpoints.get())
+                val updated = current.filter { it.id != endpoint.id }
+                scope.launch {
+                    prefs.voice.llmSavedEndpoints.set(SavedEndpoint.serializeList(updated))
+                    if (prefs.voice.llmActiveEndpointId.get() == endpoint.id) {
+                        prefs.voice.llmActiveEndpointId.set("")
+                    }
+                }
+                showDeleteLlmEndpointConfirm = null
+            },
+            dismissLabel = "Cancel",
+            onDismiss = { showDeleteLlmEndpointConfirm = null },
         ) {
             Text("Delete \"${endpoint.name}\"?")
         }

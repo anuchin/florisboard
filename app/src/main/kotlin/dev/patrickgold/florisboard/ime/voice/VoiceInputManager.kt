@@ -31,6 +31,7 @@ enum class VoiceInputState {
     IDLE,
     RECORDING,
     PROCESSING,
+    REFINING,
     SUCCESS,
     ERROR,
     PERMISSION_REQUIRED,
@@ -39,6 +40,8 @@ enum class VoiceInputState {
 data class VoiceInputUiState(
     val state: VoiceInputState = VoiceInputState.IDLE,
     val transcribedText: String = "",
+    val rawTranscribedText: String = "",
+    val isRefined: Boolean = false,
     val errorMessage: String = "",
     val amplitude: Float = 0f,
 )
@@ -57,6 +60,10 @@ class VoiceInputManager(context: Context) {
     fun hasRecordAudioPermission(): Boolean {
         return appContext.checkCallingOrSelfPermission(android.Manifest.permission.RECORD_AUDIO) ==
             android.content.pm.PackageManager.PERMISSION_GRANTED
+    }
+
+    fun isRefinementEnabled(): Boolean {
+        return prefs.voice.refinementEnabled.get()
     }
 
     fun startRecording() {
@@ -91,18 +98,30 @@ class VoiceInputManager(context: Context) {
 
     private suspend fun transcribe(audioBytes: ByteArray) {
         try {
-            val client = buildClient()
+            val client = buildWhisperClient()
             val config = TranscriptionConfig(
                 model = getActiveModel(),
                 language = prefs.voice.language.get(),
             )
             val result = client.transcribe(audioBytes, config)
-            _uiState.value = _uiState.value.copy(
-                state = VoiceInputState.SUCCESS,
-                transcribedText = result.text,
-            )
-            if (prefs.voice.autoCommit.get() && result.text.isNotEmpty()) {
-                commitText()
+
+            val rawText = result.text
+            if (rawText.isNotEmpty() && prefs.voice.refinementEnabled.get() && prefs.voice.refinementAutoRefine.get()) {
+                _uiState.value = _uiState.value.copy(
+                    state = VoiceInputState.REFINING,
+                    rawTranscribedText = rawText,
+                )
+                refineText(rawText)
+            } else {
+                _uiState.value = _uiState.value.copy(
+                    state = VoiceInputState.SUCCESS,
+                    transcribedText = rawText,
+                    rawTranscribedText = rawText,
+                    isRefined = false,
+                )
+                if (prefs.voice.autoCommit.get() && rawText.isNotEmpty()) {
+                    commitText()
+                }
             }
         } catch (e: Exception) {
             _uiState.value = VoiceInputUiState(
@@ -110,6 +129,47 @@ class VoiceInputManager(context: Context) {
                 errorMessage = e.message ?: "Transcription failed",
             )
         }
+    }
+
+    fun refineText(text: String? = null) {
+        val rawText = text ?: _uiState.value.rawTranscribedText
+        if (rawText.isBlank()) return
+
+        val style = prefs.voice.refinementStyle.get()
+        val customPrompt = prefs.voice.refinementCustomPrompt.get()
+
+        _uiState.value = _uiState.value.copy(state = VoiceInputState.REFINING)
+
+        scope.launch {
+            try {
+                val llmClient = buildLlmClient()
+                val refined = llmClient.refineText(rawText, style.systemPrompt(customPrompt))
+                _uiState.value = _uiState.value.copy(
+                    state = VoiceInputState.SUCCESS,
+                    transcribedText = refined,
+                    rawTranscribedText = rawText,
+                    isRefined = true,
+                )
+            } catch (e: Exception) {
+                // If refinement fails, just show the raw text
+                _uiState.value = _uiState.value.copy(
+                    state = VoiceInputState.SUCCESS,
+                    transcribedText = rawText,
+                    rawTranscribedText = rawText,
+                    isRefined = false,
+                    errorMessage = "Refinement failed: ${e.message}",
+                )
+            }
+        }
+    }
+
+    fun toggleRefined() {
+        val current = _uiState.value
+        if (current.rawTranscribedText.isBlank()) return
+        _uiState.value = current.copy(
+            transcribedText = if (current.isRefined) current.rawTranscribedText else current.rawTranscribedText,
+            isRefined = !current.isRefined,
+        )
     }
 
     fun commitText() {
@@ -124,8 +184,7 @@ class VoiceInputManager(context: Context) {
         _uiState.value = VoiceInputUiState()
     }
 
-    private fun buildClient(): WhisperApiClient {
-        // Check for active saved endpoint first
+    private fun buildWhisperClient(): WhisperApiClient {
         val activeId = prefs.voice.activeEndpointId.get()
         if (activeId.isNotBlank()) {
             val endpoints = SavedEndpoint.deserializeList(prefs.voice.savedEndpoints.get())
@@ -137,8 +196,6 @@ class VoiceInputManager(context: Context) {
                 )
             }
         }
-
-        // Fall back to provider-based config
         val provider = prefs.voice.provider.get()
         return when (provider) {
             VoiceProvider.OPENAI -> WhisperApiClient(
@@ -156,7 +213,53 @@ class VoiceInputManager(context: Context) {
         }
     }
 
-    fun getActiveModel(): String {
+    private fun buildLlmClient(): LlmApiClient {
+        val activeId = prefs.voice.llmActiveEndpointId.get()
+        if (activeId.isNotBlank()) {
+            val endpoints = SavedEndpoint.deserializeList(prefs.voice.llmSavedEndpoints.get())
+            val active = endpoints.find { it.id == activeId }
+            if (active != null) {
+                return LlmApiClient(
+                    baseUrl = active.baseUrl.trimEnd('/'),
+                    apiKey = active.apiKey,
+                    model = active.model,
+                )
+            }
+        }
+        // Fall back to using the same Whisper endpoint with a default model
+        val whisperActiveId = prefs.voice.activeEndpointId.get()
+        if (whisperActiveId.isNotBlank()) {
+            val endpoints = SavedEndpoint.deserializeList(prefs.voice.savedEndpoints.get())
+            val active = endpoints.find { it.id == whisperActiveId }
+            if (active != null) {
+                return LlmApiClient(
+                    baseUrl = active.baseUrl.trimEnd('/'),
+                    apiKey = active.apiKey,
+                    model = "gpt-4o-mini",
+                )
+            }
+        }
+        val provider = prefs.voice.provider.get()
+        return when (provider) {
+            VoiceProvider.OPENAI -> LlmApiClient(
+                baseUrl = "https://api.openai.com",
+                apiKey = prefs.voice.openaiApiKey.get(),
+                model = "gpt-4o-mini",
+            )
+            VoiceProvider.GROQ -> LlmApiClient(
+                baseUrl = "https://api.groq.com/openai",
+                apiKey = prefs.voice.groqApiKey.get(),
+                model = "llama-3.1-8b-instant",
+            )
+            VoiceProvider.CUSTOM -> LlmApiClient(
+                baseUrl = prefs.voice.customEndpointUrl.get().trimEnd('/'),
+                apiKey = prefs.voice.customApiKey.get(),
+                model = prefs.voice.customModel.get(),
+            )
+        }
+    }
+
+    private fun getActiveModel(): String {
         val activeId = prefs.voice.activeEndpointId.get()
         if (activeId.isNotBlank()) {
             val endpoints = SavedEndpoint.deserializeList(prefs.voice.savedEndpoints.get())
@@ -168,7 +271,7 @@ class VoiceInputManager(context: Context) {
 
     fun validateCurrentProvider(onResult: (ValidationResult) -> Unit) {
         scope.launch {
-            val client = buildClient()
+            val client = buildWhisperClient()
             val result = client.validateApiKey()
             onResult(result)
         }
