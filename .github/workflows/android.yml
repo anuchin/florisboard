@@ -38,27 +38,8 @@ jobs:
       - name: Set up CMake and Ninja
         uses: lukka/get-cmake@v4.0.2
       - name: Build with Gradle
-        run: ./gradlew clean assembleDebug --stacktrace 2>&1 | tee build.log
-      - name: Print build log on failure
-        if: failure()
-        run: |
-          echo "=== BUILD LOG (last 200 lines) ==="
-          tail -200 build.log || true
-      - name: Find and rename APK
-        if: always()
-        run: |
-          APK=$(find app/build/outputs -name "*.apk" -type f | head -1)
-          if [ -n "$APK" ]; then
-            echo "Found APK: $APK"
-            cp "$APK" florisboard-debug.apk
-            echo "APK_SIZE=$(stat -c%s florisboard-debug.apk)"
-          else
-            echo "No APK found!"
-            find app/build -type f | head -20
-          fi
+        run: ./gradlew assembleDebug --stacktrace
       - uses: actions/upload-artifact@v4
-        if: always()
         with:
           name: florisboard-debug-apk
-          path: florisboard-debug.apk
-          if-no-files-found: warn
+          path: app/build/outputs/apk/debug/*.apk
