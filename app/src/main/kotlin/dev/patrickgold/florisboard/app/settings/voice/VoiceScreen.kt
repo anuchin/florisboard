@@ -171,7 +171,7 @@ fun VoiceScreen() = FlorisScreen {
                     isValidating = true
                     validationResult = null
                     scope.launch {
-                        val client = buildClientFromPrefs(prefs)
+                        val client = buildClientFromPrefs(prefs, savedEndpoints, activeEndpointId)
                         val result = client.validateApiKey()
                         validationResult = result
                         isValidating = false
@@ -421,18 +421,17 @@ fun VoiceScreen() = FlorisScreen {
                 JetPrefTextField(value = epModel, onValueChange = { epModel = it })
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    title = "Validate",
-                    color = when {
-                        epValidating -> MaterialTheme.colorScheme.onSurfaceVariant
-                        epValidationResult?.isSuccess == true -> Color(0xFF4CAF50)
-                        epValidationResult?.isSuccess == false -> MaterialTheme.colorScheme.error
-                        else -> MaterialTheme.colorScheme.primary
-                    },
                     text = when {
                         epValidating -> "Checking..."
                         epValidationResult?.isSuccess == true -> "Valid!"
                         epValidationResult?.isSuccess == false -> epValidationResult?.errorMessage ?: "Failed"
                         else -> "Validate this endpoint"
+                    },
+                    color = when {
+                        epValidating -> MaterialTheme.colorScheme.onSurfaceVariant
+                        epValidationResult?.isSuccess == true -> Color(0xFF4CAF50)
+                        epValidationResult?.isSuccess == false -> MaterialTheme.colorScheme.error
+                        else -> MaterialTheme.colorScheme.primary
                     },
                     modifier = Modifier.pointerInput(Unit) {
                         detectTapGestures {
@@ -473,5 +472,36 @@ fun VoiceScreen() = FlorisScreen {
         ) {
             Text("Delete \"${endpoint.name}\"?")
         }
+    }
+}
+
+private fun buildClientFromPrefs(
+    prefs: FlorisPreferenceModel,
+    savedEndpoints: List<SavedEndpoint>,
+    activeEndpointId: String,
+): WhisperApiClient {
+    if (activeEndpointId.isNotBlank()) {
+        val active = savedEndpoints.find { it.id == activeEndpointId }
+        if (active != null) {
+            return WhisperApiClient(
+                baseUrl = active.baseUrl.trimEnd('/'),
+                apiKey = active.apiKey,
+            )
+        }
+    }
+    val provider = prefs.voice.provider.get()
+    return when (provider) {
+        VoiceProvider.OPENAI -> WhisperApiClient(
+            baseUrl = "https://api.openai.com",
+            apiKey = prefs.voice.openaiApiKey.get(),
+        )
+        VoiceProvider.GROQ -> WhisperApiClient(
+            baseUrl = "https://api.groq.com/openai",
+            apiKey = prefs.voice.groqApiKey.get(),
+        )
+        VoiceProvider.CUSTOM -> WhisperApiClient(
+            baseUrl = prefs.voice.customEndpointUrl.get().trimEnd('/'),
+            apiKey = prefs.voice.customApiKey.get(),
+        )
     }
 }
