@@ -60,7 +60,7 @@ class LlmApiClient(
                 })
                 put("temperature", JsonPrimitive(0.3))
             }.toString()
-                .toRequestBody("application/json".toMediaType()))
+                .toRequestBody("application/json".toMediaType())
 
             val request = Request.Builder()
                 .url("$baseUrl/v1/chat/completions")
