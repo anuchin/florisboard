@@ -614,6 +614,16 @@ class KeyboardManager(context: Context) : InputKeyEventReceiver {
     }
 
     /**
+     * Handles a [KeyCode.TOGGLE_CODER_TOOLBAR] event.
+     */
+    private fun handleToggleCoderToolbar() {
+        scope.launch {
+            val current = prefs.keyboard.coderToolbarEnabled.get()
+            prefs.keyboard.coderToolbarEnabled.set(!current)
+        }
+    }
+
+    /**
      * Handles a [KeyCode.KANA_SWITCHER] event
      */
     private fun handleKanaSwitch() {
@@ -768,6 +778,7 @@ class KeyboardManager(context: Context) : InputKeyEventReceiver {
             }
             KeyCode.TOGGLE_INCOGNITO_MODE -> scope.launch { handleToggleIncognitoMode() }
             KeyCode.TOGGLE_AUTOCORRECT -> handleToggleAutocorrect()
+            KeyCode.TOGGLE_CODER_TOOLBAR -> handleToggleCoderToolbar()
             KeyCode.UNDO -> editorInstance.performUndo()
             KeyCode.VIEW_CHARACTERS -> activeState.keyboardMode = KeyboardMode.CHARACTERS
             KeyCode.VIEW_NUMERIC -> activeState.keyboardMode = KeyboardMode.NUMERIC
@@ -790,7 +801,27 @@ class KeyboardManager(context: Context) : InputKeyEventReceiver {
                         KeyType.CHARACTER,
                         KeyType.NUMERIC -> {
                             val text = data.asString(isForDisplay = false)
-                            editorInstance.commitText(text)
+                            val ctrlPressed = inputEventDispatcher.isPressed(KeyCode.CTRL)
+                            val altPressed = inputEventDispatcher.isPressed(KeyCode.ALT)
+                            if (ctrlPressed || altPressed) {
+                                val firstChar = text.singleOrNull()
+                                val androidKeyCode = when (firstChar) {
+                                    in 'a'..'z' -> KeyEvent.KEYCODE_A + (firstChar.code - 'a'.code)
+                                    in 'A'..'Z' -> KeyEvent.KEYCODE_A + (firstChar.code - 'A'.code)
+                                    in '0'..'9' -> KeyEvent.KEYCODE_0 + (firstChar.code - '0'.code)
+                                    else -> null
+                                }
+                                if (androidKeyCode != null) {
+                                    editorInstance.sendDownUpKeyEvent(
+                                        androidKeyCode,
+                                        editorInstance.meta(ctrl = ctrlPressed, alt = altPressed),
+                                    )
+                                } else {
+                                    editorInstance.commitText(text)
+                                }
+                            } else {
+                                editorInstance.commitText(text)
+                            }
                         }
                         else -> when (data.code) {
                             KeyCode.PHONE_PAUSE,
@@ -806,7 +837,27 @@ class KeyboardManager(context: Context) : InputKeyEventReceiver {
                             if (!UCharacter.isUAlphabetic(UCharacter.codePointAt(text, 0))) {
                                 nlpManager.getAutoCommitCandidate()?.let { commitCandidate(it) }
                             }
-                            editorInstance.commitChar(text)
+                            val ctrlPressed = inputEventDispatcher.isPressed(KeyCode.CTRL)
+                            val altPressed = inputEventDispatcher.isPressed(KeyCode.ALT)
+                            if (ctrlPressed || altPressed) {
+                                val firstChar = text.singleOrNull()
+                                val androidKeyCode = when (firstChar) {
+                                    in 'a'..'z' -> KeyEvent.KEYCODE_A + (firstChar.code - 'a'.code)
+                                    in 'A'..'Z' -> KeyEvent.KEYCODE_A + (firstChar.code - 'A'.code)
+                                    in '0'..'9' -> KeyEvent.KEYCODE_0 + (firstChar.code - '0'.code)
+                                    else -> null
+                                }
+                                if (androidKeyCode != null) {
+                                    editorInstance.sendDownUpKeyEvent(
+                                        androidKeyCode,
+                                        editorInstance.meta(ctrl = ctrlPressed, alt = altPressed),
+                                    )
+                                } else {
+                                    editorInstance.commitChar(text)
+                                }
+                            } else {
+                                editorInstance.commitChar(text)
+                            }
                         }
                         else -> {
                             flogError(LogTopic.KEY_EVENTS) { "Received unknown key: $data" }

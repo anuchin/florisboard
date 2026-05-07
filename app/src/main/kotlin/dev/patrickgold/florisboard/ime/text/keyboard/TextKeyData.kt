@@ -149,6 +149,7 @@ data class TextKeyData(
                 TOGGLE_ACTIONS_EDITOR,
                 TOGGLE_INCOGNITO_MODE,
                 TOGGLE_AUTOCORRECT,
+                TOGGLE_CODER_TOOLBAR,
             )
         }
 
@@ -530,6 +531,12 @@ data class TextKeyData(
             type = KeyType.FUNCTION,
             code = KeyCode.TOGGLE_AUTOCORRECT,
             label = "toggle_autocorrect",
+        )
+        /** Predefined key data for [KeyCode.TOGGLE_CODER_TOOLBAR] */
+        val TOGGLE_CODER_TOOLBAR = TextKeyData(
+            type = KeyType.FUNCTION,
+            code = KeyCode.TOGGLE_CODER_TOOLBAR,
+            label = "toggle_coder_toolbar",
         )
     }
 }

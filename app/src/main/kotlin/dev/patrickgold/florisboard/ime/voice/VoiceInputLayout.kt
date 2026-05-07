@@ -58,6 +58,7 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -240,6 +241,7 @@ private fun MicContent(
     onStopRecording: () -> Unit,
 ) {
     var gestureStartedRecording by remember { mutableStateOf(false) }
+    val currentIsRecording by rememberUpdatedState(state == VoiceInputState.RECORDING)
 
     val isRecording = state == VoiceInputState.RECORDING
     val infiniteTransition = rememberInfiniteTransition(label = "voice_pulse")
@@ -288,25 +290,23 @@ private fun MicContent(
                             val down = awaitFirstDown(requireUnconsumed = false)
                             val pressStartTime = System.currentTimeMillis()
 
-                            if (!isRecording) {
+                            if (!currentIsRecording) {
                                 onStartRecording()
                                 gestureStartedRecording = true
                             } else {
                                 gestureStartedRecording = false
                             }
 
-                            // Wait for finger up
-                            awaitPointerEvent()
+                            val up = waitForUpOrCancellation()
+                            if (up == null) return@awaitEachGesture
+
                             val pressDuration = System.currentTimeMillis() - pressStartTime
 
                             if (pressDuration < 200L) {
-                                // Short tap: toggle mode
                                 if (!gestureStartedRecording) {
                                     onStopRecording()
                                 }
-                                // If we started recording, let it continue
                             } else {
-                                // Long press: push-to-talk, always stop
                                 onStopRecording()
                             }
                         }
