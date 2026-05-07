@@ -28,6 +28,7 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.waitForUpOrCancellation
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.Arrangement
@@ -297,11 +298,8 @@ private fun MicContent(
                                 gestureStartedRecording = false
                             }
 
-                            while (true) {
-                                val event = awaitPointerEvent()
-                                if (event.changes.all { !it.pressed }) return@awaitEachGesture
-                                if (event.changes.any { it.changedToUp() }) break
-                            }
+                            val up = waitForUpOrCancellation()
+                            if (up == null) return@awaitEachGesture
 
                             val pressDuration = System.currentTimeMillis() - pressStartTime
 
