@@ -224,6 +224,7 @@ private fun RowScope.CoderToolbarButton(
     ) {
         Text(
             text = label,
+            color = androidx.compose.ui.graphics.Color(0xFFE0E0E0),
             fontSize = 12.sp,
             fontWeight = FontWeight.Medium,
         )
@@ -258,6 +259,7 @@ private fun RowScope.StickyModifierButton(
     ) {
         Text(
             text = label,
+            color = androidx.compose.ui.graphics.Color(0xFFE0E0E0),
             fontSize = 12.sp,
             fontWeight = FontWeight.Medium,
         )

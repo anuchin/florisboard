@@ -347,6 +347,21 @@ val FlorisImeThemeBaseStyle = SnyggStylesheet.v2 {
         foreground = rgbaColor(255, 255, 255, 0.067f)
     }
 
+    FlorisImeUi.CoderToolbarRow.elementName {
+        background = `var`("--background-variant")
+    }
+
+    FlorisImeUi.CoderToolbarButton.elementName {
+        background = `var`("--surface")
+        foreground = `var`("--on-surface")
+        fontSize = fontSize(13.sp)
+        shape = `var`("--shape")
+    }
+    FlorisImeUi.CoderToolbarButton.elementName(selector = SnyggSelector.PRESSED) {
+        background = `var`("--primary")
+        foreground = `var`("--on-primary")
+    }
+
     FlorisImeUi.OneHandedPanel.elementName {
         background = rgbaColor(27, 94, 32)
         foreground = rgbaColor(238, 238, 238)
