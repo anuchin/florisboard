@@ -806,9 +806,9 @@ class KeyboardManager(context: Context) : InputKeyEventReceiver {
                             if (ctrlPressed || altPressed) {
                                 val firstChar = text.singleOrNull()
                                 val androidKeyCode = when (firstChar) {
-                                    in 'a'..'z' -> KeyEvent.KEYCODE_A + (firstChar.code - 'a'.code)
-                                    in 'A'..'Z' -> KeyEvent.KEYCODE_A + (firstChar.code - 'A'.code)
-                                    in '0'..'9' -> KeyEvent.KEYCODE_0 + (firstChar.code - '0'.code)
+                                    in 'a'..'z' -> KeyEvent.KEYCODE_A + (firstChar!!.code - 'a'.code)
+                                    in 'A'..'Z' -> KeyEvent.KEYCODE_A + (firstChar!!.code - 'A'.code)
+                                    in '0'..'9' -> KeyEvent.KEYCODE_0 + (firstChar!!.code - '0'.code)
                                     else -> null
                                 }
                                 if (androidKeyCode != null) {
@@ -842,9 +842,9 @@ class KeyboardManager(context: Context) : InputKeyEventReceiver {
                             if (ctrlPressed || altPressed) {
                                 val firstChar = text.singleOrNull()
                                 val androidKeyCode = when (firstChar) {
-                                    in 'a'..'z' -> KeyEvent.KEYCODE_A + (firstChar.code - 'a'.code)
-                                    in 'A'..'Z' -> KeyEvent.KEYCODE_A + (firstChar.code - 'A'.code)
-                                    in '0'..'9' -> KeyEvent.KEYCODE_0 + (firstChar.code - '0'.code)
+                                    in 'a'..'z' -> KeyEvent.KEYCODE_A + (firstChar!!.code - 'a'.code)
+                                    in 'A'..'Z' -> KeyEvent.KEYCODE_A + (firstChar!!.code - 'A'.code)
+                                    in '0'..'9' -> KeyEvent.KEYCODE_0 + (firstChar!!.code - '0'.code)
                                     else -> null
                                 }
                                 if (androidKeyCode != null) {

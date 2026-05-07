@@ -297,8 +297,11 @@ private fun MicContent(
                                 gestureStartedRecording = false
                             }
 
-                            val up = waitForUpOrCancellation()
-                            if (up == null) return@awaitEachGesture
+                            while (true) {
+                                val event = awaitPointerEvent()
+                                if (event.changes.all { !it.pressed }) return@awaitEachGesture
+                                if (event.changes.any { it.changedToUp() }) break
+                            }
 
                             val pressDuration = System.currentTimeMillis() - pressStartTime
 
