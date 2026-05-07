@@ -195,7 +195,7 @@ private fun BottomRow(keyboardManager: dev.patrickgold.florisboard.ime.keyboard.
             Icon(
                 imageVector = Icons.Filled.KeyboardReturn,
                 contentDescription = "Enter",
-                tint = MaterialTheme.colorScheme.onSurface,
+                tint = Color(0xFFCCCCCC),
                 modifier = Modifier.size(22.dp),
             )
         }
@@ -214,7 +214,7 @@ private fun BottomRow(keyboardManager: dev.patrickgold.florisboard.ime.keyboard.
             Icon(
                 imageVector = Icons.Filled.ContentPaste,
                 contentDescription = "Paste",
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                tint = Color(0xFFAAAAAA),
                 modifier = Modifier.size(20.dp),
             )
         }
@@ -327,19 +327,19 @@ private fun MicContent(
         if (isRecording) {
             Text(
                 text = "Listening...",
-                color = MaterialTheme.colorScheme.error,
+                color = Color(0xFFEF5350),
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Medium,
             )
             Text(
                 text = "Tap or release to stop",
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                color = Color(0xFFAAAAAA),
                 fontSize = 12.sp,
             )
         } else {
             Text(
                 text = "Tap or hold to speak",
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = Color(0xFFCCCCCC),
                 fontSize = 14.sp,
             )
         }
@@ -360,7 +360,7 @@ private fun ProcessingContent(label: String = "Processing...") {
             strokeWidth = 3.dp,
         )
         Spacer(modifier = Modifier.height(12.dp))
-        Text(label, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 14.sp)
+        Text(label, color = Color(0xFFCCCCCC), fontSize = 14.sp)
     }
 }
 
@@ -405,19 +405,19 @@ private fun SuccessContent(
         }
         Spacer(modifier = Modifier.height(6.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            TextButton(onClick = onDismiss) { Text("Cancel", fontSize = 13.sp) }
-            TextButton(onClick = onRecordAgain) { Text("Redo", fontSize = 13.sp) }
+            TextButton(onClick = onDismiss) { Text("Cancel", color = Color(0xFFCCCCCC), fontSize = 13.sp) }
+            TextButton(onClick = onRecordAgain) { Text("Redo", color = Color(0xFFCCCCCC), fontSize = 13.sp) }
             if (refinementEnabled && !isRefined) {
-                TextButton(onClick = onRefine) { Text("Refine", fontSize = 13.sp) }
+                TextButton(onClick = onRefine) { Text("Refine", color = Color(0xFF4CAF50), fontSize = 13.sp) }
             }
             if (hasRawText && isRefined) {
-                TextButton(onClick = onToggleRawRefined) { Text("Raw", fontSize = 13.sp) }
+                TextButton(onClick = onToggleRawRefined) { Text("Raw", color = Color(0xFFCCCCCC), fontSize = 13.sp) }
             }
             if (hasRawText && !isRefined && refinementEnabled) {
                 // do nothing - refine button already shown
             }
             TextButton(onClick = onInsert) {
-                Text("Insert", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                Text("Insert", color = Color(0xFF4CAF50), fontWeight = FontWeight.Bold, fontSize = 13.sp)
             }
         }
     }
@@ -436,14 +436,14 @@ private fun ErrorContent(
     ) {
         Text(
             text = errorMessage.ifBlank { "Voice input failed" },
-            color = MaterialTheme.colorScheme.error,
+            color = Color(0xFFEF5350),
             fontSize = 14.sp,
             textAlign = TextAlign.Center,
             modifier = Modifier.padding(horizontal = 24.dp),
         )
         Spacer(modifier = Modifier.height(12.dp))
         TextButton(onClick = onRetry) {
-            Text("Retry", fontWeight = FontWeight.Bold)
+            Text("Retry", color = Color(0xFF4CAF50), fontWeight = FontWeight.Bold)
         }
     }
 }
@@ -459,7 +459,7 @@ private fun PermissionRequiredContent() {
     ) {
         Text(
             text = "Microphone access is required for voice input.",
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            color = Color(0xFFCCCCCC),
             fontSize = 14.sp,
             textAlign = TextAlign.Center,
             modifier = Modifier.padding(horizontal = 24.dp),
@@ -472,7 +472,7 @@ private fun PermissionRequiredContent() {
             }
             context.startActivity(intent)
         }) {
-            Text("Grant Permission", fontWeight = FontWeight.Bold)
+            Text("Grant Permission", color = Color(0xFF4CAF50), fontWeight = FontWeight.Bold)
         }
     }
 }
