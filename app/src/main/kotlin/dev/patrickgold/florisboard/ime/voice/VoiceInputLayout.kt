@@ -26,6 +26,7 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.waitForUpOrCancellation
@@ -43,6 +44,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ContentPaste
 import androidx.compose.material.icons.filled.KeyboardReturn
@@ -83,7 +85,6 @@ import dev.patrickgold.florisboard.ime.media.KeyboardLikeButton
 import dev.patrickgold.florisboard.ime.text.keyboard.TextKeyData
 import dev.patrickgold.florisboard.ime.theme.FlorisImeUi
 import dev.patrickgold.florisboard.keyboardManager
-import org.florisboard.lib.snygg.ui.SnyggBox
 import org.florisboard.lib.snygg.ui.SnyggColumn
 import org.florisboard.lib.snygg.ui.SnyggRow
 
@@ -382,17 +383,23 @@ private fun SuccessContent(
         verticalArrangement = Arrangement.Center,
         modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp, vertical = 4.dp),
     ) {
-        SnyggBox(
-            elementName = FlorisImeUi.Media.elementName,
-            modifier = Modifier.fillMaxWidth().weight(1f),
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f)
+                .padding(horizontal = 8.dp, vertical = 4.dp)
+                .clip(RoundedCornerShape(12.dp))
+                .background(Color(0xFF2D2D2D))
+                .border(1.dp, Color(0xFF4A4A4A), RoundedCornerShape(12.dp))
+                .padding(12.dp),
             contentAlignment = Alignment.Center,
         ) {
             Text(
                 text = transcribedText.ifBlank { "(empty result)" },
-                color = MaterialTheme.colorScheme.onSurface,
+                color = Color(0xFFE8E8E8),
                 fontSize = 16.sp,
                 textAlign = TextAlign.Center,
-                modifier = Modifier.padding(12.dp),
+                modifier = Modifier.fillMaxWidth(),
                 maxLines = 5,
             )
         }

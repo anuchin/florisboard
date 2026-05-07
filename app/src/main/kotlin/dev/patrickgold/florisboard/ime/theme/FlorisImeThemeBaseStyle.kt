@@ -328,6 +328,21 @@ val FlorisImeThemeBaseStyle = SnyggStylesheet.v2 {
         foreground = `var`("--on-surface")
     }
 
+    FlorisImeUi.Media.elementName {
+        background = `var`("--background")
+        foreground = `var`("--on-background")
+    }
+
+    FlorisImeUi.MediaBottomRow.elementName {
+        background = `var`("--background")
+    }
+
+    FlorisImeUi.MediaBottomRowButton.elementName {
+        background = `var`("--surface")
+        foreground = `var`("--on-surface")
+        shape = `var`("--shape")
+    }
+
     FlorisImeUi.IncognitoModeIndicator.elementName {
         foreground = rgbaColor(255, 255, 255, 0.067f)
     }

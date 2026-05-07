@@ -16,8 +16,10 @@
 
 package dev.patrickgold.florisboard.app.settings.voice
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -34,6 +36,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
@@ -459,22 +462,37 @@ fun VoiceScreen() = FlorisScreen {
         var epModels by remember { mutableStateOf<List<String>>(emptyList()) }
         var epFetchingModels by remember { mutableStateOf(false) }
         var epModelExpanded by remember { mutableStateOf(false) }
-        var epManualModel by remember { mutableStateOf(false) }
+        var epModelsFetched by remember { mutableStateOf(false) }
+        var epModelsError by remember { mutableStateOf<String?>(null) }
 
-        LaunchedEffect(epUrl, epApiKey) {
-            if (epUrl.isNotBlank() && epApiKey.isNotBlank()) {
-                delay(800)
-                epFetchingModels = true
+        fun fetchWhisperModels() {
+            if (epUrl.isBlank() || epApiKey.isBlank()) return
+            epFetchingModels = true
+            epModelsError = null
+            epModelsFetched = false
+            scope.launch {
                 val client = WhisperApiClient(epUrl.trimEnd('/'), epApiKey.trim())
                 val result = client.fetchModels()
                 if (result.error == null && result.models.isNotEmpty()) {
                     epModels = result.models
-                    if (epModel !in result.models) epModel = result.models.first()
+                    if (epModel !in result.models && result.models.isNotEmpty()) {
+                        epModel = result.models.first()
+                    }
+                    epModelsFetched = true
+                    epModelsError = null
                 } else {
-                    epManualModel = true
                     epModels = emptyList()
+                    epModelsFetched = false
+                    epModelsError = result.error ?: "No models found"
                 }
                 epFetchingModels = false
+            }
+        }
+
+        LaunchedEffect(epUrl, epApiKey) {
+            if (epUrl.isNotBlank() && epApiKey.isNotBlank()) {
+                delay(800)
+                fetchWhisperModels()
             }
         }
 
@@ -520,8 +538,20 @@ fun VoiceScreen() = FlorisScreen {
                 Text("API Key", modifier = Modifier.padding(bottom = 4.dp))
                 JetPrefTextField(value = epApiKey, onValueChange = { epApiKey = it })
                 Spacer(modifier = Modifier.height(8.dp))
-                Text("Model", modifier = Modifier.padding(bottom = 4.dp))
-                if (epModels.isNotEmpty() && !epManualModel) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text("Model", modifier = Modifier.padding(bottom = 4.dp))
+                    OutlinedButton(
+                        onClick = { fetchWhisperModels() },
+                        enabled = epUrl.isNotBlank() && epApiKey.isNotBlank() && !epFetchingModels,
+                    ) {
+                        Text(if (epFetchingModels) "Fetching..." else "Fetch Models")
+                    }
+                }
+                if (epModels.isNotEmpty()) {
                     Box {
                         OutlinedButton(
                             onClick = { epModelExpanded = true },
@@ -544,6 +574,12 @@ fun VoiceScreen() = FlorisScreen {
                             }
                         }
                     }
+                    Text(
+                        "${epModels.size} model(s) available",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Color(0xFF4CAF50),
+                        modifier = Modifier.padding(top = 2.dp),
+                    )
                 } else {
                     JetPrefTextField(value = epModel, onValueChange = { epModel = it })
                     if (epFetchingModels) {
@@ -551,6 +587,14 @@ fun VoiceScreen() = FlorisScreen {
                             "Fetching models...",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    if (epModelsError != null && epModelsFetched.not()) {
+                        Text(
+                            epModelsError!!,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.padding(top = 2.dp),
                         )
                     }
                 }
@@ -668,22 +712,37 @@ fun VoiceScreen() = FlorisScreen {
         var epModels by remember { mutableStateOf<List<String>>(emptyList()) }
         var epFetchingModels by remember { mutableStateOf(false) }
         var epModelExpanded by remember { mutableStateOf(false) }
-        var epManualModel by remember { mutableStateOf(false) }
+        var epModelsFetched by remember { mutableStateOf(false) }
+        var epModelsError by remember { mutableStateOf<String?>(null) }
 
-        LaunchedEffect(epUrl, epApiKey) {
-            if (epUrl.isNotBlank() && epApiKey.isNotBlank()) {
-                delay(800)
-                epFetchingModels = true
+        fun fetchLlmModels() {
+            if (epUrl.isBlank() || epApiKey.isBlank()) return
+            epFetchingModels = true
+            epModelsError = null
+            epModelsFetched = false
+            scope.launch {
                 val client = LlmApiClient(epUrl.trimEnd('/'), epApiKey.trim(), epModel.trim())
                 val result = client.fetchModels()
                 if (result.error == null && result.models.isNotEmpty()) {
                     epModels = result.models
-                    if (epModel !in result.models) epModel = result.models.first()
+                    if (epModel !in result.models && result.models.isNotEmpty()) {
+                        epModel = result.models.first()
+                    }
+                    epModelsFetched = true
+                    epModelsError = null
                 } else {
-                    epManualModel = true
                     epModels = emptyList()
+                    epModelsFetched = false
+                    epModelsError = result.error ?: "No models found"
                 }
                 epFetchingModels = false
+            }
+        }
+
+        LaunchedEffect(epUrl, epApiKey) {
+            if (epUrl.isNotBlank() && epApiKey.isNotBlank()) {
+                delay(800)
+                fetchLlmModels()
             }
         }
 
@@ -729,8 +788,20 @@ fun VoiceScreen() = FlorisScreen {
                 Text("API Key", modifier = Modifier.padding(bottom = 4.dp))
                 JetPrefTextField(value = epApiKey, onValueChange = { epApiKey = it })
                 Spacer(modifier = Modifier.height(8.dp))
-                Text("Model", modifier = Modifier.padding(bottom = 4.dp))
-                if (epModels.isNotEmpty() && !epManualModel) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text("Model", modifier = Modifier.padding(bottom = 4.dp))
+                    OutlinedButton(
+                        onClick = { fetchLlmModels() },
+                        enabled = epUrl.isNotBlank() && epApiKey.isNotBlank() && !epFetchingModels,
+                    ) {
+                        Text(if (epFetchingModels) "Fetching..." else "Fetch Models")
+                    }
+                }
+                if (epModels.isNotEmpty()) {
                     Box {
                         OutlinedButton(
                             onClick = { epModelExpanded = true },
@@ -753,6 +824,12 @@ fun VoiceScreen() = FlorisScreen {
                             }
                         }
                     }
+                    Text(
+                        "${epModels.size} model(s) available",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Color(0xFF4CAF50),
+                        modifier = Modifier.padding(top = 2.dp),
+                    )
                 } else {
                     JetPrefTextField(value = epModel, onValueChange = { epModel = it })
                     if (epFetchingModels) {
@@ -760,6 +837,14 @@ fun VoiceScreen() = FlorisScreen {
                             "Fetching models...",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    if (epModelsError != null && epModelsFetched.not()) {
+                        Text(
+                            epModelsError!!,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.padding(top = 2.dp),
                         )
                     }
                 }
