@@ -68,8 +68,10 @@ class VoiceInputManager(context: Context) {
     }
 
     fun toggleRefinement() {
-        val current = prefs.voice.refinementEnabled.get()
-        prefs.voice.refinementEnabled.set(!current)
+        scope.launch {
+            val current = prefs.voice.refinementEnabled.get()
+            prefs.voice.refinementEnabled.set(!current)
+        }
     }
 
     fun startRecording() {
