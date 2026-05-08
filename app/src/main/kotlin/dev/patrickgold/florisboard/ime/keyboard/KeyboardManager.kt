@@ -799,9 +799,7 @@ class KeyboardManager(context: Context) : InputKeyEventReceiver {
                     KeyboardMode.NUMERIC,
                     KeyboardMode.NUMERIC_ADVANCED,
                     KeyboardMode.PHONE,
-                    KeyboardMode.PHONE2,
-                    KeyboardMode.SYMBOLS,
-                    KeyboardMode.SYMBOLS2 -> when (data.type) {
+                    KeyboardMode.PHONE2 -> when (data.type) {
                         KeyType.CHARACTER,
                         KeyType.NUMERIC -> {
                             val text = data.asString(isForDisplay = false)
