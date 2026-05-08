@@ -105,14 +105,14 @@ configure<ApplicationExtension> {
         create("ciRelease") {
             val keystoreBase64 = System.getenv("KEYSTORE_BASE64") ?: project.findProperty("KEYSTORE_BASE64") as? String
             if (keystoreBase64 != null) {
-                storeFile = file("${project.buildDir.absolutePath}/tmp/keystore/ci-release.keystore")
+                storeFile = file("${project.layout.buildDirectory.get().asFile.absolutePath}/tmp/keystore/ci-release.keystore")
                     .also { it.parentFile.mkdirs() }
                     .also { it.writeBytes(java.util.Base64.getDecoder().decode(keystoreBase64)) }
                 storePassword = System.getenv("KEYSTORE_PASSWORD") ?: project.findProperty("KEYSTORE_PASSWORD") as? String ?: ""
                 keyAlias = System.getenv("KEY_ALIAS") ?: project.findProperty("KEY_ALIAS") as? String ?: ""
                 keyPassword = System.getenv("KEY_PASSWORD") ?: project.findProperty("KEY_PASSWORD") as? String ?: ""
             } else {
-                storeFile = file("${project.buildDir.absolutePath}/tmp/keystore/debug.keystore")
+                storeFile = file("${project.layout.buildDirectory.get().asFile.absolutePath}/tmp/keystore/debug.keystore")
                 storePassword = "android"
                 keyAlias = "androiddebugkey"
                 keyPassword = "android"
