@@ -358,8 +358,8 @@ val FlorisImeThemeBaseStyle = SnyggStylesheet.v2 {
         shape = `var`("--shape")
     }
     FlorisImeUi.CoderToolbarButton.elementName(selector = SnyggSelector.PRESSED) {
-        background = `var`("--surface-variant")
-        foreground = `var`("--on-surface")
+        background = `var`("--primary")
+        foreground = `var`("--on-primary")
     }
 
     FlorisImeUi.OneHandedPanel.elementName {
