@@ -56,6 +56,29 @@ kotlin {
     }
 }
 
+// Generate a debug keystore for CI builds without signing secrets
+val debugKeystoreDir = layout.buildDirectory.dir("tmp/keystore")
+val debugKeystoreFile = debugKeystoreDir.map { it.file("debug.keystore") }
+val ciReleaseKeystoreFile = debugKeystoreDir.map { it.file("ci-release.keystore") }
+
+val debugKeystoreExists = debugKeystoreFile.map { it.asFile.exists() }
+if (!debugKeystoreExists.get()) {
+    debugKeystoreFile.get().asFile.parentFile.mkdirs()
+    exec {
+        commandLine(
+            "keytool", "-genkeypair",
+            "-keystore", debugKeystoreFile.get().asFile.absolutePath,
+            "-alias", "androiddebugkey",
+            "-keyalg", "RSA",
+            "-keysize", "2048",
+            "-validity", "10000",
+            "-storepass", "android",
+            "-keypass", "android",
+            "-dname", "CN=Android Debug,O=Android,C=US",
+        )
+    }
+}
+
 configure<ApplicationExtension> {
     namespace = "dev.patrickgold.florisboard"
     compileSdk = projectCompileSdk.toInt()
@@ -106,31 +129,14 @@ configure<ApplicationExtension> {
         create("ciRelease") {
             val keystoreBase64 = System.getenv("KEYSTORE_BASE64") ?: project.findProperty("KEYSTORE_BASE64") as? String
             if (!keystoreBase64.isNullOrBlank()) {
-                storeFile = file("${project.layout.buildDirectory.get().asFile.absolutePath}/tmp/keystore/ci-release.keystore")
+                storeFile = ciReleaseKeystoreFile.get().asFile
                     .also { it.parentFile.mkdirs() }
                     .also { it.writeBytes(Base64.getDecoder().decode(keystoreBase64)) }
                 storePassword = System.getenv("KEYSTORE_PASSWORD") ?: project.findProperty("KEYSTORE_PASSWORD") as? String ?: ""
                 keyAlias = System.getenv("KEY_ALIAS") ?: project.findProperty("KEY_ALIAS") as? String ?: ""
                 keyPassword = System.getenv("KEY_PASSWORD") ?: project.findProperty("KEY_PASSWORD") as? String ?: ""
             } else {
-                val debugFile = file("${project.layout.buildDirectory.get().asFile.absolutePath}/tmp/keystore/debug.keystore")
-                if (!debugFile.exists()) {
-                    debugFile.parentFile.mkdirs()
-                    project.exec {
-                        commandLine(
-                            "keytool", "-genkeypair",
-                            "-keystore", debugFile.absolutePath,
-                            "-alias", "androiddebugkey",
-                            "-keyalg", "RSA",
-                            "-keysize", "2048",
-                            "-validity", "10000",
-                            "-storepass", "android",
-                            "-keypass", "android",
-                            "-dname", "CN=Android Debug,O=Android,C=US",
-                        )
-                    }
-                }
-                storeFile = debugFile
+                storeFile = debugKeystoreFile.get().asFile
                 storePassword = "android"
                 keyAlias = "androiddebugkey"
                 keyPassword = "android"
