@@ -57,27 +57,8 @@ kotlin {
 }
 
 // Generate a debug keystore for CI builds without signing secrets
-val debugKeystoreDir = layout.buildDirectory.dir("tmp/keystore")
-val debugKeystoreFile = debugKeystoreDir.map { it.file("debug.keystore") }
-val ciReleaseKeystoreFile = debugKeystoreDir.map { it.file("ci-release.keystore") }
-
-val debugKeystoreExists = debugKeystoreFile.map { it.asFile.exists() }
-if (!debugKeystoreExists.get()) {
-    debugKeystoreFile.get().asFile.parentFile.mkdirs()
-    exec {
-        commandLine(
-            "keytool", "-genkeypair",
-            "-keystore", debugKeystoreFile.get().asFile.absolutePath,
-            "-alias", "androiddebugkey",
-            "-keyalg", "RSA",
-            "-keysize", "2048",
-            "-validity", "10000",
-            "-storepass", "android",
-            "-keypass", "android",
-            "-dname", "CN=Android Debug,O=Android,C=US",
-        )
-    }
-}
+val keystoreBase64 = System.getenv("KEYSTORE_BASE64") ?: project.findProperty("KEYSTORE_BASE64") as? String
+val hasCiKeystore = !keystoreBase64.isNullOrBlank()
 
 configure<ApplicationExtension> {
     namespace = "dev.patrickgold.florisboard"
@@ -127,19 +108,13 @@ configure<ApplicationExtension> {
 
     signingConfigs {
         create("ciRelease") {
-            val keystoreBase64 = System.getenv("KEYSTORE_BASE64") ?: project.findProperty("KEYSTORE_BASE64") as? String
-            if (!keystoreBase64.isNullOrBlank()) {
-                storeFile = ciReleaseKeystoreFile.get().asFile
+            if (hasCiKeystore) {
+                storeFile = layout.buildDirectory.file("tmp/keystore/ci-release.keystore").get().asFile
                     .also { it.parentFile.mkdirs() }
-                    .also { it.writeBytes(Base64.getDecoder().decode(keystoreBase64)) }
+                    .also { it.writeBytes(Base64.getDecoder().decode(keystoreBase64!!)) }
                 storePassword = System.getenv("KEYSTORE_PASSWORD") ?: project.findProperty("KEYSTORE_PASSWORD") as? String ?: ""
                 keyAlias = System.getenv("KEY_ALIAS") ?: project.findProperty("KEY_ALIAS") as? String ?: ""
                 keyPassword = System.getenv("KEY_PASSWORD") ?: project.findProperty("KEY_PASSWORD") as? String ?: ""
-            } else {
-                storeFile = debugKeystoreFile.get().asFile
-                storePassword = "android"
-                keyAlias = "androiddebugkey"
-                keyPassword = "android"
             }
         }
     }
@@ -165,7 +140,11 @@ configure<ApplicationExtension> {
         named("release") {
             versionNameSuffix = projectVersionNameSuffix
 
-            signingConfig = signingConfigs.getByName("ciRelease")
+            signingConfig = if (hasCiKeystore) {
+                signingConfigs.getByName("ciRelease")
+            } else {
+                signingConfigs.getByName("debug")
+            }
 
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
             isMinifyEnabled = true
