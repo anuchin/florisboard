@@ -105,7 +105,7 @@ configure<ApplicationExtension> {
     signingConfigs {
         create("ciRelease") {
             val keystoreBase64 = System.getenv("KEYSTORE_BASE64") ?: project.findProperty("KEYSTORE_BASE64") as? String
-            if (keystoreBase64 != null) {
+            if (!keystoreBase64.isNullOrBlank()) {
                 storeFile = file("${project.layout.buildDirectory.get().asFile.absolutePath}/tmp/keystore/ci-release.keystore")
                     .also { it.parentFile.mkdirs() }
                     .also { it.writeBytes(Base64.getDecoder().decode(keystoreBase64)) }
