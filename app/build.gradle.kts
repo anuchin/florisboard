@@ -116,7 +116,7 @@ configure<ApplicationExtension> {
                 val debugFile = file("${project.layout.buildDirectory.get().asFile.absolutePath}/tmp/keystore/debug.keystore")
                 if (!debugFile.exists()) {
                     debugFile.parentFile.mkdirs()
-                    exec {
+                    project.exec {
                         commandLine(
                             "keytool", "-genkeypair",
                             "-keystore", debugFile.absolutePath,
