@@ -133,8 +133,10 @@ fun VoiceInputLayout(
                 VoiceInputState.IDLE, VoiceInputState.RECORDING -> MicContent(
                     state = uiState.state,
                     amplitude = uiState.amplitude,
+                    refinementEnabled = voiceInputManager.isRefinementEnabled(),
                     onStartRecording = { voiceInputManager.startRecording() },
                     onStopRecording = { voiceInputManager.stopRecording() },
+                    onToggleRefinement = { voiceInputManager.toggleRefinement() },
                 )
                 VoiceInputState.PROCESSING -> ProcessingContent("Transcribing...")
                 VoiceInputState.REFINING -> ProcessingContent("Refining text...")
@@ -239,8 +241,10 @@ private fun BottomRow(keyboardManager: dev.patrickgold.florisboard.ime.keyboard.
 private fun MicContent(
     state: VoiceInputState,
     amplitude: Float,
+    refinementEnabled: Boolean,
     onStartRecording: () -> Unit,
     onStopRecording: () -> Unit,
+    onToggleRefinement: () -> Unit,
 ) {
     var gestureStartedRecording by remember { mutableStateOf(false) }
     val currentIsRecording by rememberUpdatedState(state == VoiceInputState.RECORDING)
@@ -342,6 +346,34 @@ private fun MicContent(
                 color = Color(0xFFCCCCCC),
                 fontSize = 14.sp,
             )
+        }
+        Spacer(modifier = Modifier.height(8.dp))
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = "Enhance",
+                color = Color(0xFFAAAAAA),
+                fontSize = 11.sp,
+            )
+            TextButton(
+                onClick = onToggleRefinement,
+                modifier = Modifier.height(26.dp)
+                    .clip(RoundedCornerShape(13.dp))
+                    .background(
+                        if (refinementEnabled) Color.White.copy(alpha = 0.15f)
+                        else Color(0xFF424242)
+                    )
+                    .padding(horizontal = 10.dp, vertical = 0.dp),
+            ) {
+                Text(
+                    text = if (refinementEnabled) "ON" else "OFF",
+                    color = if (refinementEnabled) Color(0xFFCCCCCC) else Color(0xFF888888),
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Medium,
+                )
+            }
         }
     }
 }
