@@ -113,7 +113,24 @@ configure<ApplicationExtension> {
                 keyAlias = System.getenv("KEY_ALIAS") ?: project.findProperty("KEY_ALIAS") as? String ?: ""
                 keyPassword = System.getenv("KEY_PASSWORD") ?: project.findProperty("KEY_PASSWORD") as? String ?: ""
             } else {
-                storeFile = file("${project.layout.buildDirectory.get().asFile.absolutePath}/tmp/keystore/debug.keystore")
+                val debugFile = file("${project.layout.buildDirectory.get().asFile.absolutePath}/tmp/keystore/debug.keystore")
+                if (!debugFile.exists()) {
+                    debugFile.parentFile.mkdirs()
+                    exec {
+                        commandLine(
+                            "keytool", "-genkeypair",
+                            "-keystore", debugFile.absolutePath,
+                            "-alias", "androiddebugkey",
+                            "-keyalg", "RSA",
+                            "-keysize", "2048",
+                            "-validity", "10000",
+                            "-storepass", "android",
+                            "-keypass", "android",
+                            "-dname", "CN=Android Debug,O=Android,C=US",
+                        )
+                    }
+                }
+                storeFile = debugFile
                 storePassword = "android"
                 keyAlias = "androiddebugkey"
                 keyPassword = "android"
