@@ -343,6 +343,7 @@ private fun MicContent(
                 fontSize = 14.sp,
             )
         }
+    }
 }
 
 // ── PROCESSING ──
