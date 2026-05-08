@@ -20,10 +20,6 @@ import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.waitForUpOrCancellation
-import androidx.compose.foundation.indication
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.interaction.PressInteraction
-import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
@@ -31,7 +27,6 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.width
-import androidx.compose.material3.ripple
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -40,12 +35,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import dev.patrickgold.florisboard.ime.input.InputEventDispatcher
+import dev.patrickgold.florisboard.ime.input.InputFeedbackController
 import dev.patrickgold.florisboard.ime.input.LocalInputFeedbackController
 import dev.patrickgold.florisboard.ime.keyboard.FlorisImeSizing
 import dev.patrickgold.florisboard.ime.keyboard.KeyData
@@ -80,7 +77,7 @@ fun CoderToolbar(modifier: Modifier = Modifier) {
         CoderToolbarButton(
             inputEventDispatcher = inputEventDispatcher,
             inputFeedbackController = inputFeedbackController,
-            keyData = TextKeyData(type = KeyType.CHARACTER, code = KeyCode.ESCAPE, label = "Esc"),
+            keyData = TextKeyData(type = KeyType.FUNCTION, code = KeyCode.ESCAPE, label = "Esc"),
             label = "Esc",
         )
         Spacer(modifier = Modifier.width(2.dp))
@@ -88,7 +85,7 @@ fun CoderToolbar(modifier: Modifier = Modifier) {
         CoderToolbarButton(
             inputEventDispatcher = inputEventDispatcher,
             inputFeedbackController = inputFeedbackController,
-            keyData = TextKeyData(type = KeyType.CHARACTER, code = KeyCode.TAB, label = "Tab"),
+            keyData = TextKeyData(type = KeyType.FUNCTION, code = KeyCode.TAB, label = "Tab"),
             label = "Tab",
         )
         Spacer(modifier = Modifier.width(2.dp))
@@ -185,12 +182,11 @@ fun CoderToolbar(modifier: Modifier = Modifier) {
 @Composable
 private fun RowScope.CoderToolbarButton(
     inputEventDispatcher: InputEventDispatcher,
-    inputFeedbackController: dev.patrickgold.florisboard.ime.input.InputFeedbackController,
+    inputFeedbackController: InputFeedbackController,
     keyData: KeyData,
     label: String,
 ) {
-    val interactionSource = remember { MutableInteractionSource() }
-    val isPressed by interactionSource.collectIsPressedAsState()
+    var isPressed by remember { mutableStateOf(false) }
     val selector = if (isPressed) SnyggSelector.PRESSED else SnyggSelector.NONE
 
     SnyggBox(
@@ -200,22 +196,19 @@ private fun RowScope.CoderToolbarButton(
         clickAndSemanticsModifier = Modifier
             .weight(1f)
             .fillMaxHeight()
-            .indication(interactionSource, ripple())
             .pointerInput(Unit) {
                 awaitEachGesture {
                     val down = awaitFirstDown(requireUnconsumed = false).also {
                         if (it.pressed != it.previousPressed) it.consume()
                     }
-                    val press = PressInteraction.Press(down.position)
-                    interactionSource.tryEmit(press)
+                    isPressed = true
                     inputFeedbackController.keyPress(keyData)
                     inputEventDispatcher.sendDown(keyData)
                     val up = waitForUpOrCancellation()
+                    isPressed = false
                     if (up != null) {
-                        interactionSource.tryEmit(PressInteraction.Release(press))
                         inputEventDispatcher.sendUp(keyData)
                     } else {
-                        interactionSource.tryEmit(PressInteraction.Cancel(press))
                         inputEventDispatcher.sendCancel(keyData)
                     }
                 }
@@ -224,7 +217,7 @@ private fun RowScope.CoderToolbarButton(
     ) {
         Text(
             text = label,
-            color = androidx.compose.ui.graphics.Color(0xFFE0E0E0),
+            color = Color(0xFFE0E0E0),
             fontSize = 12.sp,
             fontWeight = FontWeight.Medium,
         )
@@ -234,7 +227,7 @@ private fun RowScope.CoderToolbarButton(
 @Composable
 private fun RowScope.StickyModifierButton(
     inputEventDispatcher: InputEventDispatcher,
-    inputFeedbackController: dev.patrickgold.florisboard.ime.input.InputFeedbackController,
+    inputFeedbackController: InputFeedbackController,
     keyData: KeyData,
     label: String,
     isActive: Boolean,
@@ -259,7 +252,7 @@ private fun RowScope.StickyModifierButton(
     ) {
         Text(
             text = label,
-            color = androidx.compose.ui.graphics.Color(0xFFE0E0E0),
+            color = Color(0xFFE0E0E0),
             fontSize = 12.sp,
             fontWeight = FontWeight.Medium,
         )
