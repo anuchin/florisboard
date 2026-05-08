@@ -70,8 +70,9 @@ configure<ApplicationExtension> {
         applicationId = "dev.patrickgold.florisboard"
         minSdk = projectMinSdk.toInt()
         targetSdk = projectTargetSdk.toInt()
-        versionCode = projectVersionCode.toInt()
-        versionName = projectVersionName.substringBefore("-")
+        versionCode = projectVersionCode.toInt() + (System.getenv("GITHUB_RUN_NUMBER")?.toIntOrNull() ?: 0)
+        versionName = projectVersionName.substringBefore("-") +
+            (System.getenv("GITHUB_RUN_NUMBER")?.let { "+ci.$it" } ?: "")
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -100,6 +101,25 @@ configure<ApplicationExtension> {
         compose = true
     }
 
+    signingConfigs {
+        create("ciRelease") {
+            val keystoreBase64 = System.getenv("KEYSTORE_BASE64") ?: project.findProperty("KEYSTORE_BASE64") as? String
+            if (keystoreBase64 != null) {
+                storeFile = file("${project.buildDir.absolutePath}/tmp/keystore/ci-release.keystore")
+                    .also { it.parentFile.mkdirs() }
+                    .also { it.writeBytes(java.util.Base64.getDecoder().decode(keystoreBase64)) }
+                storePassword = System.getenv("KEYSTORE_PASSWORD") ?: project.findProperty("KEYSTORE_PASSWORD") as? String ?: ""
+                keyAlias = System.getenv("KEY_ALIAS") ?: project.findProperty("KEY_ALIAS") as? String ?: ""
+                keyPassword = System.getenv("KEY_PASSWORD") ?: project.findProperty("KEY_PASSWORD") as? String ?: ""
+            } else {
+                storeFile = file("${project.buildDir.absolutePath}/tmp/keystore/debug.keystore")
+                storePassword = "android"
+                keyAlias = "androiddebugkey"
+                keyPassword = "android"
+            }
+        }
+    }
+
     buildTypes {
         named("debug") {
             applicationIdSuffix = ".debug"
@@ -121,9 +141,12 @@ configure<ApplicationExtension> {
         named("release") {
             versionNameSuffix = projectVersionNameSuffix
 
+            signingConfig = signingConfigs.getByName("ciRelease")
+
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
             isMinifyEnabled = true
             isShrinkResources = true
+            isDebuggable = false
         }
 
         create("benchmark") {

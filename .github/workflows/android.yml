@@ -38,8 +38,14 @@ jobs:
       - name: Set up CMake and Ninja
         uses: lukka/get-cmake@v4.0.2
       - name: Build with Gradle
-        run: ./gradlew assembleDebug --stacktrace
+        run: ./gradlew assembleRelease --stacktrace
+        env:
+          GITHUB_RUN_NUMBER: ${{ github.run_number }}
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
       - uses: actions/upload-artifact@v4
         with:
-          name: florisboard-debug-apk
-          path: app/build/outputs/apk/debug/*.apk
+          name: florisboard-release-apk
+          path: app/build/outputs/apk/release/*.apk

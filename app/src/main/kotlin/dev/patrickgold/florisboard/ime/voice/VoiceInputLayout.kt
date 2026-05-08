@@ -182,25 +182,6 @@ private fun BottomRow(keyboardManager: dev.patrickgold.florisboard.ime.keyboard.
         ) {
             Text("⌫", fontSize = 18.sp)
         }
-        // Enter
-        Box(
-            modifier = Modifier
-                .weight(1f)
-                .fillMaxHeight()
-                .pointerInput(Unit) {
-                    detectTapGestures {
-                        FlorisImeService.sendDownAndUpKeyEvent(KeyEvent.KEYCODE_ENTER)
-                    }
-                },
-            contentAlignment = Alignment.Center,
-        ) {
-            Icon(
-                imageVector = Icons.Filled.KeyboardReturn,
-                contentDescription = "Enter",
-                tint = Color(0xFFCCCCCC),
-                modifier = Modifier.size(22.dp),
-            )
-        }
         // Paste
         Box(
             modifier = Modifier
@@ -231,6 +212,25 @@ private fun BottomRow(keyboardManager: dev.patrickgold.florisboard.ime.keyboard.
             modifier = Modifier.weight(1.5f).fillMaxHeight(),
         ) {
             Text(text = "ABC", fontWeight = FontWeight.Bold)
+        }
+        // Enter
+        Box(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxHeight()
+                .pointerInput(Unit) {
+                    detectTapGestures {
+                        FlorisImeService.sendDownAndUpKeyEvent(KeyEvent.KEYCODE_ENTER)
+                    }
+                },
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                imageVector = Icons.Filled.KeyboardReturn,
+                contentDescription = "Enter",
+                tint = Color(0xFFCCCCCC),
+                modifier = Modifier.size(22.dp),
+            )
         }
     }
 }
@@ -264,93 +264,98 @@ private fun MicContent(
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
+        modifier = Modifier.fillMaxSize(),
     ) {
-        Box(contentAlignment = Alignment.Center) {
-            // Waveform ring (only while recording)
-            if (isRecording) {
-                val ringRadius = (45f + amplitude * 25f).dp
-                val ringRadiusPx = with(LocalDensity.current) { ringRadius.toPx() }
-                val ringColor = MaterialTheme.colorScheme.error.copy(alpha = 0.3f)
-                val strokeWidth = with(LocalDensity.current) { 4.dp.toPx() }
-                Canvas(modifier = Modifier.size(140.dp)) {
-                    drawCircle(
-                        color = ringColor,
-                        radius = ringRadiusPx,
-                        center = center,
-                        style = Stroke(width = strokeWidth),
+        Box(
+            modifier = Modifier.weight(1f).fillMaxWidth(),
+            contentAlignment = Alignment.Center,
+        ) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Box(contentAlignment = Alignment.Center) {
+                    // Waveform ring (only while recording)
+                    if (isRecording) {
+                        val ringRadius = (45f + amplitude * 25f).dp
+                        val ringRadiusPx = with(LocalDensity.current) { ringRadius.toPx() }
+                        val ringColor = MaterialTheme.colorScheme.error.copy(alpha = 0.3f)
+                        val strokeWidth = with(LocalDensity.current) { 4.dp.toPx() }
+                        Canvas(modifier = Modifier.size(140.dp)) {
+                            drawCircle(
+                                color = ringColor,
+                                radius = ringRadiusPx,
+                                center = center,
+                                style = Stroke(width = strokeWidth),
+                            )
+                        }
+                    }
+                    // Mic button — always mounted so pointerInput survives state changes
+                    Box(
+                        modifier = Modifier
+                            .size(72.dp)
+                            .then(if (isRecording) Modifier.scale(pulseScale) else Modifier)
+                            .clip(CircleShape)
+                            .background(
+                                if (isRecording) MaterialTheme.colorScheme.error
+                                else MaterialTheme.colorScheme.primary,
+                            )
+                            .pointerInput(Unit) {
+                                awaitEachGesture {
+                                    val down = awaitFirstDown(requireUnconsumed = false)
+                                    val pressStartTime = System.currentTimeMillis()
+                                    if (!currentIsRecording) {
+                                        onStartRecording()
+                                        gestureStartedRecording = true
+                                    } else {
+                                        gestureStartedRecording = false
+                                    }
+                                    val up = waitForUpOrCancellation()
+                                    if (up == null) return@awaitEachGesture
+                                    val pressDuration = System.currentTimeMillis() - pressStartTime
+                                    if (pressDuration < 200L) {
+                                        if (!gestureStartedRecording) {
+                                            onStopRecording()
+                                        }
+                                    } else {
+                                        onStopRecording()
+                                    }
+                                }
+                            },
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Icon(
+                            imageVector = if (isRecording) Icons.Default.Stop else Icons.Default.Mic,
+                            contentDescription = if (isRecording) "Stop" else "Record",
+                            tint = Color.White,
+                            modifier = Modifier.size(if (isRecording) 32.dp else 36.dp),
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.height(6.dp))
+                if (isRecording) {
+                    Text(
+                        text = "Listening...",
+                        color = Color(0xFFEF5350),
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Medium,
+                    )
+                    Text(
+                        text = "Tap or release to stop",
+                        color = Color(0xFFAAAAAA),
+                        fontSize = 12.sp,
+                    )
+                } else {
+                    Text(
+                        text = "Tap or hold to speak",
+                        color = Color(0xFFCCCCCC),
+                        fontSize = 14.sp,
                     )
                 }
             }
-            // Mic button — always mounted so pointerInput survives state changes
-            Box(
-                modifier = Modifier
-                    .size(72.dp)
-                    .then(if (isRecording) Modifier.scale(pulseScale) else Modifier)
-                    .clip(CircleShape)
-                    .background(
-                        if (isRecording) MaterialTheme.colorScheme.error
-                        else MaterialTheme.colorScheme.primary,
-                    )
-                    .pointerInput(Unit) {
-                        awaitEachGesture {
-                            val down = awaitFirstDown(requireUnconsumed = false)
-                            val pressStartTime = System.currentTimeMillis()
-
-                            if (!currentIsRecording) {
-                                onStartRecording()
-                                gestureStartedRecording = true
-                            } else {
-                                gestureStartedRecording = false
-                            }
-
-                            val up = waitForUpOrCancellation()
-                            if (up == null) return@awaitEachGesture
-
-                            val pressDuration = System.currentTimeMillis() - pressStartTime
-
-                            if (pressDuration < 200L) {
-                                if (!gestureStartedRecording) {
-                                    onStopRecording()
-                                }
-                            } else {
-                                onStopRecording()
-                            }
-                        }
-                    },
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    imageVector = if (isRecording) Icons.Default.Stop else Icons.Default.Mic,
-                    contentDescription = if (isRecording) "Stop" else "Record",
-                    tint = Color.White,
-                    modifier = Modifier.size(if (isRecording) 32.dp else 36.dp),
-                )
-            }
         }
-        Spacer(modifier = Modifier.height(10.dp))
-        if (isRecording) {
-            Text(
-                text = "Listening...",
-                color = Color(0xFFEF5350),
-                fontSize = 14.sp,
-                fontWeight = FontWeight.Medium,
-            )
-            Text(
-                text = "Tap or release to stop",
-                color = Color(0xFFAAAAAA),
-                fontSize = 12.sp,
-            )
-        } else {
-            Text(
-                text = "Tap or hold to speak",
-                color = Color(0xFFCCCCCC),
-                fontSize = 14.sp,
-            )
-        }
-        Spacer(modifier = Modifier.height(8.dp))
+        // Enhance toggle — pinned to bottom
         Row(
             horizontalArrangement = Arrangement.spacedBy(6.dp),
             verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.padding(bottom = 4.dp),
         ) {
             Text(
                 text = "Enhance",

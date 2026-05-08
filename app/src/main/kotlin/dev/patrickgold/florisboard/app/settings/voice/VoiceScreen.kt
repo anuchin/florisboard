@@ -63,6 +63,23 @@ import kotlinx.coroutines.launch
 private val OPENAI_MODELS = listOf("whisper-1")
 private val GROQ_MODELS = listOf("whisper-large-v3", "distil-whisper-large-v3-en", "whisper-large-v3-turbo")
 
+private data class ProviderPreset(
+    val name: String,
+    val baseUrl: String,
+    val defaultWhisperModel: String,
+    val defaultLlmModel: String,
+)
+
+private val PROVIDER_PRESETS = listOf(
+    ProviderPreset("OpenAI", "https://api.openai.com", "whisper-1", "gpt-4o-mini"),
+    ProviderPreset("Groq", "https://api.groq.com/openai", "whisper-large-v3", "llama-3.1-8b-instant"),
+    ProviderPreset("Mistral", "https://api.mistral.ai", "whisper-1", "mistral-small-latest"),
+    ProviderPreset("Together AI", "https://api.together.xyz", "whisper-1", "meta-llama/Llama-3.3-70B-Instruct-Turbo"),
+    ProviderPreset("Anthropic", "https://api.anthropic.com", "whisper-1", "claude-3-haiku-20240307"),
+    ProviderPreset("DeepSeek", "https://api.deepseek.com", "whisper-1", "deepseek-chat"),
+    ProviderPreset("OpenRouter", "https://openrouter.ai/api", "whisper-1", "openai/gpt-4o-mini"),
+)
+
 @OptIn(ExperimentalJetPrefDatastoreUi::class)
 @Composable
 fun VoiceScreen() = FlorisScreen {
@@ -86,11 +103,13 @@ fun VoiceScreen() = FlorisScreen {
     var showAddEndpointDialog by remember { mutableStateOf(false) }
     var editingEndpoint by remember { mutableStateOf<SavedEndpoint?>(null) }
     var showDeleteEndpointConfirm by remember { mutableStateOf<SavedEndpoint?>(null) }
+    var showEndpointActionDialog by remember { mutableStateOf<SavedEndpoint?>(null) }
     var showRefinementStyleDialog by remember { mutableStateOf(false) }
     var showCustomPromptDialog by remember { mutableStateOf(false) }
     var showAddLlmEndpointDialog by remember { mutableStateOf(false) }
     var editingLlmEndpoint by remember { mutableStateOf<SavedEndpoint?>(null) }
     var showDeleteLlmEndpointConfirm by remember { mutableStateOf<SavedEndpoint?>(null) }
+    var showLlmEndpointActionDialog by remember { mutableStateOf<SavedEndpoint?>(null) }
 
     val savedEndpointsRaw by prefs.voice.savedEndpoints.collectAsState()
     val savedEndpoints = remember(savedEndpointsRaw) {
@@ -145,15 +164,7 @@ fun VoiceScreen() = FlorisScreen {
                         title = endpoint.name,
                         summary = "${endpoint.baseUrl} • ${endpoint.model}" +
                             if (isActive) " (active)" else "",
-                        onClick = {
-                            scope.launch {
-                                if (isActive) {
-                                    prefs.voice.activeEndpointId.set("")
-                                } else {
-                                    prefs.voice.activeEndpointId.set(endpoint.id)
-                                }
-                            }
-                        },
+                        onClick = { showEndpointActionDialog = endpoint },
                     )
                 }
             }
@@ -270,15 +281,7 @@ fun VoiceScreen() = FlorisScreen {
                         title = endpoint.name,
                         summary = "${endpoint.baseUrl} • ${endpoint.model}" +
                             if (isActive) " (active)" else "",
-                        onClick = {
-                            scope.launch {
-                                if (isActive) {
-                                    prefs.voice.llmActiveEndpointId.set("")
-                                } else {
-                                    prefs.voice.llmActiveEndpointId.set(endpoint.id)
-                                }
-                            }
-                        },
+                        onClick = { showLlmEndpointActionDialog = endpoint },
                     )
                 }
             }
@@ -529,6 +532,35 @@ fun VoiceScreen() = FlorisScreen {
             confirmEnabled = epName.isNotBlank() && epUrl.isNotBlank() && epApiKey.isNotBlank(),
         ) {
             Column {
+                if (!isEdit) {
+                    var quickSetupExpanded by remember { mutableStateOf(false) }
+                    Text("Quick Setup", modifier = Modifier.padding(bottom = 4.dp))
+                    Box {
+                        OutlinedButton(
+                            onClick = { quickSetupExpanded = true },
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            Text("Select a provider...")
+                        }
+                        DropdownMenu(
+                            expanded = quickSetupExpanded,
+                            onDismissRequest = { quickSetupExpanded = false },
+                        ) {
+                            PROVIDER_PRESETS.forEach { preset ->
+                                DropdownMenuItem(
+                                    text = { Text(preset.name) },
+                                    onClick = {
+                                        epName = preset.name
+                                        epUrl = preset.baseUrl
+                                        epModel = preset.defaultWhisperModel
+                                        quickSetupExpanded = false
+                                    },
+                                )
+                            }
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(8.dp))
+                }
                 Text("Name", modifier = Modifier.padding(bottom = 4.dp))
                 JetPrefTextField(value = epName, onValueChange = { epName = it })
                 Spacer(modifier = Modifier.height(8.dp))
@@ -628,7 +660,45 @@ fun VoiceScreen() = FlorisScreen {
         }
     }
 
-    // Delete endpoint confirm dialog
+    // Endpoint action dialog (Whisper)
+    showEndpointActionDialog?.let { endpoint ->
+        val isActive = endpoint.id == activeEndpointId
+        JetPrefAlertDialog(
+            title = endpoint.name,
+            confirmLabel = "Close",
+            onConfirm = { showEndpointActionDialog = null },
+            onDismiss = { showEndpointActionDialog = null },
+        ) {
+            Column {
+                Preference(
+                    title = if (isActive) "Deactivate" else "Set Active",
+                    summary = if (isActive) "Use a different endpoint" else "Use this endpoint for transcription",
+                    onClick = {
+                        scope.launch {
+                            prefs.voice.activeEndpointId.set(if (isActive) "" else endpoint.id)
+                        }
+                        showEndpointActionDialog = null
+                    },
+                )
+                Preference(
+                    title = "Edit",
+                    summary = "Change URL, API key, or model",
+                    onClick = {
+                        editingEndpoint = endpoint
+                        showEndpointActionDialog = null
+                    },
+                )
+                Preference(
+                    title = "Delete",
+                    summary = "Remove this endpoint",
+                    onClick = {
+                        showDeleteEndpointConfirm = endpoint
+                        showEndpointActionDialog = null
+                    },
+                )
+            }
+        }
+    }
     showDeleteEndpointConfirm?.let { endpoint ->
         JetPrefAlertDialog(
             title = "Delete Endpoint",
@@ -779,6 +849,35 @@ fun VoiceScreen() = FlorisScreen {
             confirmEnabled = epName.isNotBlank() && epUrl.isNotBlank() && epApiKey.isNotBlank(),
         ) {
             Column {
+                if (!isEdit) {
+                    var quickSetupExpanded by remember { mutableStateOf(false) }
+                    Text("Quick Setup", modifier = Modifier.padding(bottom = 4.dp))
+                    Box {
+                        OutlinedButton(
+                            onClick = { quickSetupExpanded = true },
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            Text("Select a provider...")
+                        }
+                        DropdownMenu(
+                            expanded = quickSetupExpanded,
+                            onDismissRequest = { quickSetupExpanded = false },
+                        ) {
+                            PROVIDER_PRESETS.forEach { preset ->
+                                DropdownMenuItem(
+                                    text = { Text(preset.name) },
+                                    onClick = {
+                                        epName = preset.name
+                                        epUrl = preset.baseUrl
+                                        epModel = preset.defaultLlmModel
+                                        quickSetupExpanded = false
+                                    },
+                                )
+                            }
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(8.dp))
+                }
                 Text("Name", modifier = Modifier.padding(bottom = 4.dp))
                 JetPrefTextField(value = epName, onValueChange = { epName = it })
                 Spacer(modifier = Modifier.height(8.dp))
@@ -879,6 +978,46 @@ fun VoiceScreen() = FlorisScreen {
     }
 
     // Delete LLM endpoint confirm dialog
+    // LLM endpoint action dialog
+    showLlmEndpointActionDialog?.let { endpoint ->
+        val isActive = endpoint.id == llmActiveEndpointId
+        JetPrefAlertDialog(
+            title = endpoint.name,
+            confirmLabel = "Close",
+            onConfirm = { showLlmEndpointActionDialog = null },
+            onDismiss = { showLlmEndpointActionDialog = null },
+        ) {
+            Column {
+                Preference(
+                    title = if (isActive) "Deactivate" else "Set Active",
+                    summary = if (isActive) "Use a different LLM endpoint" else "Use this endpoint for refinement",
+                    onClick = {
+                        scope.launch {
+                            prefs.voice.llmActiveEndpointId.set(if (isActive) "" else endpoint.id)
+                        }
+                        showLlmEndpointActionDialog = null
+                    },
+                )
+                Preference(
+                    title = "Edit",
+                    summary = "Change URL, API key, or model",
+                    onClick = {
+                        editingLlmEndpoint = endpoint
+                        showLlmEndpointActionDialog = null
+                    },
+                )
+                Preference(
+                    title = "Delete",
+                    summary = "Remove this endpoint",
+                    onClick = {
+                        showDeleteLlmEndpointConfirm = endpoint
+                        showLlmEndpointActionDialog = null
+                    },
+                )
+            }
+        }
+    }
+
     showDeleteLlmEndpointConfirm?.let { endpoint ->
         JetPrefAlertDialog(
             title = "Delete LLM Endpoint",
