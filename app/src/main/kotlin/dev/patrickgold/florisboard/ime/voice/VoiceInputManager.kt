@@ -67,13 +67,6 @@ class VoiceInputManager(context: Context) {
         return prefs.voice.refinementEnabled.get()
     }
 
-    fun toggleRefinement() {
-        scope.launch {
-            val current = prefs.voice.refinementEnabled.get()
-            prefs.voice.refinementEnabled.set(!current)
-        }
-    }
-
     fun startRecording() {
         if (!hasRecordAudioPermission()) {
             _uiState.value = VoiceInputUiState(state = VoiceInputState.PERMISSION_REQUIRED)
