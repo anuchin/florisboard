@@ -17,6 +17,7 @@
 import com.android.build.api.dsl.ApplicationExtension
 import org.gradle.api.tasks.testing.logging.TestLogEvent
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import java.util.Base64
 
 plugins {
     alias(libs.plugins.agp.application)
@@ -107,7 +108,7 @@ configure<ApplicationExtension> {
             if (keystoreBase64 != null) {
                 storeFile = file("${project.layout.buildDirectory.get().asFile.absolutePath}/tmp/keystore/ci-release.keystore")
                     .also { it.parentFile.mkdirs() }
-                    .also { it.writeBytes(java.util.Base64.getDecoder().decode(keystoreBase64)) }
+                    .also { it.writeBytes(Base64.getDecoder().decode(keystoreBase64)) }
                 storePassword = System.getenv("KEYSTORE_PASSWORD") ?: project.findProperty("KEYSTORE_PASSWORD") as? String ?: ""
                 keyAlias = System.getenv("KEY_ALIAS") ?: project.findProperty("KEY_ALIAS") as? String ?: ""
                 keyPassword = System.getenv("KEY_PASSWORD") ?: project.findProperty("KEY_PASSWORD") as? String ?: ""
