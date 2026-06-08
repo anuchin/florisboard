@@ -410,7 +410,7 @@ val FlorisImeThemeBaseStyle = SnyggStylesheet.v2 {
         foreground = `var`("--on-background")
         fontSize = fontSize(12.sp)
         padding = padding(4.dp, 10.dp, 4.dp, 10.dp)
-        shape = roundedCornerShape(999)
+        shape = roundedCornerShape(50)
         textMaxLines = textMaxLines(1)
     }
 
@@ -498,7 +498,7 @@ val FlorisImeThemeBaseStyle = SnyggStylesheet.v2 {
         foreground = `var`("--on-background")
         fontSize = fontSize(14.sp)
         padding = padding(4.dp, 12.dp, 4.dp, 12.dp)
-        shape = roundedCornerShape(999)
+        shape = roundedCornerShape(50)
     }
     FlorisImeUi.VoiceEnhanceToggle.elementName(
         FlorisImeUi.Attr.VoiceState to listOf("selected"),
