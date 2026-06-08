@@ -76,8 +76,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
+import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -172,9 +174,6 @@ private fun VoiceInputLayoutContent(modifier: Modifier) {
                     voiceInputManager.reset()
                     keyboardManager.activeState.imeUiMode = ImeUiMode.TEXT
                 },
-                onRefinementStyleChange = { newStyle ->
-                    prefs.voice.refinementStyle.set(newStyle)
-                },
             )
 
             Box(
@@ -186,6 +185,7 @@ private fun VoiceInputLayoutContent(modifier: Modifier) {
                 VoiceStage(
                     uiState = uiState,
                     manager = voiceInputManager,
+                    keyboardManager = keyboardManager,
                     openSettings = openSettings,
                     ctx = ctx,
                     refinementStyle = refinementStyle,
@@ -210,6 +210,8 @@ private fun VoiceTopBar(
 ) {
     val closeDesc = stringResource(R.string.voice__close)
     var showDropdown by remember { mutableStateOf(false) }
+    val coroutineScope = rememberCoroutineScope()
+    val prefs by FlorisPreferenceStore
 
     SnyggRow(
         elementName = FlorisImeUi.VoiceTopBar.elementName,
@@ -253,7 +255,9 @@ private fun VoiceTopBar(
                                 androidx.compose.material3.Text(style.displayName())
                             },
                             onClick = {
-                                onRefinementStyleChange(style)
+                                coroutineScope.launch {
+                                    prefs.voice.refinementStyle.set(style)
+                                }
                                 showDropdown = false
                             },
                         )
@@ -280,6 +284,7 @@ private fun VoiceTopBar(
 private fun VoiceStage(
     uiState: VoiceInputUiState,
     manager: VoiceInputManager,
+    keyboardManager: dev.patrickgold.florisboard.ime.keyboard.KeyboardManager,
     openSettings: () -> Unit,
     ctx: Context,
     refinementStyle: RefinementStyle,
@@ -540,54 +545,13 @@ private fun WaveCircle(amplitude: Float) {
             val ampBoost = amplitude * maxBarHeight
             val barHeight = (6f + ampBoost * 0.8f).coerceIn(4f, maxBarHeight + 10f)
 
-            val startRadius = radius - 8f
-            val endRadius = startRadius + barHeight
+            val midRadius = radius - 8f + barHeight / 2f
+            val midX = centerX + kotlin.math.cos(angle) * midRadius
+            val midY = centerY + kotlin.math.sin(angle) * midRadius
 
-            val startX = centerX + kotlin.math.cos(angle) * startRadius
-            val startY = centerY + kotlin.math.sin(angle) * startRadius
-            val endX = centerX + kotlin.math.cos(angle) * endRadius
-            val endY = centerY + kotlin.math.sin(angle) * endRadius
-
-            val perpendicularAngle = angle + Math.PI.toFloat() / 2f
-            val halfWidth = barWidth / 2f
-
-            val p1 = Offset(
-                startX + kotlin.math.cos(perpendicularAngle) * halfWidth,
-                startY + kotlin.math.sin(perpendicularAngle) * halfWidth
-            )
-            val p2 = Offset(
-                startX - kotlin.math.cos(perpendicularAngle) * halfWidth,
-                startY - kotlin.math.sin(perpendicularAngle) * halfWidth
-            )
-            val p3 = Offset(
-                endX - kotlin.math.cos(perpendicularAngle) * halfWidth,
-                endY - kotlin.math.sin(perpendicularAngle) * halfWidth
-            )
-            val p4 = Offset(
-                endX + kotlin.math.cos(perpendicularAngle) * halfWidth,
-                endY + kotlin.math.sin(perpendicularAngle) * halfWidth
-            )
-
-            drawOutline(
-                androidx.compose.ui.graphics.Outline.Rounded(
-                    androidx.compose.ui.graphics.Path().apply {
-                        moveTo(p1.x, p1.y)
-                        lineTo(p2.x, p2.y)
-                        lineTo(p3.x, p3.y)
-                        lineTo(p4.x, p4.y)
-                        close()
-                    },
-                    androidx.compose.ui.graphics.CornerRadius(barWidth / 2f)
-                ),
-                color = barColor,
-                style = Stroke(width = 1f)
-            )
             drawRoundRect(
                 color = barColor,
-                topLeft = Offset(
-                    (startX - halfWidth).coerceIn(0f, size.width),
-                    (startY - halfWidth).coerceIn(0f, size.height)
-                ),
+                topLeft = Offset(midX - barWidth / 2f, midY - barHeight / 2f),
                 size = Size(barWidth, barHeight),
                 cornerRadius = CornerRadius(barWidth / 2f),
             )
