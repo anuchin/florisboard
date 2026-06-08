@@ -206,7 +206,6 @@ private fun VoiceInputLayoutContent(modifier: Modifier) {
 private fun VoiceTopBar(
     refinementStyle: RefinementStyle,
     onClose: () -> Unit,
-    onRefinementStyleChange: (RefinementStyle) -> Unit,
 ) {
     val closeDesc = stringResource(R.string.voice__close)
     var showDropdown by remember { mutableStateOf(false) }
@@ -623,25 +622,30 @@ private fun ParticleBurst(amplitude: Float) {
     val transition = rememberInfiniteTransition(label = "particles")
     val particleCount = 12
 
+    // Create all animations before entering Canvas
+    val phases = List(particleCount) { i ->
+        val phase = i / particleCount.toFloat()
+        val progress by transition.animateFloat(
+            initialValue = phase,
+            targetValue = phase + 1f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(1200, easing = LinearEasing),
+                repeatMode = RepeatMode.Restart,
+            ),
+            label = "particle_$i",
+        )
+        phase to progress
+    }
+
     Canvas(modifier = Modifier.size(200.dp)) {
         val centerX = size.width / 2f
         val centerY = size.height / 2f
         val baseRadius = 50f
         val maxDistance = 70f + amplitude * 40f
 
-        for (i in 0 until particleCount) {
-            val phase = i / particleCount.toFloat()
-            val progress by transition.animateFloat(
-                initialValue = phase,
-                targetValue = phase + 1f,
-                animationSpec = infiniteRepeatable(
-                    animation = tween(1200, easing = LinearEasing),
-                    repeatMode = RepeatMode.Restart,
-                ),
-                label = "particle_$i",
-            )
-
+        phases.forEach { (phase, progress) ->
             val normalized = ((progress - phase)).coerceIn(0f, 1f)
+            val i = phases.indexOf(phase to progress)
             val angle = (i * 360f / particleCount + progress * 30f) * (Math.PI / 180f).toFloat()
 
             val distance = baseRadius + normalized * maxDistance
