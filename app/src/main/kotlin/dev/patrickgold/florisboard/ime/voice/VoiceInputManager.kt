@@ -285,6 +285,19 @@ class VoiceInputManager(context: Context) {
         _uiState.value = _uiState.value.copy(transcribedText = text)
     }
 
+    fun clearLastTranscription() {
+        val current = _uiState.value
+        if (current.state == VoiceInputState.SUCCESS && current.transcribedText.isNotBlank()) {
+            _uiState.value = current.copy(
+                transcribedText = "",
+                rawTranscribedText = "",
+                refinedText = "",
+                isRefined = false,
+                state = VoiceInputState.IDLE,
+            )
+        }
+    }
+
     fun commitText(appendSpace: Boolean = true) {
         val raw = _uiState.value.transcribedText
         if (raw.isNotEmpty()) {

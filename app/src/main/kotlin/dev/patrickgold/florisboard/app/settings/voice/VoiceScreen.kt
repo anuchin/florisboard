@@ -85,6 +85,7 @@ import dev.patrickgold.florisboard.ime.voice.ModelsResult
 import dev.patrickgold.florisboard.ime.voice.ProviderPreset
 import dev.patrickgold.florisboard.ime.voice.RefinementStyle
 import dev.patrickgold.florisboard.ime.voice.STT_PRESETS
+import dev.patrickgold.florisboard.ime.voice.VoiceAnimationStyle
 import dev.patrickgold.florisboard.ime.voice.SavedEndpoint
 import dev.patrickgold.florisboard.ime.voice.ValidationResult
 import dev.patrickgold.florisboard.ime.voice.WhisperApiClient
@@ -124,6 +125,7 @@ fun VoiceScreen() = FlorisScreen {
 
     val refinementStyle by prefs.voice.refinementStyle.collectAsState()
     val refinementCustomPrompt by prefs.voice.refinementCustomPrompt.collectAsState()
+    val animationStyle by prefs.voice.animationStyle.collectAsState()
 
     var showAddEndpointDialog by remember { mutableStateOf(false) }
     var preselectedSttPreset by remember { mutableStateOf<ProviderPreset?>(null) }
@@ -138,6 +140,7 @@ fun VoiceScreen() = FlorisScreen {
     var showLanguageDialog by remember { mutableStateOf(false) }
     var showRefinementStyleDialog by remember { mutableStateOf(false) }
     var showCustomPromptDialog by remember { mutableStateOf(false) }
+    var showAnimationStyleDialog by remember { mutableStateOf(false) }
 
     val language by prefs.voice.language.collectAsState()
 
@@ -282,6 +285,11 @@ fun VoiceScreen() = FlorisScreen {
                 prefs.voice.autoCommit,
                 title = stringRes(R.string.settings__voice__auto_commit),
                 summary = stringRes(R.string.settings__voice__auto_commit_summary),
+            )
+            Preference(
+                title = "Animation Style",
+                summary = animationStyle.displayName(),
+                onClick = { showAnimationStyleDialog = true },
             )
         }
 
@@ -546,6 +554,27 @@ fun VoiceScreen() = FlorisScreen {
                     )
                 }
                 JetPrefTextField(value = promptValue, onValueChange = { promptValue = it })
+            }
+        }
+    }
+
+    if (showAnimationStyleDialog) {
+        JetPrefAlertDialog(
+            title = "Animation Style",
+            dismissLabel = stringRes(R.string.settings__voice__cancel),
+            onDismiss = { showAnimationStyleDialog = false },
+        ) {
+            Column {
+                VoiceAnimationStyle.entries.forEach { style ->
+                    Preference(
+                        title = style.displayName(),
+                        summary = style.shortDescription(),
+                        onClick = {
+                            scope.launch { prefs.voice.animationStyle.set(style) }
+                            showAnimationStyleDialog = false
+                        },
+                    )
+                }
             }
         }
     }

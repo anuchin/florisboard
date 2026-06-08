@@ -133,9 +133,17 @@ class AudioRecorder(private val context: Context) {
     }
 
     private val historyScratch = ArrayDeque<Float>(AMPLITUDE_HISTORY_SIZE)
+    private var lastUpdateTimestamp = 0L
     private fun pushAmplitudeSample(sample: Float) {
+        // Throttle: only update the history at ~30Hz (every ~33ms)
+        val now = System.currentTimeMillis()
+        val timeSinceLastUpdate = now - lastUpdateTimestamp
+        if (timeSinceLastUpdate < 33) {
+            return
+        }
+        lastUpdateTimestamp = now
+
         val current = _amplitudeHistory.value
-        // Throttle: only update the history at a sane visual rate (≈30Hz).
         if (current.size != AMPLITUDE_HISTORY_SIZE) {
             historyScratch.clear()
             historyScratch.addAll(current)

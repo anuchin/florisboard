@@ -52,6 +52,7 @@ import dev.patrickgold.florisboard.ime.text.key.KeyHintMode
 import dev.patrickgold.florisboard.ime.text.key.UtilityKeyAction
 import dev.patrickgold.florisboard.ime.voice.RefinementStyle
 import dev.patrickgold.florisboard.ime.voice.SavedEndpoint
+import dev.patrickgold.florisboard.ime.voice.VoiceAnimationStyle
 import dev.patrickgold.florisboard.ime.voice.VoiceProvider
 import dev.patrickgold.florisboard.ime.text.keyboard.TextKeyData
 import dev.patrickgold.florisboard.ime.theme.ThemeMode
@@ -828,6 +829,10 @@ abstract class FlorisPreferenceModel : PreferenceModel() {
         val llmActiveEndpointId = string(
             key = "voice__llm_active_endpoint_id",
             default = "",
+        )
+        val animationStyle = enum(
+            key = "voice__animation_style",
+            default = VoiceAnimationStyle.RIPPLE_RINGS,
         )
     }
 

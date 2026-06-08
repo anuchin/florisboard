@@ -1214,6 +1214,8 @@
     <string name="voice__backspace" comment="Content description for backspace button">Backspace</string>
     <string name="voice__enter" comment="Content description for enter button">Enter</string>
     <string name="voice__paste" comment="Content description for paste button">Paste</string>
+    <string name="voice__space" comment="Label for space button">Space</string>
+    <string name="voice__undo" comment="Content description for undo button">Undo</string>
     <string name="voice__switch_keyboard" comment="Content description for switch to keyboard button">Switch to keyboard</string>
     <string name="voice__abc" comment="Label on button to switch back to text keyboard">ABC</string>
     <string name="voice__enhance" comment="Label for the enhance/refinement toggle">Enhance</string>

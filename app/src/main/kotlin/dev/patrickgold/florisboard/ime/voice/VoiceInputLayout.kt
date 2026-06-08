@@ -58,15 +58,18 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBackIosNew
 import androidx.compose.material.icons.filled.ArrowForwardIos
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.ContentPaste
 import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.Keyboard
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Send
 import androidx.compose.material.icons.filled.Stop
+import androidx.compose.material.icons.filled.Undo
 import androidx.compose.material.icons.outlined.AutoAwesome
+import androidx.compose.material.icons.outlined.KeyboardArrowDown
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -131,10 +134,8 @@ private fun VoiceInputLayoutContent(modifier: Modifier) {
     val uiState by voiceInputManager.uiState.collectAsState()
     val prefs by FlorisPreferenceStore
     val refinementStyle by prefs.voice.refinementStyle.collectAsState()
+    val animationStyle by prefs.voice.animationStyle.collectAsState()
 
-    val providerInfo = remember(voiceInputManager) {
-        voiceInputManager.snapshotProviderInfo()
-    }
     val openSettings = rememberOpenVoiceSettings()
 
     var swipeOffsetX by remember { mutableFloatStateOf(0f) }
@@ -166,12 +167,13 @@ private fun VoiceInputLayoutContent(modifier: Modifier) {
             modifier = Modifier.fillMaxSize(),
         ) {
             VoiceTopBar(
-                provider = providerInfo.first,
-                model = providerInfo.second,
-                language = providerInfo.third,
+                refinementStyle = refinementStyle,
                 onClose = {
                     voiceInputManager.reset()
                     keyboardManager.activeState.imeUiMode = ImeUiMode.TEXT
+                },
+                onRefinementStyleChange = { newStyle ->
+                    prefs.voice.refinementStyle.set(newStyle)
                 },
             )
 
@@ -187,6 +189,7 @@ private fun VoiceInputLayoutContent(modifier: Modifier) {
                     openSettings = openSettings,
                     ctx = ctx,
                     refinementStyle = refinementStyle,
+                    animationStyle = animationStyle,
                 )
             }
 
@@ -201,12 +204,13 @@ private fun VoiceInputLayoutContent(modifier: Modifier) {
 
 @Composable
 private fun VoiceTopBar(
-    provider: String,
-    model: String,
-    language: String,
+    refinementStyle: RefinementStyle,
     onClose: () -> Unit,
+    onRefinementStyleChange: (RefinementStyle) -> Unit,
 ) {
     val closeDesc = stringResource(R.string.voice__close)
+    var showDropdown by remember { mutableStateOf(false) }
+
     SnyggRow(
         elementName = FlorisImeUi.VoiceTopBar.elementName,
         modifier = Modifier
@@ -215,14 +219,48 @@ private fun VoiceTopBar(
             .padding(horizontal = 24.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        VoiceChip(label = provider)
-        Spacer(modifier = Modifier.width(8.dp))
-        VoiceChip(label = model)
-
         Spacer(modifier = Modifier.weight(1f))
 
-        VoiceChip(label = language)
-        Spacer(modifier = Modifier.width(6.dp))
+        // Mode selector dropdown
+        Box(modifier = Modifier.padding(end = 8.dp)) {
+            SnyggButton(
+                elementName = FlorisImeUi.VoiceTopBar.elementName,
+                onClick = { showDropdown = true },
+            ) {
+                SnyggText(
+                    elementName = FlorisImeUi.VoiceTopBar.elementName,
+                    text = refinementStyle.displayName(),
+                )
+                Spacer(modifier = Modifier.width(4.dp))
+                SnyggIcon(
+                    elementName = FlorisImeUi.VoiceTopBar.elementName,
+                    imageVector = Icons.Outlined.KeyboardArrowDown,
+                    contentDescription = null,
+                    modifier = Modifier.size(16.dp),
+                )
+            }
+
+            // Dropdown menu
+            androidx.compose.material3.DropdownMenu(
+                expanded = showDropdown,
+                onDismissRequest = { showDropdown = false },
+            ) {
+                RefinementStyle.entries
+                    .filter { it != RefinementStyle.CUSTOM }
+                    .forEach { style ->
+                        androidx.compose.material3.DropdownMenuItem(
+                            text = {
+                                androidx.compose.material3.Text(style.displayName())
+                            },
+                            onClick = {
+                                onRefinementStyleChange(style)
+                                showDropdown = false
+                            },
+                        )
+                    }
+            }
+        }
+
         SnyggIconButton(
             elementName = FlorisImeUi.VoiceTopBar.elementName,
             modifier = Modifier.size(32.dp),
@@ -245,6 +283,7 @@ private fun VoiceStage(
     openSettings: () -> Unit,
     ctx: Context,
     refinementStyle: RefinementStyle,
+    animationStyle: VoiceAnimationStyle,
 ) {
     AnimatedContent(
         targetState = uiState.state,
@@ -267,9 +306,12 @@ private fun VoiceStage(
                 durationMs = uiState.durationMs,
                 refinementEnabled = manager.isRefinementEnabled(),
                 isAgentMode = refinementStyle.isAgent,
+                animationStyle = animationStyle,
                 onStartRecording = { manager.startRecording() },
                 onStopRecording = { manager.stopRecording() },
                 onToggleRefinement = { manager.toggleRefinement() },
+                onUndo = { manager.clearLastTranscription() },
+                onBackspace = { keyboardManager.inputEventDispatcher.sendDownUp(TextKeyData.DELETE) },
             )
             VoiceInputState.PROCESSING -> ProcessingStage(
                 label = stringResource(R.string.voice__transcribing),
@@ -324,9 +366,12 @@ private fun RecordingStage(
     durationMs: Long,
     refinementEnabled: Boolean,
     isAgentMode: Boolean,
+    animationStyle: VoiceAnimationStyle,
     onStartRecording: () -> Unit,
     onStopRecording: () -> Unit,
     onToggleRefinement: () -> Unit,
+    onUndo: () -> Unit,
+    onBackspace: () -> Unit,
 ) {
     val timerDesc = stringResource(R.string.voice__listening)
 
@@ -338,21 +383,66 @@ private fun RecordingStage(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
-        Box(
-            modifier = Modifier.size(220.dp),
-            contentAlignment = Alignment.Center,
+        // Mic button with Undo and Backspace buttons
+        SnyggRow(
+            elementName = FlorisImeUi.VoiceInputRoot.elementName,
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            if (state == VoiceInputState.RECORDING) {
-                PulseRings(amplitude = amplitude)
+            // Undo button
+            SnyggIconButton(
+                elementName = FlorisImeUi.VoiceBottomBarButton.elementName,
+                modifier = Modifier.size(48.dp),
+                onClick = onUndo,
+            ) {
+                SnyggIcon(
+                    elementName = FlorisImeUi.VoiceBottomBarButton.elementName,
+                    imageVector = Icons.Filled.Undo,
+                    contentDescription = stringResource(R.string.voice__undo),
+                    modifier = Modifier.size(20.dp),
+                )
             }
-            VoiceMicButton(
-                isRecording = state == VoiceInputState.RECORDING,
-                onPress = onStartRecording,
-                onRelease = onStopRecording,
-                onTap = {
-                    if (state == VoiceInputState.RECORDING) onStopRecording() else onStartRecording()
-                },
-            )
+
+            Spacer(modifier = Modifier.width(16.dp))
+
+            // Backspace button
+            SnyggIconButton(
+                elementName = FlorisImeUi.VoiceBottomBarButton.elementName,
+                modifier = Modifier.size(48.dp),
+                onClick = onBackspace,
+            ) {
+                SnyggIcon(
+                    elementName = FlorisImeUi.VoiceBottomBarButton.elementName,
+                    imageVector = Icons.Filled.ArrowBackIosNew,
+                    contentDescription = stringResource(R.string.voice__backspace),
+                    modifier = Modifier.size(20.dp),
+                )
+            }
+
+            Spacer(modifier = Modifier.width(24.dp))
+
+            Box(
+                modifier = Modifier.size(88.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                if (state == VoiceInputState.RECORDING) {
+                    when (animationStyle) {
+                        VoiceAnimationStyle.RIPPLE_RINGS -> RippleRings(amplitude = amplitude)
+                        VoiceAnimationStyle.WAVE_CIRCLE -> WaveCircle(amplitude = amplitude)
+                        VoiceAnimationStyle.GLOWING_ORB -> GlowingOrb(amplitude = amplitude)
+                        VoiceAnimationStyle.PARTICLE_BURST -> ParticleBurst(amplitude = amplitude)
+                    }
+                }
+                VoiceMicButton(
+                    isRecording = state == VoiceInputState.RECORDING,
+                    onPress = onStartRecording,
+                    onRelease = onStopRecording,
+                    onTap = {
+                        if (state == VoiceInputState.RECORDING) onStopRecording() else onStartRecording()
+                    },
+                )
+            }
         }
 
         Spacer(modifier = Modifier.height(20.dp))
@@ -393,15 +483,15 @@ private fun RecordingStage(
 }
 
 @Composable
-private fun PulseRings(amplitude: Float) {
+private fun RippleRings(amplitude: Float) {
     val micStyle = rememberSnyggThemeQuery(
         FlorisImeUi.VoiceMicButton.elementName,
         attributes = mapOf(FlorisImeUi.Attr.VoiceState to listOf("recording")),
     )
     val ringColor = micStyle.background()
     val transition = rememberInfiniteTransition(label = "pulse")
-    for (i in 0 until 3) {
-        val phase = i / 3f
+    for (i in 0 until 4) {
+        val phase = i / 4f
         val progress by transition.animateFloat(
             initialValue = phase,
             targetValue = phase + 1f,
@@ -411,7 +501,7 @@ private fun PulseRings(amplitude: Float) {
             ),
             label = "ring_$i",
         )
-        val normalized = ((progress - phase) * 3f).coerceIn(0f, 1f)
+        val normalized = ((progress - phase) * 4f).coerceIn(0f, 1f)
         val color = ringColor.copy(alpha = (1f - normalized) * 0.5f)
         val baseRadius = 70f
         val ampBoost = amplitude * 18f
@@ -422,11 +512,190 @@ private fun PulseRings(amplitude: Float) {
                 color = color,
                 radius = radiusDp.toPx(),
                 center = center,
-                style = androidx.compose.ui.graphics.drawscope.Stroke(width = strokeDp.toPx()),
+                style = Stroke(width = strokeDp.toPx()),
             )
         }
     }
 }
+
+@Composable
+private fun WaveCircle(amplitude: Float) {
+    val micStyle = rememberSnyggThemeQuery(
+        FlorisImeUi.VoiceMicButton.elementName,
+        attributes = mapOf(FlorisImeUi.Attr.VoiceState to listOf("recording")),
+    )
+    val barColor = micStyle.background().copy(alpha = 0.7f)
+    val barCount = 24
+    val radius = 70f
+    val barWidth = 4f
+    val maxBarHeight = 30f
+
+    Canvas(modifier = Modifier.size(220.dp)) {
+        val centerX = size.width / 2f
+        val centerY = size.height / 2f
+        val angleStep = 360f / barCount
+
+        for (i in 0 until barCount) {
+            val angle = (i * angleStep) * (Math.PI / 180f).toFloat()
+            val ampBoost = amplitude * maxBarHeight
+            val barHeight = (6f + ampBoost * 0.8f).coerceIn(4f, maxBarHeight + 10f)
+
+            val startRadius = radius - 8f
+            val endRadius = startRadius + barHeight
+
+            val startX = centerX + kotlin.math.cos(angle) * startRadius
+            val startY = centerY + kotlin.math.sin(angle) * startRadius
+            val endX = centerX + kotlin.math.cos(angle) * endRadius
+            val endY = centerY + kotlin.math.sin(angle) * endRadius
+
+            val perpendicularAngle = angle + Math.PI.toFloat() / 2f
+            val halfWidth = barWidth / 2f
+
+            val p1 = Offset(
+                startX + kotlin.math.cos(perpendicularAngle) * halfWidth,
+                startY + kotlin.math.sin(perpendicularAngle) * halfWidth
+            )
+            val p2 = Offset(
+                startX - kotlin.math.cos(perpendicularAngle) * halfWidth,
+                startY - kotlin.math.sin(perpendicularAngle) * halfWidth
+            )
+            val p3 = Offset(
+                endX - kotlin.math.cos(perpendicularAngle) * halfWidth,
+                endY - kotlin.math.sin(perpendicularAngle) * halfWidth
+            )
+            val p4 = Offset(
+                endX + kotlin.math.cos(perpendicularAngle) * halfWidth,
+                endY + kotlin.math.sin(perpendicularAngle) * halfWidth
+            )
+
+            drawOutline(
+                androidx.compose.ui.graphics.Outline.Rounded(
+                    androidx.compose.ui.graphics.Path().apply {
+                        moveTo(p1.x, p1.y)
+                        lineTo(p2.x, p2.y)
+                        lineTo(p3.x, p3.y)
+                        lineTo(p4.x, p4.y)
+                        close()
+                    },
+                    androidx.compose.ui.graphics.CornerRadius(barWidth / 2f)
+                ),
+                color = barColor,
+                style = Stroke(width = 1f)
+            )
+            drawRoundRect(
+                color = barColor,
+                topLeft = Offset(
+                    (startX - halfWidth).coerceIn(0f, size.width),
+                    (startY - halfWidth).coerceIn(0f, size.height)
+                ),
+                size = Size(barWidth, barHeight),
+                cornerRadius = CornerRadius(barWidth / 2f),
+            )
+        }
+    }
+}
+
+@Composable
+private fun GlowingOrb(amplitude: Float) {
+    val micStyle = rememberSnyggThemeQuery(
+        FlorisImeUi.VoiceMicButton.elementName,
+        attributes = mapOf(FlorisImeUi.Attr.VoiceState to listOf("recording")),
+    )
+    val baseColor = micStyle.background()
+    val transition = rememberInfiniteTransition(label = "glow-pulse")
+
+    val glowScale by transition.animateFloat(
+        initialValue = 1f,
+        targetValue = 1.15f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(800, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse,
+        ),
+        label = "glow-scale",
+    )
+
+    val alphaScale by transition.animateFloat(
+        initialValue = 0.4f,
+        targetValue = 0.7f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1000, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse,
+        ),
+        label = "glow-alpha",
+    )
+
+    val ampBoost = amplitude * 0.3f
+    val finalScale = glowScale * (1f + ampBoost)
+    val finalAlpha = (alphaScale + ampBoost * 0.3f).coerceIn(0.2f, 0.9f)
+
+    Canvas(modifier = Modifier.size(180.dp)) {
+        val glowRadius = 60f * finalScale
+        drawCircle(
+            color = baseColor.copy(alpha = finalAlpha * 0.3f),
+            radius = glowRadius * 1.4f,
+            center = center,
+            blendMode = androidx.compose.ui.graphics.BlendMode.Screen
+        )
+        drawCircle(
+            color = baseColor.copy(alpha = finalAlpha * 0.5f),
+            radius = glowRadius * 1.2f,
+            center = center,
+        )
+        drawCircle(
+            color = baseColor.copy(alpha = finalAlpha * 0.7f),
+            radius = glowRadius,
+            center = center,
+        )
+    }
+}
+
+@Composable
+private fun ParticleBurst(amplitude: Float) {
+    val micStyle = rememberSnyggThemeQuery(
+        FlorisImeUi.VoiceMicButton.elementName,
+        attributes = mapOf(FlorisImeUi.Attr.VoiceState to listOf("recording")),
+    )
+    val particleColor = micStyle.background().copy(alpha = 0.6f)
+    val transition = rememberInfiniteTransition(label = "particles")
+    val particleCount = 12
+
+    Canvas(modifier = Modifier.size(200.dp)) {
+        val centerX = size.width / 2f
+        val centerY = size.height / 2f
+        val baseRadius = 50f
+        val maxDistance = 70f + amplitude * 40f
+
+        for (i in 0 until particleCount) {
+            val phase = i / particleCount.toFloat()
+            val progress by transition.animateFloat(
+                initialValue = phase,
+                targetValue = phase + 1f,
+                animationSpec = infiniteRepeatable(
+                    animation = tween(1200, easing = LinearEasing),
+                    repeatMode = RepeatMode.Restart,
+                ),
+                label = "particle_$i",
+            )
+
+            val normalized = ((progress - phase)).coerceIn(0f, 1f)
+            val angle = (i * 360f / particleCount + progress * 30f) * (Math.PI / 180f).toFloat()
+
+            val distance = baseRadius + normalized * maxDistance
+            val particleX = centerX + kotlin.math.cos(angle) * distance
+            val particleY = centerY + kotlin.math.sin(angle) * distance
+
+            val alpha = (1f - normalized) * 0.8f
+            val size = (6f - normalized * 4f).coerceAtLeast(2f)
+
+            drawCircle(
+                color = particleColor.copy(alpha = alpha * amplitude.coerceIn(0.2f, 1f)),
+                radius = size,
+                center = Offset(particleX, particleY),
+            )
+        }
+    }
+}
+
 
 @Composable
 private fun VoiceMicButton(
@@ -946,9 +1215,8 @@ private fun VoiceBottomBar(
     state: VoiceInputState,
     onCancelProcessing: () -> Unit,
 ) {
-    val backspaceDesc = stringResource(R.string.voice__backspace)
+    val spaceDesc = stringResource(R.string.voice__space)
     val enterDesc = stringResource(R.string.voice__enter)
-    val pasteDesc = stringResource(R.string.voice__paste)
     val switchDesc = stringResource(R.string.voice__switch_keyboard)
 
     SnyggRow(
@@ -959,43 +1227,7 @@ private fun VoiceBottomBar(
             .padding(horizontal = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        SnyggButton(
-            elementName = FlorisImeUi.VoiceBottomBarButton.elementName,
-            onClick = { keyboardManager.inputEventDispatcher.sendDownUp(TextKeyData.DELETE) },
-            modifier = Modifier.weight(1f).fillMaxHeight().padding(4.dp),
-        ) {
-            SnyggIcon(
-                elementName = FlorisImeUi.VoiceBottomBarButton.elementName,
-                imageVector = Icons.Filled.ArrowBackIosNew,
-                contentDescription = backspaceDesc,
-                modifier = Modifier.size(16.dp),
-            )
-        }
-        SnyggButton(
-            elementName = FlorisImeUi.VoiceBottomBarButton.elementName,
-            onClick = { FlorisImeService.sendDownAndUpKeyEvent(KeyEvent.KEYCODE_ENTER) },
-            modifier = Modifier.weight(1f).fillMaxHeight().padding(4.dp),
-        ) {
-            SnyggIcon(
-                elementName = FlorisImeUi.VoiceBottomBarButton.elementName,
-                imageVector = Icons.Filled.ArrowForwardIos,
-                contentDescription = enterDesc,
-                modifier = Modifier.size(16.dp),
-            )
-        }
-        SnyggButton(
-            elementName = FlorisImeUi.VoiceBottomBarButton.elementName,
-            onClick = { FlorisImeService.performClipboardPaste() },
-            modifier = Modifier.weight(1f).fillMaxHeight().padding(4.dp),
-        ) {
-            SnyggIcon(
-                elementName = FlorisImeUi.VoiceBottomBarButton.elementName,
-                imageVector = Icons.Filled.ContentPaste,
-                contentDescription = pasteDesc,
-                modifier = Modifier.size(18.dp),
-            )
-        }
-        Spacer(modifier = Modifier.weight(1.5f))
+        // LEFT side: Keyboard button
         SnyggButton(
             elementName = FlorisImeUi.VoiceBottomBarButton.elementName,
             onClick = { keyboardManager.activeState.imeUiMode = ImeUiMode.TEXT },
@@ -1011,6 +1243,32 @@ private fun VoiceBottomBar(
             SnyggText(
                 elementName = FlorisImeUi.VoiceBottomBarButton.elementName,
                 text = stringResource(R.string.voice__abc),
+            )
+        }
+
+        Spacer(modifier = Modifier.weight(1f))
+
+        // RIGHT side: Space button, Enter button
+        SnyggButton(
+            elementName = FlorisImeUi.VoiceBottomBarButton.elementName,
+            onClick = { keyboardManager.inputEventDispatcher.sendDownUp(TextKeyData.SPACE) },
+            modifier = Modifier.weight(1f).fillMaxHeight().padding(4.dp),
+        ) {
+            SnyggText(
+                elementName = FlorisImeUi.VoiceBottomBarButton.elementName,
+                text = stringResource(R.string.voice__space),
+            )
+        }
+        SnyggButton(
+            elementName = FlorisImeUi.VoiceBottomBarButton.elementName,
+            onClick = { FlorisImeService.sendDownAndUpKeyEvent(KeyEvent.KEYCODE_ENTER) },
+            modifier = Modifier.weight(1f).fillMaxHeight().padding(4.dp),
+        ) {
+            SnyggIcon(
+                elementName = FlorisImeUi.VoiceBottomBarButton.elementName,
+                imageVector = Icons.Filled.ArrowForwardIos,
+                contentDescription = enterDesc,
+                modifier = Modifier.size(16.dp),
             )
         }
     }

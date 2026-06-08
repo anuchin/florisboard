@@ -494,5 +494,18 @@
   "subtype-panel-list-item-text": {
     "text-max-lines": "1",
     "text-overflow": "ellipsis"
+  },
+
+  "voice-mic-button": {
+    "background": "var(--surface)",
+    "foreground": "var(--on-surface)",
+    "voicestate": {
+      "recording": {
+        "background": "#ff5252"
+      }
+    }
+  },
+  "voice-waveform": {
+    "foreground": "var(--on-surface)"
   }
 }
