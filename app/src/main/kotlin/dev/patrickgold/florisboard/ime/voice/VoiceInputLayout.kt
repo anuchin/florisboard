@@ -21,6 +21,7 @@ import android.content.Intent
 import android.net.Uri
 import android.view.KeyEvent
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.animateFloatAsState
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.Spring
@@ -34,15 +35,12 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.gestures.waitForUpOrCancellation
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -52,7 +50,6 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -66,13 +63,24 @@ import androidx.compose.material.icons.filled.ArrowBackIosNew
 import androidx.compose.material.icons.filled.ArrowForwardIos
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ContentPaste
+import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.Keyboard
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Send
 import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material.icons.outlined.AutoAwesome
+import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.SuggestionChip
+import androidx.compose.material3.SuggestionChipDefaults
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -87,117 +95,113 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
-import androidx.compose.ui.graphics.drawscope.DrawScope
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.isUnspecified
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.materialkolor.PaletteStyle
+import com.materialkolor.dynamicColorScheme
 import dev.patrickgold.florisboard.FlorisImeService
+import dev.patrickgold.florisboard.R
 import dev.patrickgold.florisboard.app.FlorisAppActivity
+import dev.patrickgold.florisboard.app.FlorisPreferenceStore
 import dev.patrickgold.florisboard.ime.ImeUiMode
 import dev.patrickgold.florisboard.ime.keyboard.FlorisImeSizing
 import dev.patrickgold.florisboard.ime.text.keyboard.TextKeyData
 import dev.patrickgold.florisboard.keyboardManager
+import dev.patrickgold.jetpref.datastore.model.collectAsState
 
 // ════════════════════════════════════════════════════════════════════════════
-//  Design tokens — semantic, dark-first, look great on any IME theme.
+//  Animation constants
 // ════════════════════════════════════════════════════════════════════════════
 
-private object VoiceColors {
-    val BgTop = Color(0xFF0B0D17)
-    val BgMid = Color(0xFF11132A)
-    val BgBottom = Color(0xFF181536)
+private const val STATE_TRANSITION_MS = 280
+private const val RING_EXPAND_MS = 1800
+private const val WAVEFORM_BAR_COUNT = 28
 
-    val MicIdleStart = Color(0xFF6366F1)
-    val MicIdleEnd = Color(0xFF8B5CF6)
-    val MicRecordStart = Color(0xFFEF4444)
-    val MicRecordEnd = Color(0xFFF97316)
-    val MicProcessStart = Color(0xFF06B6D4)
-    val MicProcessEnd = Color(0xFF3B82F6)
-
-    val RingIdle = Color(0xFF8B5CF6)
-    val RingRecording = Color(0xFFFCA5A5)
-    val RingProcessing = Color(0xFF7DD3FC)
-
-    val WaveformBase = Color(0xFF3F3F5A)
-    val WaveformActive = Color(0xFFA78BFA)
-    val WaveformPeak = Color(0xFFEC4899)
-
-    val TextPrimary = Color(0xFFF3F4F6)
-    val TextSecondary = Color(0xFFB5B5C3)
-    val TextTertiary = Color(0xFF6B7280)
-    val TextOnAccent = Color(0xFFFFFFFF)
-
-    val Success = Color(0xFF10B981)
-    val Error = Color(0xFFEF4444)
-
-    val Surface = Color(0xFF1A1B2E)
-    val SurfaceHigh = Color(0xFF252840)
-    val BorderSubtle = Color(0xFF2D2F4A)
-    val Scrim = Color(0xFF000000).copy(alpha = 0.4f)
-}
-
-private object VoiceDimens {
-    val MicSize = 88.dp
-    val MicIconSize = 38.dp
-    val WaveformHeight = 56.dp
-    val WaveformBarCount = 28
-    val WaveformBarWidth = 3.5.dp
-    val WaveformBarGap = 3.dp
-    val CardRadius = 20.dp
-    val PillRadius = 14.dp
-    val ChipRadius = 999.dp
-    val StageHorizontalPadding = 24.dp
-    val TopBarHeight = 44.dp
-    val BottomBarHeight = 52.dp
-}
-
-private object VoiceAnimations {
-    const val MicPulseMs = 1400
-    const val RingExpandMs = 1800
-    const val StateTransitionMs = 280
-    const val TimerTickMs = 100
-}
 
 // ════════════════════════════════════════════════════════════════════════════
-//  Entry point
+//  Entry point — wraps content in a dynamic M3 theme using the app's accent
 // ════════════════════════════════════════════════════════════════════════════
+
+private val DEFAULT_SEED = Color(0xFF4CAF50)
 
 @Composable
 fun VoiceInputLayout(modifier: Modifier = Modifier) {
+    val prefs by FlorisPreferenceStore
+    val accentColor by prefs.theme.accentColor.collectAsState()
+    val isDark = isSystemInDarkTheme()
+
+    val seedColor = if (accentColor.isUnspecified) DEFAULT_SEED else accentColor
+    val colorScheme = dynamicColorScheme(
+        seedColor = seedColor,
+        isDark = isDark,
+        isAmoled = false,
+        style = PaletteStyle.Neutral,
+    )
+    MaterialTheme(colorScheme = colorScheme) {
+        VoiceInputLayoutContent(modifier)
+    }
+}
+
+@Composable
+private fun VoiceInputLayoutContent(modifier: Modifier) {
     val ctx = LocalContext.current
     val voiceInputManager = remember { VoiceInputManager(ctx) }
     val keyboardManager by ctx.keyboardManager()
     val uiState by voiceInputManager.uiState.collectAsState()
 
-    // Provider info snapshot, captured at composition time.
     val providerInfo = remember(voiceInputManager) {
         voiceInputManager.snapshotProviderInfo()
     }
     val openSettings = rememberOpenVoiceSettings()
 
-    // Horizontal swipe offset for visual feedback
     var swipeOffsetX by remember { mutableFloatStateOf(0f) }
+
+    val colorScheme = MaterialTheme.colorScheme
+    val bgTop = colorScheme.surfaceContainerLowest
+    val bgMid = colorScheme.surfaceContainerLow
+    val bgBottom = colorScheme.surfaceContainer
+    val accentGlow = colorScheme.primary.copy(alpha = 0.08f)
 
     Box(
         modifier = modifier
             .fillMaxWidth()
             .height(FlorisImeSizing.imeUiHeight())
-            .drawBehind { drawVoiceBackground() }
+            .drawBehind {
+                drawRect(
+                    brush = Brush.verticalGradient(
+                        0.0f to bgTop,
+                        0.55f to bgMid,
+                        1.0f to bgBottom,
+                    ),
+                )
+                drawCircle(
+                    brush = Brush.radialGradient(
+                        0.0f to accentGlow,
+                        1.0f to Color.Transparent,
+                        center = Offset(size.width * 0.5f, size.height * 0.15f),
+                        radius = size.minDimension * 0.6f,
+                    ),
+                    radius = size.minDimension * 0.6f,
+                    center = Offset(size.width * 0.5f, size.height * 0.15f),
+                )
+            }
             .pointerInput(Unit) {
                 detectHorizontalDragGestures(
                     onDragEnd = {
@@ -248,27 +252,6 @@ fun VoiceInputLayout(modifier: Modifier = Modifier) {
     }
 }
 
-private fun DrawScope.drawVoiceBackground() {
-    drawRect(
-        brush = Brush.verticalGradient(
-            0.0f to VoiceColors.BgTop,
-            0.55f to VoiceColors.BgMid,
-            1.0f to VoiceColors.BgBottom,
-        ),
-    )
-    // Subtle radial accent in the upper third to add depth
-    drawCircle(
-        brush = Brush.radialGradient(
-            0.0f to VoiceColors.MicIdleEnd.copy(alpha = 0.10f),
-            1.0f to Color.Transparent,
-            center = Offset(size.width * 0.5f, size.height * 0.15f),
-            radius = size.minDimension * 0.6f,
-        ),
-        radius = size.minDimension * 0.6f,
-        center = Offset(size.width * 0.5f, size.height * 0.15f),
-    )
-}
-
 // ════════════════════════════════════════════════════════════════════════════
 //  Top bar
 // ════════════════════════════════════════════════════════════════════════════
@@ -280,44 +263,40 @@ private fun VoiceTopBar(
     language: String,
     onClose: () -> Unit,
 ) {
+    val closeDesc = stringResource(R.string.voice__close)
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .height(VoiceDimens.TopBarHeight)
-            .padding(horizontal = VoiceDimens.StageHorizontalPadding),
+            .height(44.dp)
+            .padding(horizontal = 24.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        // Left: provider chip
-        VoiceChip(
-            label = provider,
-            leading = "◆",
-            accent = VoiceColors.MicIdleEnd,
-        )
+        VoiceChip(label = provider)
         Spacer(modifier = Modifier.width(8.dp))
-        VoiceChip(
-            label = model,
-            accent = VoiceColors.WaveformActive,
-        )
+        VoiceChip(label = model)
 
         Spacer(modifier = Modifier.weight(1f))
 
-        // Right: language + close
-        VoiceChip(
-            label = language,
-            leading = "◌",
-            accent = VoiceColors.TextSecondary,
-        )
+        VoiceChip(label = language)
         Spacer(modifier = Modifier.width(6.dp))
-        VoiceIconButton(
-            icon = Icons.Filled.Close,
-            contentDescription = "Close",
+        IconButton(
             onClick = onClose,
-        )
+            modifier = Modifier
+                .size(32.dp)
+                .semantics { contentDescription = closeDesc },
+        ) {
+            Icon(
+                imageVector = Icons.Filled.Close,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(16.dp),
+            )
+        }
     }
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-//  Stage router — switches between content states with smooth transitions.
+//  Stage router — switches between content states with smooth transitions
 // ════════════════════════════════════════════════════════════════════════════
 
 @Composable
@@ -330,11 +309,11 @@ private fun VoiceStage(
     AnimatedContent(
         targetState = uiState.state,
         transitionSpec = {
-            (fadeIn(tween(VoiceAnimations.StateTransitionMs)) +
-                scaleIn(initialScale = 0.96f, animationSpec = tween(VoiceAnimations.StateTransitionMs)))
+            (fadeIn(tween(STATE_TRANSITION_MS)) +
+                scaleIn(initialScale = 0.96f, animationSpec = tween(STATE_TRANSITION_MS)))
                 .togetherWith(
-                    fadeOut(tween(VoiceAnimations.StateTransitionMs)) +
-                        scaleOut(targetScale = 1.04f, animationSpec = tween(VoiceAnimations.StateTransitionMs))
+                    fadeOut(tween(STATE_TRANSITION_MS)) +
+                        scaleOut(targetScale = 1.04f, animationSpec = tween(STATE_TRANSITION_MS))
                 )
         },
         label = "voice-stage",
@@ -352,13 +331,16 @@ private fun VoiceStage(
                 onToggleRefinement = { manager.toggleRefinement() },
             )
             VoiceInputState.PROCESSING -> ProcessingStage(
-                label = "Transcribing…",
-                sublabel = "Sending to ${uiState.providerLabel.ifBlank { "speech-to-text" }}",
+                label = stringResource(R.string.voice__transcribing),
+                sublabel = stringResource(
+                    R.string.voice__sending_to,
+                    uiState.providerLabel.ifBlank { stringResource(R.string.voice__speech_to_text) },
+                ),
                 onCancel = { manager.cancel() },
             )
             VoiceInputState.REFINING -> ProcessingStage(
-                label = "Refining…",
-                sublabel = "Polishing with the language model",
+                label = stringResource(R.string.voice__refining),
+                sublabel = stringResource(R.string.voice__refining_sublabel),
                 onCancel = { manager.cancel() },
             )
             VoiceInputState.SUCCESS -> SuccessStage(
@@ -372,7 +354,7 @@ private fun VoiceStage(
                 onDismiss = { manager.reset() },
             )
             VoiceInputState.ERROR -> ErrorStage(
-                message = uiState.errorMessage.ifBlank { "Voice input failed" },
+                message = uiState.errorMessage.ifBlank { stringResource(R.string.voice__error_title) },
                 onRetry = { manager.startRecording() },
                 onDismiss = { manager.reset() },
                 onOpenSettings = openSettings,
@@ -405,19 +387,20 @@ private fun RecordingStage(
     onStopRecording: () -> Unit,
     onToggleRefinement: () -> Unit,
 ) {
+    val colorScheme = MaterialTheme.colorScheme
+    val timerDesc = stringResource(R.string.voice__listening)
+
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(horizontal = VoiceDimens.StageHorizontalPadding),
+            .padding(horizontal = 24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
-        // The big mic with concentric pulse rings
         Box(
             modifier = Modifier.size(220.dp),
             contentAlignment = Alignment.Center,
         ) {
-            // Pulse rings (only while recording)
             if (state == VoiceInputState.RECORDING) {
                 PulseRings(amplitude = amplitude)
             }
@@ -433,7 +416,6 @@ private fun RecordingStage(
 
         Spacer(modifier = Modifier.height(20.dp))
 
-        // Live waveform
         VoiceWaveform(
             history = amplitudeHistory,
             isActive = state == VoiceInputState.RECORDING,
@@ -441,31 +423,30 @@ private fun RecordingStage(
 
         Spacer(modifier = Modifier.height(20.dp))
 
-        // Timer
         Text(
             text = formatDuration(durationMs),
+            style = MaterialTheme.typography.headlineSmall,
             color = if (state == VoiceInputState.RECORDING)
-                VoiceColors.TextPrimary else VoiceColors.TextTertiary,
-            fontSize = 22.sp,
-            fontWeight = FontWeight.Medium,
+                colorScheme.onSurface else colorScheme.outline,
             letterSpacing = 1.5.sp,
+            modifier = Modifier.semantics {
+                contentDescription = timerDesc
+            },
         )
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        // Status text
         Text(
             text = when (state) {
-                VoiceInputState.RECORDING -> "Listening… tap to stop"
-                else -> "Tap to start · hold to talk"
+                VoiceInputState.RECORDING -> stringResource(R.string.voice__listening)
+                else -> stringResource(R.string.voice__tap_to_start)
             },
-            color = VoiceColors.TextSecondary,
-            fontSize = 14.sp,
+            style = MaterialTheme.typography.bodyMedium,
+            color = colorScheme.onSurfaceVariant,
         )
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // Enhance toggle
         EnhanceToggle(
             enabled = refinementEnabled,
             onToggle = onToggleRefinement,
@@ -475,31 +456,31 @@ private fun RecordingStage(
 
 @Composable
 private fun PulseRings(amplitude: Float) {
+    val ringColor = MaterialTheme.colorScheme.error
     val transition = rememberInfiniteTransition(label = "pulse")
-    // Three concentric rings, staggered phases
     for (i in 0 until 3) {
         val phase = i / 3f
         val progress by transition.animateFloat(
             initialValue = phase,
             targetValue = phase + 1f,
             animationSpec = infiniteRepeatable(
-                animation = tween(durationMillis = VoiceAnimations.RingExpandMs, easing = LinearEasing),
+                animation = tween(durationMillis = RING_EXPAND_MS, easing = LinearEasing),
                 repeatMode = RepeatMode.Restart,
             ),
             label = "ring_$i",
         )
         val normalized = ((progress - phase) * 3f).coerceIn(0f, 1f)
-        val ringColor = VoiceColors.RingRecording.copy(alpha = (1f - normalized) * 0.5f)
+        val color = ringColor.copy(alpha = (1f - normalized) * 0.5f)
         val baseRadius = 70f
         val ampBoost = amplitude * 18f
         val radiusDp = (baseRadius + normalized * 90f + ampBoost).dp
         val strokeDp = (3f - normalized * 2f).coerceAtLeast(1f).dp
         Canvas(modifier = Modifier.size(260.dp)) {
             drawCircle(
-                color = ringColor,
+                color = color,
                 radius = radiusDp.toPx(),
                 center = center,
-                style = Stroke(width = strokeDp.toPx()),
+                style = androidx.compose.ui.graphics.drawscope.Stroke(width = strokeDp.toPx()),
             )
         }
     }
@@ -512,6 +493,7 @@ private fun VoiceMicButton(
     onRelease: () -> Unit,
     onTap: () -> Unit,
 ) {
+    val colorScheme = MaterialTheme.colorScheme
     val currentIsRecording by rememberUpdatedState(isRecording)
     var pressed by remember { mutableStateOf(false) }
 
@@ -522,7 +504,6 @@ private fun VoiceMicButton(
         label = "mic-press",
     )
 
-    // Subtle breathing in idle
     val breath = rememberInfiniteTransition(label = "breath")
     val breathScale by breath.animateFloat(
         initialValue = 1f,
@@ -536,27 +517,31 @@ private fun VoiceMicButton(
 
     val showBreath = !isRecording
 
-    val gradient = Brush.linearGradient(
-        colors = if (isRecording)
-            listOf(VoiceColors.MicRecordStart, VoiceColors.MicRecordEnd)
-        else
-            listOf(VoiceColors.MicIdleStart, VoiceColors.MicIdleEnd),
+    val idleGradient = Brush.linearGradient(
+        colors = listOf(colorScheme.primary, colorScheme.primaryContainer),
+    )
+    val recordGradient = Brush.linearGradient(
+        colors = listOf(colorScheme.error, colorScheme.errorContainer),
+    )
+    val gradient = if (isRecording) recordGradient else idleGradient
+
+    val micDesc = stringResource(
+        if (isRecording) R.string.voice__stop_recording else R.string.voice__start_recording
     )
 
     Box(
         modifier = Modifier
-            .size(VoiceDimens.MicSize)
+            .size(88.dp)
             .scale(scale)
             .then(if (showBreath) Modifier.scale(breathScale) else Modifier)
             .clip(CircleShape)
-            .background(gradient)
             .drawBehind {
-                // Soft outer glow
+                drawCircle(brush = gradient)
                 drawCircle(
                     brush = Brush.radialGradient(
                         0.0f to (if (isRecording)
-                            VoiceColors.MicRecordStart.copy(alpha = 0.55f)
-                        else VoiceColors.MicIdleStart.copy(alpha = 0.45f)),
+                            colorScheme.error.copy(alpha = 0.55f)
+                        else colorScheme.primary.copy(alpha = 0.45f)),
                         1.0f to Color.Transparent,
                         center = center,
                         radius = size.minDimension * 0.7f,
@@ -565,6 +550,7 @@ private fun VoiceMicButton(
                     center = center,
                 )
             }
+            .semantics { contentDescription = micDesc }
             .pointerInput(Unit) {
                 awaitEachGesture {
                     val down = awaitFirstDown(requireUnconsumed = false)
@@ -575,16 +561,11 @@ private fun VoiceMicButton(
                     }
                     val up = waitForUpOrCancellation()
                     pressed = false
-                    if (up == null) {
-                        // gesture cancelled, leave as-is
-                        return@awaitEachGesture
-                    }
+                    if (up == null) return@awaitEachGesture
                     val pressDuration = System.currentTimeMillis() - pressStart
                     if (pressDuration < 200L) {
-                        // short tap — toggle
                         onTap()
                     } else {
-                        // long press — release stops
                         onRelease()
                     }
                 }
@@ -593,9 +574,9 @@ private fun VoiceMicButton(
     ) {
         Icon(
             imageVector = if (isRecording) Icons.Filled.Stop else Icons.Filled.Mic,
-            contentDescription = if (isRecording) "Stop recording" else "Start recording",
-            tint = VoiceColors.TextOnAccent,
-            modifier = Modifier.size(VoiceDimens.MicIconSize),
+            contentDescription = null,
+            tint = colorScheme.onPrimary,
+            modifier = Modifier.size(38.dp),
         )
     }
 }
@@ -605,17 +586,17 @@ private fun VoiceWaveform(
     history: List<Float>,
     isActive: Boolean,
 ) {
-    val activeColor = VoiceColors.WaveformActive
-    val peakColor = VoiceColors.WaveformPeak
-    val baseColor = VoiceColors.WaveformBase
-    val barCount = VoiceDimens.WaveformBarCount
-    val barWidth = VoiceDimens.WaveformBarWidth
-    val barGap = VoiceDimens.WaveformBarGap
-    val heightDp = VoiceDimens.WaveformHeight
+    val colorScheme = MaterialTheme.colorScheme
+    val activeColor = colorScheme.primary
+    val peakColor = colorScheme.tertiary
+    val baseColor = colorScheme.surfaceVariant
+    val barCount = WAVEFORM_BAR_COUNT
+    val barWidth = 3.5.dp
+    val barGap = 3.dp
 
     Canvas(
         modifier = Modifier
-            .height(heightDp)
+            .height(56.dp)
             .fillMaxWidth(),
     ) {
         val totalBars = barCount
@@ -623,7 +604,6 @@ private fun VoiceWaveform(
         val startX = (size.width - totalWidth) / 2f
         val midY = size.height / 2f
 
-        // Smooth the history into barCount by averaging
         val n = history.size
         if (n == 0) return@Canvas
         for (i in 0 until totalBars) {
@@ -634,7 +614,6 @@ private fun VoiceWaveform(
             val frac = idxF - i0
             val v = (history[i0] * (1f - frac) + history[i1] * frac)
                 .coerceIn(0f, 1f)
-            // Curve the amplitude for nicer visual response
             val shaped = v.pow(0.65f)
             val barH = (shaped * size.height * 0.95f).coerceAtLeast(barWidth.toPx())
             val x = startX + i * (barWidth.toPx() + barGap.toPx())
@@ -660,49 +639,43 @@ private fun EnhanceToggle(
     enabled: Boolean,
     onToggle: () -> Unit,
 ) {
-    Row(
-        modifier = Modifier
-            .clip(RoundedCornerShape(VoiceDimens.ChipRadius))
-            .background(VoiceColors.SurfaceHigh)
-            .border(1.dp, VoiceColors.BorderSubtle, RoundedCornerShape(VoiceDimens.ChipRadius))
-            .clickable(
-                interactionSource = remember { MutableInteractionSource() },
-                indication = null,
-                onClick = onToggle,
-            )
-            .padding(horizontal = 14.dp, vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Icon(
-            imageVector = Icons.Outlined.AutoAwesome,
-            contentDescription = null,
-            tint = if (enabled) VoiceColors.WaveformPeak else VoiceColors.TextTertiary,
-            modifier = Modifier.size(16.dp),
-        )
-        Spacer(modifier = Modifier.width(6.dp))
-        Text(
-            text = "Enhance",
-            color = VoiceColors.TextSecondary,
-            fontSize = 13.sp,
-        )
-        Spacer(modifier = Modifier.width(8.dp))
-        Box(
-            modifier = Modifier
-                .clip(RoundedCornerShape(10.dp))
-                .background(
-                    if (enabled) VoiceColors.WaveformActive.copy(alpha = 0.25f)
-                    else VoiceColors.Surface
+    FilterChip(
+        selected = enabled,
+        onClick = onToggle,
+        label = {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = stringResource(R.string.voice__enhance),
+                    style = MaterialTheme.typography.labelLarge,
                 )
-                .padding(horizontal = 8.dp, vertical = 2.dp),
-        ) {
-            Text(
-                text = if (enabled) "ON" else "OFF",
-                color = if (enabled) VoiceColors.WaveformActive else VoiceColors.TextTertiary,
-                fontSize = 11.sp,
-                fontWeight = FontWeight.SemiBold,
+                Spacer(modifier = Modifier.width(8.dp))
+                Surface(
+                    shape = RoundedCornerShape(10.dp),
+                    color = if (enabled)
+                        MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
+                    else MaterialTheme.colorScheme.surfaceContainerHighest,
+                ) {
+                    Text(
+                        text = if (enabled) stringResource(R.string.voice__on)
+                               else stringResource(R.string.voice__off),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = if (enabled) MaterialTheme.colorScheme.primary
+                               else MaterialTheme.colorScheme.outline,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+                    )
+                }
+            }
+        },
+        leadingIcon = {
+            Icon(
+                imageVector = Icons.Outlined.AutoAwesome,
+                contentDescription = null,
+                tint = if (enabled) MaterialTheme.colorScheme.tertiary
+                       else MaterialTheme.colorScheme.outline,
+                modifier = Modifier.size(16.dp),
             )
-        }
-    }
+        },
+    )
 }
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -715,78 +688,40 @@ private fun ProcessingStage(
     sublabel: String,
     onCancel: () -> Unit,
 ) {
-    val transition = rememberInfiniteTransition(label = "process")
-    val sweep by transition.animateFloat(
-        initialValue = 0f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 1200, easing = LinearEasing),
-            repeatMode = RepeatMode.Restart,
-        ),
-        label = "process-sweep",
-    )
+    val colorScheme = MaterialTheme.colorScheme
 
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(horizontal = VoiceDimens.StageHorizontalPadding),
+            .padding(horizontal = 24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
-        Box(modifier = Modifier.size(140.dp), contentAlignment = Alignment.Center) {
-            Canvas(modifier = Modifier.fillMaxSize()) {
-                val stroke = 6.dp.toPx()
-                val ringRadius = (size.minDimension - stroke) / 2f
-                val baseColor = VoiceColors.MicProcessEnd.copy(alpha = 0.18f)
-                val arcColor = VoiceColors.MicProcessEnd
-                drawCircle(
-                    color = baseColor,
-                    radius = ringRadius,
-                    center = center,
-                    style = Stroke(width = stroke),
-                )
-                val sweepAngle = 90f
-                val startAngle = sweep * 360f
-                drawArc(
-                    color = arcColor,
-                    startAngle = startAngle,
-                    sweepAngle = sweepAngle,
-                    useCenter = false,
-                    topLeft = Offset(center.x - ringRadius, center.y - ringRadius),
-                    size = Size(ringRadius * 2, ringRadius * 2),
-                    style = Stroke(width = stroke),
-                )
-            }
-            Box(
-                modifier = Modifier
-                    .size(12.dp)
-                    .clip(CircleShape)
-                    .background(VoiceColors.MicProcessEnd),
-            )
-        }
+        CircularProgressIndicator(
+            modifier = Modifier.size(56.dp),
+            color = colorScheme.primary,
+            strokeWidth = 5.dp,
+        )
 
         Spacer(modifier = Modifier.height(24.dp))
 
         Text(
             text = label,
-            color = VoiceColors.TextPrimary,
-            fontSize = 18.sp,
-            fontWeight = FontWeight.SemiBold,
+            style = MaterialTheme.typography.titleMedium,
+            color = colorScheme.onSurface,
         )
         Spacer(modifier = Modifier.height(6.dp))
         Text(
             text = sublabel,
-            color = VoiceColors.TextTertiary,
-            fontSize = 13.sp,
+            style = MaterialTheme.typography.bodySmall,
+            color = colorScheme.outline,
         )
 
         Spacer(modifier = Modifier.height(28.dp))
 
-        VoicePillButton(
-            label = "Cancel",
-            onClick = onCancel,
-            kind = VoicePillKind.Secondary,
-        )
+        OutlinedButton(onClick = onCancel) {
+            Text(stringResource(R.string.voice__cancel))
+        }
     }
 }
 
@@ -805,110 +740,127 @@ private fun SuccessStage(
     onToggleRawRefined: () -> Unit,
     onDismiss: () -> Unit,
 ) {
+    val colorScheme = MaterialTheme.colorScheme
     val text = uiState.transcribedText
     val hasRawAndRefined = uiState.rawTranscribedText.isNotBlank() && uiState.refinedText.isNotBlank()
 
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(horizontal = VoiceDimens.StageHorizontalPadding, vertical = 8.dp),
+            .padding(horizontal = 24.dp, vertical = 8.dp),
     ) {
-        // Header row: title + word count
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
-                text = if (uiState.isRefined) "Refined transcript" else "Transcript",
-                color = VoiceColors.TextSecondary,
-                fontSize = 12.sp,
-                fontWeight = FontWeight.Medium,
-                letterSpacing = 0.5.sp,
+                text = if (uiState.isRefined) stringResource(R.string.voice__refined_transcript)
+                       else stringResource(R.string.voice__transcript),
+                style = MaterialTheme.typography.labelMedium,
+                color = colorScheme.onSurfaceVariant,
             )
             Spacer(modifier = Modifier.weight(1f))
             Text(
-                text = "${countWords(text)} words",
-                color = VoiceColors.TextTertiary,
-                fontSize = 12.sp,
+                text = stringResource(R.string.voice__word_count, countWords(text)),
+                style = MaterialTheme.typography.labelMedium,
+                color = colorScheme.outline,
             )
         }
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        // Editable transcript card
-        Box(
+        Surface(
             modifier = Modifier
                 .weight(1f)
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(VoiceDimens.CardRadius))
-                .background(VoiceColors.Surface)
-                .border(1.dp, VoiceColors.BorderSubtle, RoundedCornerShape(VoiceDimens.CardRadius))
-                .padding(16.dp),
+                .fillMaxWidth(),
+            shape = RoundedCornerShape(20.dp),
+            color = colorScheme.surfaceContainerHigh,
+            border = BorderStroke(1.dp, colorScheme.outlineVariant),
         ) {
-            if (text.isBlank()) {
-                Text(
-                    text = "(empty result)",
-                    color = VoiceColors.TextTertiary,
-                    fontSize = 15.sp,
-                )
-            } else {
-                BasicTextField(
-                    value = text,
-                    onValueChange = onTextChange,
-                    textStyle = TextStyle(
-                        color = VoiceColors.TextPrimary,
-                        fontSize = 16.sp,
-                        lineHeight = 22.sp,
-                    ),
-                    cursorBrush = SolidColor(VoiceColors.WaveformActive),
-                    keyboardOptions = KeyboardOptions(
-                        capitalization = KeyboardCapitalization.Sentences,
-                        imeAction = ImeAction.Default,
-                    ),
-                    modifier = Modifier.fillMaxSize(),
-                )
+            Box(modifier = Modifier.padding(16.dp)) {
+                if (text.isBlank()) {
+                    Text(
+                        text = stringResource(R.string.voice__empty_result),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = colorScheme.outline,
+                    )
+                } else {
+                    BasicTextField(
+                        value = text,
+                        onValueChange = onTextChange,
+                        textStyle = MaterialTheme.typography.bodyLarge.copy(
+                            color = colorScheme.onSurface,
+                        ),
+                        cursorBrush = SolidColor(colorScheme.primary),
+                        keyboardOptions = KeyboardOptions(
+                            capitalization = KeyboardCapitalization.Sentences,
+                            imeAction = ImeAction.Default,
+                        ),
+                        modifier = Modifier.fillMaxSize(),
+                    )
+                }
             }
         }
 
         Spacer(modifier = Modifier.height(12.dp))
 
-        // Action row
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            VoicePillButton(
-                label = "Redo",
-                leading = Icons.Filled.Refresh,
+            OutlinedButton(
                 onClick = onRedo,
-                kind = VoicePillKind.Secondary,
                 modifier = Modifier.weight(1f),
-            )
-            if (refinementEnabled && !uiState.isRefined) {
-                VoicePillButton(
-                    label = "Refine",
-                    leading = Icons.Outlined.AutoAwesome,
-                    onClick = onRefine,
-                    kind = VoicePillKind.Tertiary,
-                    modifier = Modifier.weight(1f),
+            ) {
+                Icon(
+                    imageVector = Icons.Filled.Refresh,
+                    contentDescription = null,
+                    modifier = Modifier.size(15.dp),
                 )
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(stringResource(R.string.voice__redo))
+            }
+            if (refinementEnabled && !uiState.isRefined) {
+                FilledTonalButton(
+                    onClick = onRefine,
+                    modifier = Modifier.weight(1f),
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.AutoAwesome,
+                        contentDescription = null,
+                        modifier = Modifier.size(15.dp),
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(stringResource(R.string.voice__refine))
+                }
             }
             if (hasRawAndRefined) {
-                VoicePillButton(
-                    label = if (uiState.isRefined) "Raw" else "Refined",
+                FilledTonalButton(
                     onClick = onToggleRawRefined,
-                    kind = VoicePillKind.Tertiary,
                     modifier = Modifier.weight(1f),
+                ) {
+                    Text(
+                        if (uiState.isRefined) stringResource(R.string.voice__raw)
+                        else stringResource(R.string.voice__refined)
+                    )
+                }
+            }
+            Button(
+                onClick = onInsert,
+                modifier = Modifier.weight(1.2f),
+            ) {
+                Icon(
+                    imageVector = Icons.Filled.Send,
+                    contentDescription = null,
+                    modifier = Modifier.size(15.dp),
+                )
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(
+                    text = stringResource(R.string.voice__insert),
+                    style = MaterialTheme.typography.labelLarge,
                 )
             }
-            VoicePillButton(
-                label = "Insert",
-                leading = Icons.Filled.Send,
-                onClick = onInsert,
-                kind = VoicePillKind.Primary,
-                modifier = Modifier.weight(1.2f),
-            )
         }
     }
 }
@@ -924,48 +876,47 @@ private fun ErrorStage(
     onDismiss: () -> Unit,
     onOpenSettings: () -> Unit,
 ) {
+    val colorScheme = MaterialTheme.colorScheme
     val showSettingsCta = message.contains("not configured", ignoreCase = true) ||
         message.contains("Settings", ignoreCase = true)
 
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(horizontal = VoiceDimens.StageHorizontalPadding),
+            .padding(horizontal = 24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
-        // Error icon
-        Box(
-            modifier = Modifier
-                .size(64.dp)
-                .clip(CircleShape)
-                .background(VoiceColors.Error.copy(alpha = 0.16f))
-                .border(1.dp, VoiceColors.Error.copy(alpha = 0.4f), CircleShape),
-            contentAlignment = Alignment.Center,
+        Surface(
+            modifier = Modifier.size(64.dp),
+            shape = CircleShape,
+            color = colorScheme.errorContainer,
+            border = BorderStroke(1.dp, colorScheme.error.copy(alpha = 0.4f)),
         ) {
-            Text(
-                text = "!",
-                color = VoiceColors.Error,
-                fontSize = 32.sp,
-                fontWeight = FontWeight.Bold,
-            )
+            Box(contentAlignment = Alignment.Center) {
+                Icon(
+                    imageVector = Icons.Filled.Error,
+                    contentDescription = null,
+                    tint = colorScheme.error,
+                    modifier = Modifier.size(32.dp),
+                )
+            }
         }
 
         Spacer(modifier = Modifier.height(20.dp))
 
         Text(
-            text = "Something went wrong",
-            color = VoiceColors.TextPrimary,
-            fontSize = 18.sp,
-            fontWeight = FontWeight.SemiBold,
+            text = stringResource(R.string.voice__error_title),
+            style = MaterialTheme.typography.titleMedium,
+            color = colorScheme.onSurface,
         )
 
         Spacer(modifier = Modifier.height(8.dp))
 
         Text(
             text = message,
-            color = VoiceColors.TextSecondary,
-            fontSize = 14.sp,
+            style = MaterialTheme.typography.bodyMedium,
+            color = colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
             modifier = Modifier.widthIn(max = 320.dp),
         )
@@ -973,23 +924,17 @@ private fun ErrorStage(
         Spacer(modifier = Modifier.height(28.dp))
 
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            VoicePillButton(
-                label = "Dismiss",
-                onClick = onDismiss,
-                kind = VoicePillKind.Secondary,
-            )
-            if (showSettingsCta) {
-                VoicePillButton(
-                    label = "Open Settings",
-                    onClick = onOpenSettings,
-                    kind = VoicePillKind.Tertiary,
-                )
+            OutlinedButton(onClick = onDismiss) {
+                Text(stringResource(R.string.voice__dismiss))
             }
-            VoicePillButton(
-                label = "Try again",
-                onClick = onRetry,
-                kind = VoicePillKind.Primary,
-            )
+            if (showSettingsCta) {
+                FilledTonalButton(onClick = onOpenSettings) {
+                    Text(stringResource(R.string.voice__open_settings))
+                }
+            }
+            Button(onClick = onRetry) {
+                Text(stringResource(R.string.voice__try_again))
+            }
         }
     }
 }
@@ -1002,60 +947,64 @@ private fun ErrorStage(
 private fun PermissionStage(
     onRequestPermission: () -> Unit,
 ) {
+    val colorScheme = MaterialTheme.colorScheme
+
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(horizontal = VoiceDimens.StageHorizontalPadding),
+            .padding(horizontal = 24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
-        Box(
-            modifier = Modifier
-                .size(64.dp)
-                .clip(CircleShape)
-                .background(VoiceColors.MicIdleStart.copy(alpha = 0.18f)),
-            contentAlignment = Alignment.Center,
+        Surface(
+            modifier = Modifier.size(64.dp),
+            shape = CircleShape,
+            color = colorScheme.primaryContainer,
         ) {
-            Icon(
-                imageVector = Icons.Filled.Mic,
-                contentDescription = null,
-                tint = VoiceColors.MicIdleStart,
-                modifier = Modifier.size(28.dp),
-            )
+            Box(contentAlignment = Alignment.Center) {
+                Icon(
+                    imageVector = Icons.Filled.Mic,
+                    contentDescription = null,
+                    tint = colorScheme.primary,
+                    modifier = Modifier.size(28.dp),
+                )
+            }
         }
 
         Spacer(modifier = Modifier.height(20.dp))
 
         Text(
-            text = "Microphone access needed",
-            color = VoiceColors.TextPrimary,
-            fontSize = 18.sp,
-            fontWeight = FontWeight.SemiBold,
+            text = stringResource(R.string.voice__permission_title),
+            style = MaterialTheme.typography.titleMedium,
+            color = colorScheme.onSurface,
         )
 
         Spacer(modifier = Modifier.height(8.dp))
 
         Text(
-            text = "FlorisBoard needs microphone access to transcribe your speech. Audio is sent only to the provider you configured.",
-            color = VoiceColors.TextSecondary,
-            fontSize = 14.sp,
+            text = stringResource(R.string.voice__permission_description),
+            style = MaterialTheme.typography.bodyMedium,
+            color = colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
             modifier = Modifier.widthIn(max = 320.dp),
         )
 
         Spacer(modifier = Modifier.height(28.dp))
 
-        VoicePillButton(
-            label = "Grant permission",
-            leading = Icons.Filled.Mic,
-            onClick = onRequestPermission,
-            kind = VoicePillKind.Primary,
-        )
+        Button(onClick = onRequestPermission) {
+            Icon(
+                imageVector = Icons.Filled.Mic,
+                contentDescription = null,
+                modifier = Modifier.size(15.dp),
+            )
+            Spacer(modifier = Modifier.width(6.dp))
+            Text(stringResource(R.string.voice__grant_permission))
+        }
     }
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-//  Bottom bar — backspace, enter, paste, ABC, and (when processing) cancel
+//  Bottom bar — backspace, enter, paste, ABC
 // ════════════════════════════════════════════════════════════════════════════
 
 @Composable
@@ -1064,72 +1013,68 @@ private fun VoiceBottomBar(
     state: VoiceInputState,
     onCancelProcessing: () -> Unit,
 ) {
-    val showCancel = state == VoiceInputState.PROCESSING || state == VoiceInputState.REFINING
+    val colorScheme = MaterialTheme.colorScheme
+    val backspaceDesc = stringResource(R.string.voice__backspace)
+    val enterDesc = stringResource(R.string.voice__enter)
+    val pasteDesc = stringResource(R.string.voice__paste)
+    val switchDesc = stringResource(R.string.voice__switch_keyboard)
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .height(VoiceDimens.BottomBarHeight)
+            .height(52.dp)
             .padding(horizontal = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        // Backspace
         BarActionButton(
-            contentDescription = "Backspace",
-            onClick = { keyboardManager.inputEventDispatcher.sendDownUp(TextKeyData.DELETE) },
             modifier = Modifier.weight(1f).fillMaxHeight().padding(4.dp),
+            onClick = { keyboardManager.inputEventDispatcher.sendDownUp(TextKeyData.DELETE) },
         ) {
             Icon(
                 imageVector = Icons.Filled.ArrowBackIosNew,
-                contentDescription = null,
-                tint = VoiceColors.TextSecondary,
+                contentDescription = backspaceDesc,
+                tint = colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(16.dp),
             )
         }
-        // Enter
         BarActionButton(
-            contentDescription = "Enter",
-            onClick = { FlorisImeService.sendDownAndUpKeyEvent(KeyEvent.KEYCODE_ENTER) },
             modifier = Modifier.weight(1f).fillMaxHeight().padding(4.dp),
+            onClick = { FlorisImeService.sendDownAndUpKeyEvent(KeyEvent.KEYCODE_ENTER) },
         ) {
             Icon(
                 imageVector = Icons.Filled.ArrowForwardIos,
-                contentDescription = null,
-                tint = VoiceColors.TextSecondary,
+                contentDescription = enterDesc,
+                tint = colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(16.dp),
             )
         }
-        // Paste
         BarActionButton(
-            contentDescription = "Paste",
-            onClick = { FlorisImeService.performClipboardPaste() },
             modifier = Modifier.weight(1f).fillMaxHeight().padding(4.dp),
+            onClick = { FlorisImeService.performClipboardPaste() },
         ) {
             Icon(
                 imageVector = Icons.Filled.ContentPaste,
-                contentDescription = null,
-                tint = VoiceColors.TextSecondary,
+                contentDescription = pasteDesc,
+                tint = colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(18.dp),
             )
         }
         Spacer(modifier = Modifier.weight(1.5f))
-        // ABC — back to text keyboard
         BarActionButton(
-            contentDescription = "Switch to keyboard",
-            onClick = { keyboardManager.activeState.imeUiMode = ImeUiMode.TEXT },
             modifier = Modifier.weight(1.5f).fillMaxHeight().padding(4.dp),
+            onClick = { keyboardManager.activeState.imeUiMode = ImeUiMode.TEXT },
         ) {
             Icon(
                 imageVector = Icons.Filled.Keyboard,
-                contentDescription = null,
-                tint = VoiceColors.MicIdleEnd,
+                contentDescription = switchDesc,
+                tint = colorScheme.primary,
                 modifier = Modifier.size(18.dp),
             )
             Spacer(modifier = Modifier.width(6.dp))
             Text(
-                text = "ABC",
-                color = VoiceColors.MicIdleEnd,
-                fontSize = 13.sp,
-                fontWeight = FontWeight.SemiBold,
+                text = stringResource(R.string.voice__abc),
+                style = MaterialTheme.typography.labelLarge,
+                color = colorScheme.primary,
             )
         }
     }
@@ -1137,139 +1082,50 @@ private fun VoiceBottomBar(
 
 @Composable
 private fun BarActionButton(
-    contentDescription: String,
-    onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    onClick: () -> Unit,
     content: @Composable () -> Unit,
 ) {
-    Box(
-        modifier = modifier
-            .clip(RoundedCornerShape(12.dp))
-            .background(VoiceColors.Surface)
-            .clickable(
-                interactionSource = remember { MutableInteractionSource() },
-                indication = null,
-                onClick = onClick,
-            ),
-        contentAlignment = Alignment.Center,
+    FilledTonalButton(
+        onClick = onClick,
+        modifier = modifier,
+        shape = RoundedCornerShape(12.dp),
+        colors = androidx.compose.material3.ButtonDefaults.filledTonalButtonColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+            contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+        ),
     ) {
         content()
     }
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-//  Small primitives — chip, icon button, pill button
+//  Small primitives — display chip
 // ════════════════════════════════════════════════════════════════════════════
 
 @Composable
-private fun VoiceChip(
-    label: String,
-    accent: Color,
-    leading: String? = null,
-) {
-    Row(
-        modifier = Modifier
-            .clip(RoundedCornerShape(VoiceDimens.ChipRadius))
-            .background(VoiceColors.Surface)
-            .border(1.dp, VoiceColors.BorderSubtle, RoundedCornerShape(VoiceDimens.ChipRadius))
-            .padding(horizontal = 10.dp, vertical = 5.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        if (leading != null) {
+private fun VoiceChip(label: String) {
+    SuggestionChip(
+        onClick = {},
+        label = {
             Text(
-                text = leading,
-                color = accent,
-                fontSize = 10.sp,
+                text = label,
+                style = MaterialTheme.typography.labelMedium,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
             )
-            Spacer(modifier = Modifier.width(4.dp))
-        }
-        Text(
-            text = label,
-            color = VoiceColors.TextSecondary,
-            fontSize = 12.sp,
-            fontWeight = FontWeight.Medium,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-        )
-    }
-}
-
-@Composable
-private fun VoiceIconButton(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    contentDescription: String,
-    onClick: () -> Unit,
-) {
-    Box(
-        modifier = Modifier
-            .size(32.dp)
-            .clip(CircleShape)
-            .background(VoiceColors.Surface)
-            .border(1.dp, VoiceColors.BorderSubtle, CircleShape)
-            .clickable(
-                interactionSource = remember { MutableInteractionSource() },
-                indication = null,
-                onClick = onClick,
-            ),
-        contentAlignment = Alignment.Center,
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = contentDescription,
-            tint = VoiceColors.TextSecondary,
-            modifier = Modifier.size(16.dp),
-        )
-    }
-}
-
-private enum class VoicePillKind { Primary, Secondary, Tertiary }
-
-@Composable
-private fun VoicePillButton(
-    label: String,
-    onClick: () -> Unit,
-    kind: VoicePillKind,
-    leading: androidx.compose.ui.graphics.vector.ImageVector? = null,
-    modifier: Modifier = Modifier,
-) {
-    val (bg, fg) = when (kind) {
-        VoicePillKind.Primary -> VoiceColors.Success to VoiceColors.TextOnAccent
-        VoicePillKind.Secondary -> VoiceColors.Surface to VoiceColors.TextSecondary
-        VoicePillKind.Tertiary -> VoiceColors.SurfaceHigh to VoiceColors.TextPrimary
-    }
-    Row(
-        modifier = modifier
-            .heightIn(min = 40.dp)
-            .clip(RoundedCornerShape(VoiceDimens.PillRadius))
-            .background(bg)
-            .border(1.dp, VoiceColors.BorderSubtle, RoundedCornerShape(VoiceDimens.PillRadius))
-            .clickable(
-                interactionSource = remember { MutableInteractionSource() },
-                indication = null,
-                onClick = onClick,
-            )
-            .padding(horizontal = 14.dp, vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.Center,
-    ) {
-        if (leading != null) {
-            Icon(
-                imageVector = leading,
-                contentDescription = null,
-                tint = fg,
-                modifier = Modifier.size(15.dp),
-            )
-            Spacer(modifier = Modifier.width(6.dp))
-        }
-        Text(
-            text = label,
-            color = fg,
-            fontSize = 13.sp,
-            fontWeight = if (kind == VoicePillKind.Primary) FontWeight.SemiBold else FontWeight.Medium,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-        )
-    }
+        },
+        enabled = false,
+        shape = RoundedCornerShape(999.dp),
+        colors = SuggestionChipDefaults.suggestionChipColors(
+            disabledContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+            disabledLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+        ),
+        border = SuggestionChipDefaults.suggestionChipBorder(
+            borderColor = MaterialTheme.colorScheme.outlineVariant,
+            disabledBorderColor = MaterialTheme.colorScheme.outlineVariant,
+        ),
+    )
 }
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -1306,12 +1162,6 @@ private fun countWords(text: String): Int {
 }
 
 @Composable
-private fun animateFloatAsState(
-    targetValue: Float,
-    animationSpec: androidx.compose.animation.core.AnimationSpec<Float>,
-    label: String,
-) = androidx.compose.animation.core.animateFloatAsState(
-    targetValue = targetValue,
-    animationSpec = animationSpec,
-    label = label,
-)
+private fun isSystemInDarkTheme(): Boolean {
+    return androidx.compose.foundation.isSystemInDarkTheme()
+}

@@ -222,6 +222,11 @@ class VoiceInputManager(context: Context) {
 
         val style = prefs.voice.refinementStyle.get()
         val customPrompt = prefs.voice.refinementCustomPrompt.get()
+        val effectivePrompt = if (customPrompt.isNotBlank()) {
+            customPrompt
+        } else {
+            style.systemPrompt(customPrompt)
+        }
 
         _uiState.value = _uiState.value.copy(state = VoiceInputState.REFINING)
 
@@ -229,7 +234,7 @@ class VoiceInputManager(context: Context) {
         activeJob = scope.launch {
             try {
                 val llmClient = buildLlmClient()
-                val refined = llmClient.refineText(rawText, style.systemPrompt(customPrompt))
+                val refined = llmClient.refineText(rawText, effectivePrompt)
                 _uiState.value = _uiState.value.copy(
                     state = VoiceInputState.SUCCESS,
                     transcribedText = refined,

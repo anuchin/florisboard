@@ -1167,4 +1167,120 @@
         <item quantity="other">{v} candidates</item>
     </plurals>
 
+    <!-- Voice input IME overlay -->
+    <string name="voice__close" comment="Content description for close button in voice input overlay">Close</string>
+    <string name="voice__listening" comment="Status text shown while actively recording audio">Listening… tap to stop</string>
+    <string name="voice__tap_to_start" comment="Idle state prompt for voice input">Tap to start · hold to talk</string>
+    <string name="voice__transcribing" comment="Label shown while audio is being transcribed">Transcribing…</string>
+    <string name="voice__sending_to" comment="Sublabel during transcription, %s is the provider name">Sending to %s</string>
+    <string name="voice__refining" comment="Label shown while text is being refined by LLM">Refining…</string>
+    <string name="voice__refining_sublabel" comment="Sublabel during refinement">Polishing with the language model</string>
+    <string name="voice__cancel" comment="Cancel button label">Cancel</string>
+    <string name="voice__redo" comment="Redo recording button label">Redo</string>
+    <string name="voice__refine" comment="Refine text button label">Refine</string>
+    <string name="voice__insert" comment="Insert transcribed text button label">Insert</string>
+    <string name="voice__raw" comment="Toggle to show raw (unrefined) transcript">Raw</string>
+    <string name="voice__refined" comment="Toggle to show refined transcript">Refined</string>
+    <string name="voice__refined_transcript" comment="Header for refined transcript card">Refined transcript</string>
+    <string name="voice__transcript" comment="Header for transcript card">Transcript</string>
+    <string name="voice__word_count" comment="Word count display, %d is the count">%d words</string>
+    <string name="voice__empty_result" comment="Shown when transcription returned empty text">(empty result)</string>
+    <string name="voice__error_title" comment="Title shown on error screen">Something went wrong</string>
+    <string name="voice__dismiss" comment="Dismiss button on error screen">Dismiss</string>
+    <string name="voice__open_settings" comment="Button to open voice settings from error screen">Open Settings</string>
+    <string name="voice__try_again" comment="Retry button on error screen">Try again</string>
+    <string name="voice__permission_title" comment="Title when microphone permission is needed">Microphone access needed</string>
+    <string name="voice__permission_description" comment="Explanation for why microphone permission is needed">FlorisBoard needs microphone access to transcribe your speech. Audio is sent only to the provider you configured.</string>
+    <string name="voice__grant_permission" comment="Button to grant microphone permission">Grant permission</string>
+    <string name="voice__backspace" comment="Content description for backspace button">Backspace</string>
+    <string name="voice__enter" comment="Content description for enter button">Enter</string>
+    <string name="voice__paste" comment="Content description for paste button">Paste</string>
+    <string name="voice__switch_keyboard" comment="Content description for switch to keyboard button">Switch to keyboard</string>
+    <string name="voice__abc" comment="Label on button to switch back to text keyboard">ABC</string>
+    <string name="voice__enhance" comment="Label for the enhance/refinement toggle">Enhance</string>
+    <string name="voice__on" comment="On state for toggle">ON</string>
+    <string name="voice__off" comment="Off state for toggle">OFF</string>
+    <string name="voice__stop_recording" comment="Content description for stop recording button">Stop recording</string>
+    <string name="voice__start_recording" comment="Content description for start recording button">Start recording</string>
+    <string name="voice__speech_to_text" comment="Fallback provider label">speech-to-text</string>
+
+    <!-- Voice settings screen -->
+    <string name="settings__voice__title" comment="Title of Voice Input settings screen">Voice Input</string>
+    <string name="settings__voice__provider_group" comment="Settings group title">Provider</string>
+    <string name="settings__voice__speech_to_text_provider" comment="Preference title">Speech-to-Text Provider</string>
+    <string name="settings__voice__provider_openai">OpenAI</string>
+    <string name="settings__voice__provider_groq">Groq</string>
+    <string name="settings__voice__provider_custom">Custom</string>
+    <string name="settings__voice__provider_openai_summary" comment="Provider description">Uses the official OpenAI Whisper API</string>
+    <string name="settings__voice__provider_groq_summary" comment="Provider description">Uses Groq\'s hosted Whisper models</string>
+    <string name="settings__voice__provider_custom_summary" comment="Provider description">Provide your own OpenAI-compatible endpoint</string>
+    <string name="settings__voice__saved_endpoints_group" comment="Settings group title">Saved Endpoints</string>
+    <string name="settings__voice__no_saved_endpoints" comment="Empty state title">No saved endpoints</string>
+    <string name="settings__voice__no_saved_endpoints_summary" comment="Empty state description">Add a custom endpoint to use multiple providers</string>
+    <string name="settings__voice__add_endpoint" comment="Button to add a new endpoint">Add Endpoint</string>
+    <string name="settings__voice__active_suffix" comment="Appended to active endpoint name"> (active)</string>
+    <string name="settings__voice__api_config_group" comment="Settings group title">API Configuration</string>
+    <string name="settings__voice__api_key_openai" comment="Preference title">OpenAI API Key</string>
+    <string name="settings__voice__api_key_groq" comment="Preference title">Groq API Key</string>
+    <string name="settings__voice__api_key_custom" comment="Preference title">Custom API Key</string>
+    <string name="settings__voice__not_set" comment="Summary when a value is not configured">Not set</string>
+    <string name="settings__voice__custom_endpoint_url" comment="Preference title">Custom Endpoint URL</string>
+    <string name="settings__voice__validate_api_key" comment="Preference title">Validate API Key</string>
+    <string name="settings__voice__checking" comment="Shown while validating">Checking…</string>
+    <string name="settings__voice__connection_successful" comment="Validation success message">Connection successful</string>
+    <string name="settings__voice__validate_summary" comment="Default summary for validate preference">Test the current API key and endpoint</string>
+    <string name="settings__voice__model_group" comment="Settings group title">Model</string>
+    <string name="settings__voice__model" comment="Preference title">Model</string>
+    <string name="settings__voice__transcription_group" comment="Settings group title">Transcription Settings</string>
+    <string name="settings__voice__language" comment="Preference title">Language</string>
+    <string name="settings__voice__auto_detect" comment="Shown when language is set to auto-detect">Auto-detect</string>
+    <string name="settings__voice__auto_commit" comment="Preference title">Auto-commit transcription</string>
+    <string name="settings__voice__auto_commit_summary" comment="Preference summary">Automatically insert transcribed text into the input field</string>
+    <string name="settings__voice__refinement_group" comment="Settings group title">Text Refinement</string>
+    <string name="settings__voice__enable_refinement" comment="Preference title">Enable text refinement</string>
+    <string name="settings__voice__enable_refinement_summary" comment="Preference summary">Use an LLM to clean up transcribed speech</string>
+    <string name="settings__voice__auto_refine" comment="Preference title">Auto-refine</string>
+    <string name="settings__voice__auto_refine_summary" comment="Preference summary">Automatically refine text after transcription</string>
+    <string name="settings__voice__refinement_style" comment="Preference title">Refinement Style</string>
+    <string name="settings__voice__custom_prompt" comment="Preference title">Custom Prompt</string>
+    <string name="settings__voice__llm_provider_group" comment="Settings group title">LLM Provider</string>
+    <string name="settings__voice__no_llm_endpoints" comment="Empty state title">No LLM endpoints saved</string>
+    <string name="settings__voice__no_llm_endpoints_summary" comment="Empty state description">Add an LLM endpoint for text refinement</string>
+    <string name="settings__voice__add_llm_endpoint" comment="Button to add a new LLM endpoint">Add LLM Endpoint</string>
+    <string name="settings__voice__select_provider" comment="Dialog title">Select Provider</string>
+    <string name="settings__voice__cancel" comment="Dialog button">Cancel</string>
+    <string name="settings__voice__save" comment="Dialog button">Save</string>
+    <string name="settings__voice__select_model" comment="Dialog title">Select Model</string>
+    <string name="settings__voice__custom_model_hint" comment="Hint text in model dialog">Or enter a custom model name:</string>
+    <string name="settings__voice__language_hint" comment="Hint text in language dialog">Enter an ISO 639-1 language code (e.g., en, es, fr, de, ja).</string>
+    <string name="settings__voice__language_auto_hint" comment="Additional hint for language dialog">Leave empty for auto-detection.</string>
+    <string name="settings__voice__edit_endpoint" comment="Dialog title">Edit Endpoint</string>
+    <string name="settings__voice__add_endpoint_dialog" comment="Dialog title">Add Endpoint</string>
+    <string name="settings__voice__endpoint_name" comment="Form field label">Name</string>
+    <string name="settings__voice__endpoint_base_url" comment="Form field label">Base URL</string>
+    <string name="settings__voice__endpoint_api_key" comment="Form field label">API Key</string>
+    <string name="settings__voice__fetching" comment="Loading state text">Fetching…</string>
+    <string name="settings__voice__fetch_models" comment="Button label">Fetch Models</string>
+    <string name="settings__voice__fetching_models" comment="Loading state text">Fetching models…</string>
+    <string name="settings__voice__models_count" comment="Model count display, %d is the count">%d model(s) available</string>
+    <string name="settings__voice__validate_endpoint" comment="Button label">Validate Endpoint</string>
+    <string name="settings__voice__validating" comment="Loading state text">Validating…</string>
+    <string name="settings__voice__validation_failed" comment="Validation error fallback">Validation failed</string>
+    <string name="settings__voice__delete_endpoint" comment="Dialog title">Delete Endpoint</string>
+    <string name="settings__voice__delete" comment="Dialog confirm button">Delete</string>
+    <string name="settings__voice__delete_confirm" comment="Delete confirmation message, %s is endpoint name">Delete \"%s\"?</string>
+    <string name="settings__voice__refinement_style_dialog" comment="Dialog title">Refinement Style</string>
+    <string name="settings__voice__custom_prompt_dialog" comment="Dialog title">Custom Refinement Prompt</string>
+    <string name="settings__voice__custom_prompt_hint" comment="Hint text for custom prompt input">Enter the system prompt that will be used to refine transcribed text.</string>
+    <string name="settings__voice__edit_llm_endpoint" comment="Dialog title">Edit LLM Endpoint</string>
+    <string name="settings__voice__add_llm_endpoint_dialog" comment="Dialog title">Add LLM Endpoint</string>
+    <string name="settings__voice__delete_llm_endpoint" comment="Dialog title">Delete LLM Endpoint</string>
+    <string name="settings__voice__endpoint_url_hint" comment="Hint text in endpoint URL field">Enter the base URL for the OpenAI-compatible API.</string>
+    <string name="settings__voice__endpoint_url_example" comment="Example URL shown as hint">Example: https://api.example.com</string>
+    <string name="settings__voice__edit" comment="Content description for edit endpoint button">Edit</string>
+    <string name="settings__voice__delete" comment="Content description for delete endpoint button">Delete</string>
+    <string name="settings__voice__toggle_active" comment="Toggle endpoint active state">Toggle active</string>
+    <string name="settings__voice__customize_prompt" comment="Preference title for customizing a built-in style prompt">Customize prompt</string>
+    <string name="settings__voice__customize_prompt_hint" comment="Hint text for prompt customization">Override the system prompt for this refinement style.</string>
+
 </resources>
