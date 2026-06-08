@@ -32,9 +32,15 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -57,9 +63,12 @@ import dev.patrickgold.florisboard.app.FlorisPreferenceModel
 import dev.patrickgold.florisboard.app.FlorisPreferenceStore
 import dev.patrickgold.florisboard.app.LocalNavController
 import dev.patrickgold.florisboard.app.Routes
+import dev.patrickgold.florisboard.ime.voice.ModelsResult
 import dev.patrickgold.florisboard.ime.voice.ProviderPreset
 import dev.patrickgold.florisboard.ime.voice.STT_PRESETS
 import dev.patrickgold.florisboard.ime.voice.SavedEndpoint
+import dev.patrickgold.florisboard.ime.voice.ValidationResult
+import dev.patrickgold.florisboard.ime.voice.WhisperApiClient
 import dev.patrickgold.florisboard.lib.compose.FlorisScreen
 import dev.patrickgold.florisboard.lib.compose.FlorisScreenScope
 import dev.patrickgold.florisboard.lib.util.InputMethodUtils
@@ -255,10 +264,25 @@ private fun PreferenceUiScope<FlorisPreferenceModel>.steps(
 
             var selectedPreset by remember { mutableStateOf<ProviderPreset?>(null) }
             var apiKey by remember { mutableStateOf("") }
+            var isValidating by remember { mutableStateOf(false) }
+            var validationResult by remember { mutableStateOf<ValidationResult?>(null) }
+
+            // Custom provider dialog states
+            var showCustomDialog by remember { mutableStateOf(false) }
+            var customName by remember { mutableStateOf("Custom Provider") }
+            var customUrl by remember { mutableStateOf("") }
+            var customApiKey by remember { mutableStateOf("") }
+            var customModel by remember { mutableStateOf("whisper-1") }
+            var isValidatingCustom by remember { mutableStateOf(false) }
+            var customValidationResult by remember { mutableStateOf<ValidationResult?>(null) }
+            var customModels by remember { mutableStateOf<List<String>>(emptyList()) }
+            var isFetchingModels by remember { mutableStateOf(false) }
+            var customModelError by remember { mutableStateOf<String?>(null) }
+            var modelDropdownExpanded by remember { mutableStateOf(false) }
 
             if (selectedPreset == null) {
                 Column(modifier = Modifier.fillMaxWidth()) {
-                    STT_PRESETS.take(3).forEach { preset ->
+                    STT_PRESETS.forEach { preset ->
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -285,6 +309,206 @@ private fun PreferenceUiScope<FlorisPreferenceModel>.steps(
                             }
                         }
                     }
+                    // Custom provider option
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { showCustomDialog = true }
+                            .padding(vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Add,
+                            contentDescription = null,
+                            modifier = Modifier.size(24.dp),
+                        )
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Column {
+                            Text(
+                                "Custom provider",
+                                style = MaterialTheme.typography.bodyLarge,
+                            )
+                            Text(
+                                "Add your own STT endpoint",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
+                }
+
+                // Custom provider dialog
+                if (showCustomDialog) {
+                    AlertDialog(
+                        onDismissRequest = { showCustomDialog = false },
+                        title = { Text("Add Custom Provider") },
+                        text = {
+                            Column {
+                                Text("Name:", style = MaterialTheme.typography.bodySmall)
+                                JetPrefTextField(value = customName, onValueChange = { customName = it })
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text("Base URL:", style = MaterialTheme.typography.bodySmall)
+                                JetPrefTextField(
+                                    value = customUrl,
+                                    onValueChange = {
+                                        customUrl = it
+                                        customValidationResult = null
+                                    },
+                                    placeholder = "https://api.example.com"
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text("API Key:", style = MaterialTheme.typography.bodySmall)
+                                JetPrefTextField(
+                                    value = customApiKey,
+                                    onValueChange = {
+                                        customApiKey = it
+                                        customValidationResult = null
+                                    }
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically,
+                                ) {
+                                    Text("Model:", style = MaterialTheme.typography.bodySmall)
+                                    OutlinedButton(
+                                        onClick = {
+                                            isFetchingModels = true
+                                            customModelError = null
+                                            scope.launch {
+                                                val result = WhisperApiClient(
+                                                    customUrl.trimEnd('/'),
+                                                    customApiKey.trim()
+                                                ).fetchModels()
+                                                isFetchingModels = false
+                                                if (result.error == null && result.models.isNotEmpty()) {
+                                                    customModels = result.models
+                                                    if (customModel !in result.models) {
+                                                        customModel = result.models.first()
+                                                    }
+                                                    customModelError = null
+                                                } else {
+                                                    customModels = emptyList()
+                                                    customModelError = result.error ?: "No models found"
+                                                }
+                                            }
+                                        },
+                                        enabled = customUrl.isNotBlank() &&
+                                            customApiKey.isNotBlank() && !isFetchingModels,
+                                        modifier = Modifier.height(32.dp)
+                                    ) {
+                                        Text(
+                                            if (isFetchingModels) "Fetching..."
+                                            else "Fetch models",
+                                            style = MaterialTheme.typography.bodySmall
+                                        )
+                                    }
+                                }
+
+                                if (customModels.isNotEmpty()) {
+                                    Box {
+                                        OutlinedButton(
+                                            onClick = { modelDropdownExpanded = true },
+                                            modifier = Modifier.fillMaxWidth(),
+                                        ) {
+                                            Text(customModel.ifBlank { "Select model…" })
+                                        }
+                                        DropdownMenu(
+                                            expanded = modelDropdownExpanded,
+                                            onDismissRequest = { modelDropdownExpanded = false },
+                                        ) {
+                                            customModels.forEach { modelId ->
+                                                DropdownMenuItem(
+                                                    text = { Text(modelId, maxLines = 1) },
+                                                    onClick = {
+                                                        customModel = modelId
+                                                        modelDropdownExpanded = false
+                                                    },
+                                                )
+                                            }
+                                        }
+                                    }
+                                    Text(
+                                        "${customModels.size} models available",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.padding(top = 2.dp),
+                                    )
+                                } else {
+                                    JetPrefTextField(value = customModel, onValueChange = { customModel = it })
+                                    customModelError?.let { error ->
+                                        Text(
+                                            error,
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.error,
+                                            modifier = Modifier.padding(top = 2.dp),
+                                        )
+                                    }
+                                }
+
+                                // Show validation result
+                                customValidationResult?.let { result ->
+                                    Text(
+                                        text = if (result.isSuccess)
+                                            "✓ Connection successful"
+                                        else
+                                            "✗ ${result.errorMessage ?: "Validation failed"}",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = if (result.isSuccess)
+                                            MaterialTheme.colorScheme.primary
+                                        else
+                                            MaterialTheme.colorScheme.error,
+                                        modifier = Modifier.padding(top = 8.dp)
+                                    )
+                                }
+                            }
+                        },
+                        confirmButton = {
+                            Button(
+                                onClick = {
+                                    isValidatingCustom = true
+                                    customValidationResult = null
+                                    scope.launch {
+                                        customValidationResult = WhisperApiClient(
+                                            customUrl.trimEnd('/'),
+                                            customApiKey.trim()
+                                        ).validateApiKey()
+                                        isValidatingCustom = false
+                                        if (customValidationResult?.isSuccess == true) {
+                                            val endpoint = SavedEndpoint(
+                                                id = java.util.UUID.randomUUID().toString(),
+                                                name = customName.trim(),
+                                                baseUrl = customUrl.trimEnd('/'),
+                                                apiKey = customApiKey.trim(),
+                                                model = customModel.trim(),
+                                                presetId = "",
+                                            )
+                                            val current = SavedEndpoint.deserializeList(
+                                                this@steps.prefs.voice.savedEndpoints.get()
+                                            )
+                                            this@steps.prefs.voice.savedEndpoints.set(
+                                                SavedEndpoint.serializeList(current + endpoint)
+                                            )
+                                            this@steps.prefs.voice.activeEndpointId.set(endpoint.id)
+                                            this@steps.prefs.voice.isVoiceSetUp.set(true)
+                                            showCustomDialog = false
+                                            stepState.setCurrentAuto(Steps.FinishUp.id)
+                                        }
+                                    }
+                                },
+                                enabled = !isValidatingCustom && customName.isNotBlank() &&
+                                    customUrl.isNotBlank() && customApiKey.isNotBlank(),
+                            ) {
+                                Text(if (isValidatingCustom) "Validating..." else "Save & Continue")
+                            }
+                        },
+                        dismissButton = {
+                            TextButton(onClick = { showCustomDialog = false }) {
+                                Text("Cancel")
+                            }
+                        }
+                    )
                 }
             } else {
                 val preset = selectedPreset!!
@@ -293,7 +517,13 @@ private fun PreferenceUiScope<FlorisPreferenceModel>.steps(
                     style = MaterialTheme.typography.bodyMedium,
                 )
                 Spacer(modifier = Modifier.height(8.dp))
-                JetPrefTextField(value = apiKey, onValueChange = { apiKey = it })
+                JetPrefTextField(
+                    value = apiKey,
+                    onValueChange = {
+                        apiKey = it
+                        validationResult = null
+                    }
+                )
                 Spacer(modifier = Modifier.height(4.dp))
                 if (preset.docsUrl != null) {
                     Text(
@@ -303,6 +533,23 @@ private fun PreferenceUiScope<FlorisPreferenceModel>.steps(
                     )
                 }
                 Spacer(modifier = Modifier.height(12.dp))
+
+                // Show validation result if available
+                validationResult?.let { result ->
+                    Text(
+                        text = if (result.isSuccess)
+                            "✓ API key validated successfully"
+                        else
+                            "✗ Invalid: ${result.errorMessage ?: "Validation failed"}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = if (result.isSuccess)
+                            MaterialTheme.colorScheme.primary
+                        else
+                            MaterialTheme.colorScheme.error,
+                        modifier = Modifier.padding(bottom = 8.dp)
+                    )
+                }
+
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     modifier = Modifier.align(Alignment.CenterHorizontally),
@@ -312,29 +559,59 @@ private fun PreferenceUiScope<FlorisPreferenceModel>.steps(
                     }
                     Button(
                         onClick = {
-                            val endpoint = SavedEndpoint(
-                                id = java.util.UUID.randomUUID().toString(),
-                                name = preset.name,
-                                baseUrl = preset.baseUrl,
-                                apiKey = apiKey.trim(),
-                                model = preset.defaultModel,
-                                presetId = preset.id,
-                            )
-                            val current = SavedEndpoint.deserializeList(
-                                this@steps.prefs.voice.savedEndpoints.get()
-                            )
-                            scope.launch {
-                                this@steps.prefs.voice.savedEndpoints.set(
-                                    SavedEndpoint.serializeList(current + endpoint)
+                            if (!preset.requiresApiKey) {
+                                // Skip validation for providers that don't require API key (e.g., Ollama)
+                                val endpoint = SavedEndpoint(
+                                    id = java.util.UUID.randomUUID().toString(),
+                                    name = preset.name,
+                                    baseUrl = preset.baseUrl,
+                                    apiKey = "",
+                                    model = preset.defaultModel,
+                                    presetId = preset.id,
                                 )
-                                this@steps.prefs.voice.activeEndpointId.set(endpoint.id)
-                                this@steps.prefs.voice.isVoiceSetUp.set(true)
+                                val current = SavedEndpoint.deserializeList(
+                                    this@steps.prefs.voice.savedEndpoints.get()
+                                )
+                                scope.launch {
+                                    this@steps.prefs.voice.savedEndpoints.set(
+                                        SavedEndpoint.serializeList(current + endpoint)
+                                    )
+                                    this@steps.prefs.voice.activeEndpointId.set(endpoint.id)
+                                    this@steps.prefs.voice.isVoiceSetUp.set(true)
+                                }
+                                stepState.setCurrentAuto(Steps.FinishUp.id)
+                            } else {
+                                // Validate API key first
+                                isValidating = true
+                                validationResult = null
+                                scope.launch {
+                                    validationResult = WhisperApiClient(preset.baseUrl, apiKey.trim()).validateApiKey()
+                                    isValidating = false
+                                    if (validationResult?.isSuccess == true) {
+                                        val endpoint = SavedEndpoint(
+                                            id = java.util.UUID.randomUUID().toString(),
+                                            name = preset.name,
+                                            baseUrl = preset.baseUrl,
+                                            apiKey = apiKey.trim(),
+                                            model = preset.defaultModel,
+                                            presetId = preset.id,
+                                        )
+                                        val current = SavedEndpoint.deserializeList(
+                                            this@steps.prefs.voice.savedEndpoints.get()
+                                        )
+                                        this@steps.prefs.voice.savedEndpoints.set(
+                                            SavedEndpoint.serializeList(current + endpoint)
+                                        )
+                                        this@steps.prefs.voice.activeEndpointId.set(endpoint.id)
+                                        this@steps.prefs.voice.isVoiceSetUp.set(true)
+                                        stepState.setCurrentAuto(Steps.FinishUp.id)
+                                    }
+                                }
                             }
-                            stepState.setCurrentManual(Steps.FinishUp.id)
                         },
-                        enabled = apiKey.isNotBlank(),
+                        enabled = !isValidating && (apiKey.isNotBlank() || !preset.requiresApiKey),
                     ) {
-                        Text("Save & Continue")
+                        Text(if (isValidating) "Validating..." else "Save & Continue")
                     }
                 }
             }
@@ -343,7 +620,7 @@ private fun PreferenceUiScope<FlorisPreferenceModel>.steps(
             TextButton(
                 onClick = {
                     scope.launch { this@steps.prefs.voice.isVoiceSetUp.set(false) }
-                    stepState.setCurrentManual(Steps.FinishUp.id)
+                    stepState.setCurrentAuto(Steps.FinishUp.id)
                 },
                 modifier = Modifier.align(Alignment.CenterHorizontally),
             ) {

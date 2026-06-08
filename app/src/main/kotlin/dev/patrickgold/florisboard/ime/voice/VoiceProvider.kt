@@ -79,16 +79,6 @@ val STT_PRESETS = listOf(
         docsUrl = "https://fal.ai/models",
     ),
     ProviderPreset(
-        id = "ollama_stt",
-        name = "Ollama (local)",
-        tagline = "Self-hosted · no API key needed · private",
-        iconRes = R.drawable.ic_provider_ollama,
-        baseUrl = "http://localhost:11434/v1",
-        defaultModel = "whisper",
-        requiresApiKey = false,
-        docsUrl = "https://ollama.com",
-    ),
-    ProviderPreset(
         id = "azure_stt",
         name = "Azure OpenAI",
         tagline = "Enterprise · GDPR-ready · private deployment",
