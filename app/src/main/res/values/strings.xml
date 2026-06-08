@@ -1284,7 +1284,7 @@
     <string name="settings__voice__endpoint_url_hint" comment="Hint text in endpoint URL field">Enter the base URL for the OpenAI-compatible API.</string>
     <string name="settings__voice__endpoint_url_example" comment="Example URL shown as hint">Example: https://api.example.com</string>
     <string name="settings__voice__edit" comment="Content description for edit endpoint button">Edit</string>
-    <string name="settings__voice__delete" comment="Content description for delete endpoint button">Delete</string>
+    <string name="settings__voice__delete_desc" comment="Content description for delete endpoint button">Delete</string>
     <string name="settings__voice__toggle_active" comment="Toggle endpoint active state">Toggle active</string>
     <string name="settings__voice__customize_prompt" comment="Preference title for customizing a built-in style prompt">Customize prompt</string>
     <string name="settings__voice__customize_prompt_hint" comment="Hint text for prompt customization">Override the system prompt for this refinement style.</string>

@@ -911,7 +911,7 @@ private fun EndpointItem(
             ) {
                 Icon(
                     imageVector = Icons.Filled.Delete,
-                    contentDescription = stringRes(R.string.settings__voice__delete),
+                    contentDescription = stringRes(R.string.settings__voice__delete_desc),
                     tint = MaterialTheme.colorScheme.error,
                     modifier = Modifier.size(20.dp),
                 )
