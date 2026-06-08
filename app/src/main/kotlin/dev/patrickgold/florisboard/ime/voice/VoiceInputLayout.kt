@@ -72,7 +72,6 @@ import androidx.compose.material.icons.filled.Send
 import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material.icons.outlined.AutoAwesome
 import androidx.compose.material3.Icon
-import androidx.compose.material3.ContainedLoadingIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -375,7 +374,6 @@ private fun VoiceStage(
             )
             VoiceInputState.PERMISSION_REQUIRED -> PermissionStage(
                 onRequestPermission = {
-                    val context = LocalContext.current
                     val intent = Intent(context, FlorisAppActivity::class.java).apply {
                         flags = Intent.FLAG_ACTIVITY_NEW_TASK
                         action = "REQUEST_RECORD_AUDIO"
@@ -712,6 +710,17 @@ private fun ProcessingStage(
     sublabel: String,
     onCancel: () -> Unit,
 ) {
+    val transition = rememberInfiniteTransition(label = "process")
+    val sweep by transition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 1200, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart,
+        ),
+        label = "process-sweep",
+    )
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -720,8 +729,34 @@ private fun ProcessingStage(
         verticalArrangement = Arrangement.Center,
     ) {
         Box(modifier = Modifier.size(140.dp), contentAlignment = Alignment.Center) {
-            ContainedLoadingIndicator(
-                modifier = Modifier.fillMaxSize(),
+            Canvas(modifier = Modifier.fillMaxSize()) {
+                val stroke = 6.dp.toPx()
+                val ringRadius = (size.minDimension - stroke) / 2f
+                val baseColor = VoiceColors.MicProcessEnd.copy(alpha = 0.18f)
+                val arcColor = VoiceColors.MicProcessEnd
+                drawCircle(
+                    color = baseColor,
+                    radius = ringRadius,
+                    center = center,
+                    style = Stroke(width = stroke),
+                )
+                val sweepAngle = 90f
+                val startAngle = sweep * 360f
+                drawArc(
+                    color = arcColor,
+                    startAngle = startAngle,
+                    sweepAngle = sweepAngle,
+                    useCenter = false,
+                    topLeft = Offset(center.x - ringRadius, center.y - ringRadius),
+                    size = Size(ringRadius * 2, ringRadius * 2),
+                    style = Stroke(width = stroke),
+                )
+            }
+            Box(
+                modifier = Modifier
+                    .size(12.dp)
+                    .clip(CircleShape)
+                    .background(VoiceColors.MicProcessEnd),
             )
         }
 
