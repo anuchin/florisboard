@@ -47,6 +47,7 @@ data class VoiceInputUiState(
     val rawTranscribedText: String = "",
     val refinedText: String = "",
     val isRefined: Boolean = false,
+    val isAgentMode: Boolean = false,
     val errorMessage: String = "",
     val amplitude: Float = 0f,
     val amplitudeHistory: List<Float> = List(AMPLITUDE_HISTORY_SIZE) { 0f },
@@ -189,10 +190,13 @@ class VoiceInputManager(context: Context) {
             val result = client.transcribe(audioBytes, config)
 
             val rawText = result.text
+            val style = prefs.voice.refinementStyle.get()
+            val isAgent = style.isAgent
             if (rawText.isNotEmpty() && prefs.voice.refinementEnabled.get() && prefs.voice.refinementAutoRefine.get()) {
                 _uiState.value = _uiState.value.copy(
                     state = VoiceInputState.REFINING,
                     rawTranscribedText = rawText,
+                    isAgentMode = isAgent,
                 )
                 refineText(rawText)
             } else {
@@ -201,6 +205,7 @@ class VoiceInputManager(context: Context) {
                     transcribedText = rawText,
                     rawTranscribedText = rawText,
                     isRefined = false,
+                    isAgentMode = isAgent,
                 )
                 if (prefs.voice.autoCommit.get() && rawText.isNotEmpty()) {
                     commitText()
@@ -222,13 +227,18 @@ class VoiceInputManager(context: Context) {
 
         val style = prefs.voice.refinementStyle.get()
         val customPrompt = prefs.voice.refinementCustomPrompt.get()
-        val effectivePrompt = if (customPrompt.isNotBlank()) {
-            customPrompt
-        } else {
-            style.systemPrompt(customPrompt)
+        val effectivePrompt = when {
+            style == RefinementStyle.CUSTOM && customPrompt.isNotBlank() -> customPrompt
+            style == RefinementStyle.CUSTOM -> style.systemPrompt()
+            customPrompt.isNotBlank() -> customPrompt
+            else -> style.systemPrompt()
         }
 
-        _uiState.value = _uiState.value.copy(state = VoiceInputState.REFINING)
+        val isAgent = style.isAgent
+        _uiState.value = _uiState.value.copy(
+            state = VoiceInputState.REFINING,
+            isAgentMode = isAgent,
+        )
 
         activeJob?.cancel()
         activeJob = scope.launch {
@@ -241,16 +251,21 @@ class VoiceInputManager(context: Context) {
                     rawTranscribedText = rawText,
                     refinedText = refined,
                     isRefined = true,
+                    isAgentMode = isAgent,
                 )
+                if (prefs.voice.autoCommit.get() && refined.isNotEmpty()) {
+                    commitText()
+                }
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
-                    state = VoiceInputState.SUCCESS,
+                    state = VoiceInputState.ERROR,
                     transcribedText = rawText,
                     rawTranscribedText = rawText,
                     isRefined = false,
-                    errorMessage = "Refinement failed: ${sanitizeError(e)}",
+                    isAgentMode = isAgent,
+                    errorMessage = sanitizeError(e),
                 )
             }
         }
@@ -342,18 +357,6 @@ class VoiceInputManager(context: Context) {
                     baseUrl = active.baseUrl.trimEnd('/'),
                     apiKey = active.apiKey,
                     model = active.model,
-                )
-            }
-        }
-        val whisperActiveId = prefs.voice.activeEndpointId.get()
-        if (whisperActiveId.isNotBlank()) {
-            val endpoints = SavedEndpoint.deserializeList(prefs.voice.savedEndpoints.get())
-            val active = endpoints.find { it.id == whisperActiveId }
-            if (active != null) {
-                return LlmApiClient(
-                    baseUrl = active.baseUrl.trimEnd('/'),
-                    apiKey = active.apiKey,
-                    model = "gpt-4o-mini",
                 )
             }
         }

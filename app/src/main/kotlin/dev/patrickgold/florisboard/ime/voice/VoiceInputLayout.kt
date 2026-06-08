@@ -143,9 +143,10 @@ private val DEFAULT_SEED = Color(0xFF4CAF50)
 
 @Composable
 fun VoiceInputLayout(modifier: Modifier = Modifier) {
-    val prefs by FlorisPreferenceStore
+        val prefs by FlorisPreferenceStore
     val accentColor by prefs.theme.accentColor.collectAsState()
     val isDark = isSystemInDarkTheme()
+    val refinementStyle by prefs.voice.refinementStyle.collectAsState()
 
     val seedColor = if (accentColor.isUnspecified) DEFAULT_SEED else accentColor
     val colorScheme = dynamicColorScheme(
@@ -240,6 +241,7 @@ private fun VoiceInputLayoutContent(modifier: Modifier) {
                     manager = voiceInputManager,
                     openSettings = openSettings,
                     ctx = ctx,
+                    refinementStyle = refinementStyle,
                 )
             }
 
@@ -305,6 +307,7 @@ private fun VoiceStage(
     manager: VoiceInputManager,
     openSettings: () -> Unit,
     ctx: Context,
+    refinementStyle: RefinementStyle,
 ) {
     AnimatedContent(
         targetState = uiState.state,
@@ -326,6 +329,7 @@ private fun VoiceStage(
                 amplitudeHistory = uiState.amplitudeHistory,
                 durationMs = uiState.durationMs,
                 refinementEnabled = manager.isRefinementEnabled(),
+                isAgentMode = refinementStyle.isAgent,
                 onStartRecording = { manager.startRecording() },
                 onStopRecording = { manager.stopRecording() },
                 onToggleRefinement = { manager.toggleRefinement() },
@@ -339,8 +343,10 @@ private fun VoiceStage(
                 onCancel = { manager.cancel() },
             )
             VoiceInputState.REFINING -> ProcessingStage(
-                label = stringResource(R.string.voice__refining),
-                sublabel = stringResource(R.string.voice__refining_sublabel),
+                label = if (uiState.isAgentMode) stringResource(R.string.voice__generating)
+                        else stringResource(R.string.voice__refining),
+                sublabel = if (uiState.isAgentMode) stringResource(R.string.voice__generating_sublabel)
+                           else stringResource(R.string.voice__refining_sublabel),
                 onCancel = { manager.cancel() },
             )
             VoiceInputState.SUCCESS -> SuccessStage(
@@ -352,6 +358,7 @@ private fun VoiceStage(
                 onRefine = { manager.refineText() },
                 onToggleRawRefined = { manager.toggleRefined() },
                 onDismiss = { manager.reset() },
+                isAgentMode = uiState.isAgentMode,
             )
             VoiceInputState.ERROR -> ErrorStage(
                 message = uiState.errorMessage.ifBlank { stringResource(R.string.voice__error_title) },
@@ -383,6 +390,7 @@ private fun RecordingStage(
     amplitudeHistory: List<Float>,
     durationMs: Long,
     refinementEnabled: Boolean,
+    isAgentMode: Boolean,
     onStartRecording: () -> Unit,
     onStopRecording: () -> Unit,
     onToggleRefinement: () -> Unit,
@@ -449,6 +457,7 @@ private fun RecordingStage(
 
         EnhanceToggle(
             enabled = refinementEnabled,
+            isAgentMode = isAgentMode,
             onToggle = onToggleRefinement,
         )
     }
@@ -637,6 +646,7 @@ private fun Float.pow(p: Float): Float = Math.pow(this.toDouble(), p.toDouble())
 @Composable
 private fun EnhanceToggle(
     enabled: Boolean,
+    isAgentMode: Boolean,
     onToggle: () -> Unit,
 ) {
     FilterChip(
@@ -645,7 +655,8 @@ private fun EnhanceToggle(
         label = {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    text = stringResource(R.string.voice__enhance),
+                    text = if (isAgentMode) stringResource(R.string.voice__agent)
+                           else stringResource(R.string.voice__enhance),
                     style = MaterialTheme.typography.labelLarge,
                 )
                 Spacer(modifier = Modifier.width(8.dp))
@@ -739,6 +750,7 @@ private fun SuccessStage(
     onRefine: () -> Unit,
     onToggleRawRefined: () -> Unit,
     onDismiss: () -> Unit,
+    isAgentMode: Boolean,
 ) {
     val colorScheme = MaterialTheme.colorScheme
     val text = uiState.transcribedText
@@ -754,8 +766,12 @@ private fun SuccessStage(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
-                text = if (uiState.isRefined) stringResource(R.string.voice__refined_transcript)
-                       else stringResource(R.string.voice__transcript),
+                text = when {
+                    isAgentMode && uiState.isRefined -> stringResource(R.string.voice__generated_result)
+                    isAgentMode -> stringResource(R.string.voice__instruction)
+                    uiState.isRefined -> stringResource(R.string.voice__refined_transcript)
+                    else -> stringResource(R.string.voice__transcript)
+                },
                 style = MaterialTheme.typography.labelMedium,
                 color = colorScheme.onSurfaceVariant,
             )
@@ -827,12 +843,15 @@ private fun SuccessStage(
                     modifier = Modifier.weight(1f),
                 ) {
                     Icon(
-                        imageVector = Icons.Outlined.AutoAwesome,
+                        imageVector = if (isAgentMode) Icons.Filled.Send else Icons.Outlined.AutoAwesome,
                         contentDescription = null,
                         modifier = Modifier.size(15.dp),
                     )
                     Spacer(modifier = Modifier.width(6.dp))
-                    Text(stringResource(R.string.voice__refine))
+                    Text(
+                        if (isAgentMode) stringResource(R.string.voice__generate)
+                        else stringResource(R.string.voice__refine)
+                    )
                 }
             }
             if (hasRawAndRefined) {
@@ -841,8 +860,13 @@ private fun SuccessStage(
                     modifier = Modifier.weight(1f),
                 ) {
                     Text(
-                        if (uiState.isRefined) stringResource(R.string.voice__raw)
-                        else stringResource(R.string.voice__refined)
+                        if (isAgentMode) {
+                            if (uiState.isRefined) stringResource(R.string.voice__instruction)
+                            else stringResource(R.string.voice__generated_result)
+                        } else {
+                            if (uiState.isRefined) stringResource(R.string.voice__raw)
+                            else stringResource(R.string.voice__refined)
+                        }
                     )
                 }
             }

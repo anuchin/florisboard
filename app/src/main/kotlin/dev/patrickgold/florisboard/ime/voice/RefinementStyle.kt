@@ -24,7 +24,10 @@ enum class RefinementStyle {
     ACADEMIC,
     CONCISE,
     BULLET_POINTS,
+    AGENT,
     CUSTOM;
+
+    val isAgent: Boolean get() = this == AGENT
 
     fun systemPrompt(customPrompt: String = ""): String = when (this) {
         CLEAN_UP -> "You are a text editor. Clean up this transcribed speech: fix grammar, remove filler words (um, uh, like, you know), fix run-on sentences, and add proper punctuation. Preserve the original meaning and tone. Output only the cleaned text, nothing else."
@@ -34,6 +37,7 @@ enum class RefinementStyle {
         ACADEMIC -> "You are a text editor. Rewrite this text in an academic style with proper structure, formal language, precise terminology, and clear arguments. Output only the rewritten text, nothing else."
         CONCISE -> "You are a text editor. Make this text as concise as possible while preserving all key information. Remove redundancy and unnecessary words. Output only the rewritten text, nothing else."
         BULLET_POINTS -> "You are a text editor. Convert this transcribed speech into organized bullet points capturing the key ideas and action items. Output only the bullet points, nothing else."
+        AGENT -> "You are a helpful AI assistant embedded in a mobile keyboard. The user will speak a request or instruction. Fulfill the request directly. Examples: if they ask to write a message, write it; if they ask for a command, give the command; if they ask a question, answer concisely. Output only the result, nothing else. Preserve the language the user spoke in."
         CUSTOM -> customPrompt.ifBlank { "You are a helpful text editor. Improve the given text. Output only the edited text, nothing else." }
     }
 
@@ -45,6 +49,7 @@ enum class RefinementStyle {
         ACADEMIC -> "Academic"
         CONCISE -> "Concise"
         BULLET_POINTS -> "Bullet Points"
+        AGENT -> "Agent"
         CUSTOM -> "Custom"
     }
 }

@@ -1175,12 +1175,17 @@
     <string name="voice__sending_to" comment="Sublabel during transcription, %s is the provider name">Sending to %s</string>
     <string name="voice__refining" comment="Label shown while text is being refined by LLM">Refining…</string>
     <string name="voice__refining_sublabel" comment="Sublabel during refinement">Polishing with the language model</string>
+    <string name="voice__generating" comment="Label shown while agent mode is generating a response">Generating…</string>
+    <string name="voice__generating_sublabel" comment="Sublabel during agent generation">Fulfilling your request</string>
     <string name="voice__cancel" comment="Cancel button label">Cancel</string>
     <string name="voice__redo" comment="Redo recording button label">Redo</string>
     <string name="voice__refine" comment="Refine text button label">Refine</string>
     <string name="voice__insert" comment="Insert transcribed text button label">Insert</string>
     <string name="voice__raw" comment="Toggle to show raw (unrefined) transcript">Raw</string>
     <string name="voice__refined" comment="Toggle to show refined transcript">Refined</string>
+    <string name="voice__generate" comment="Generate button label for agent mode">Generate</string>
+    <string name="voice__instruction" comment="Header or toggle label for the raw voice instruction in agent mode">Instruction</string>
+    <string name="voice__generated_result" comment="Header or toggle label for the generated result in agent mode">Generated</string>
     <string name="voice__refined_transcript" comment="Header for refined transcript card">Refined transcript</string>
     <string name="voice__transcript" comment="Header for transcript card">Transcript</string>
     <string name="voice__word_count" comment="Word count display, %d is the count">%d words</string>
@@ -1198,6 +1203,7 @@
     <string name="voice__switch_keyboard" comment="Content description for switch to keyboard button">Switch to keyboard</string>
     <string name="voice__abc" comment="Label on button to switch back to text keyboard">ABC</string>
     <string name="voice__enhance" comment="Label for the enhance/refinement toggle">Enhance</string>
+    <string name="voice__agent" comment="Label for the agent mode toggle">Agent</string>
     <string name="voice__on" comment="On state for toggle">ON</string>
     <string name="voice__off" comment="Off state for toggle">OFF</string>
     <string name="voice__stop_recording" comment="Content description for stop recording button">Stop recording</string>

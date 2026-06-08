@@ -928,6 +928,7 @@ private fun RefinementStyle.shortDescription(): String = when (this) {
     RefinementStyle.ACADEMIC -> "Scholarly tone with precise vocabulary"
     RefinementStyle.CONCISE -> "Shorten while keeping key meaning"
     RefinementStyle.BULLET_POINTS -> "Convert to organized bullet points"
+    RefinementStyle.AGENT -> "Generate content from voice instructions"
     RefinementStyle.CUSTOM -> "Use your own custom system prompt"
 }
 
