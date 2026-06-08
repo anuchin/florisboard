@@ -16,6 +16,7 @@
 
 package dev.patrickgold.florisboard.ime.voice
 
+import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.view.KeyEvent
@@ -233,6 +234,8 @@ fun VoiceInputLayout(modifier: Modifier = Modifier) {
                 VoiceStage(
                     uiState = uiState,
                     manager = voiceInputManager,
+                    openSettings = openSettings,
+                    ctx = ctx,
                 )
             }
 
@@ -321,6 +324,8 @@ private fun VoiceTopBar(
 private fun VoiceStage(
     uiState: VoiceInputUiState,
     manager: VoiceInputManager,
+    openSettings: () -> Unit,
+    ctx: Context,
 ) {
     AnimatedContent(
         targetState = uiState.state,
