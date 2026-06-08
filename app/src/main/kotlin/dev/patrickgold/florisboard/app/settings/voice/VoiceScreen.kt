@@ -250,7 +250,7 @@ fun VoiceScreen() = FlorisScreen {
             }
             Preference(
                 title = stringRes(R.string.settings__voice__add_endpoint),
-                icon = { Icon(Icons.Filled.Add, null) },
+                icon = Icons.Filled.Add,
                 onClick = {
                     preselectedSttPreset = null
                     showAddEndpointDialog = true
@@ -310,7 +310,7 @@ fun VoiceScreen() = FlorisScreen {
             }
             Preference(
                 title = stringRes(R.string.settings__voice__add_llm_endpoint),
-                icon = { Icon(Icons.Filled.Add, null) },
+                icon = Icons.Filled.Add,
                 onClick = {
                     preselectedLlmPreset = null
                     showAddLlmEndpointDialog = true
