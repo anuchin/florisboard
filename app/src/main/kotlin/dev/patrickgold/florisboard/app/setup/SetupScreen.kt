@@ -21,23 +21,34 @@ import android.content.Intent
 import androidx.activity.compose.ManagedActivityResultLauncher
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.material3.Button
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import dev.patrickgold.florisboard.R
@@ -46,6 +57,9 @@ import dev.patrickgold.florisboard.app.FlorisPreferenceModel
 import dev.patrickgold.florisboard.app.FlorisPreferenceStore
 import dev.patrickgold.florisboard.app.LocalNavController
 import dev.patrickgold.florisboard.app.Routes
+import dev.patrickgold.florisboard.ime.voice.ProviderPreset
+import dev.patrickgold.florisboard.ime.voice.STT_PRESETS
+import dev.patrickgold.florisboard.ime.voice.SavedEndpoint
 import dev.patrickgold.florisboard.lib.compose.FlorisScreen
 import dev.patrickgold.florisboard.lib.compose.FlorisScreenScope
 import dev.patrickgold.florisboard.lib.util.InputMethodUtils
@@ -53,6 +67,7 @@ import dev.patrickgold.florisboard.lib.util.launchActivity
 import dev.patrickgold.florisboard.lib.util.launchUrl
 import dev.patrickgold.jetpref.datastore.model.collectAsState
 import dev.patrickgold.jetpref.datastore.ui.PreferenceUiScope
+import dev.patrickgold.jetpref.material.ui.JetPrefTextField
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -117,7 +132,7 @@ private fun FlorisScreenScope.content(
             !isFlorisBoardEnabled -> Steps.EnableIme.id
             !isFlorisBoardSelected -> Steps.SelectIme.id
             hasNotificationPermission == NotificationPermissionState.NOT_SET && AndroidVersion.ATLEAST_API33_T -> Steps.SelectNotification.id
-            else -> Steps.FinishUp.id
+            else -> Steps.VoiceInput.id
         }
         FlorisStepState.new(init = initStep)
     }
@@ -129,13 +144,11 @@ private fun FlorisScreenScope.content(
                     !isFlorisBoardEnabled -> Steps.EnableIme.id
                     !isFlorisBoardSelected -> Steps.SelectIme.id
                     hasNotificationPermission == NotificationPermissionState.NOT_SET && AndroidVersion.ATLEAST_API33_T -> Steps.SelectNotification.id
-                    else -> Steps.FinishUp.id
+                    else -> Steps.VoiceInput.id
                 }
             )
         }
 
-        // Below block allows to return from the system IME enabler activity
-        // as soon as it gets selected.
         LaunchedEffect(Unit) {
             while (true) {
                 delay(200L)
@@ -165,7 +178,7 @@ private fun FlorisScreenScope.content(
                 Spacer(modifier = Modifier.height(16.dp))
             },
             steps = steps(
-                context, navController, requestNotification, scope
+                context, navController, requestNotification, scope, stepState
             ),
             footer = {
                 footer(context)
@@ -201,6 +214,7 @@ private fun PreferenceUiScope<FlorisPreferenceModel>.steps(
     navController: NavController,
     requestNotification: ManagedActivityResultLauncher<String, Boolean>,
     scope: CoroutineScope,
+    stepState: FlorisStepState,
 ): List<FlorisStep> {
 
     return listOfNotNull(
@@ -234,6 +248,109 @@ private fun PreferenceUiScope<FlorisPreferenceModel>.steps(
             }
         } else null,
         FlorisStep(
+            id = Steps.VoiceInput.id,
+            title = stringRes(R.string.settings__voice__setup__voice_title),
+        ) {
+            StepText(stringRes(R.string.settings__voice__setup__voice_description))
+
+            var selectedPreset by remember { mutableStateOf<ProviderPreset?>(null) }
+            var apiKey by remember { mutableStateOf("") }
+
+            if (selectedPreset == null) {
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    STT_PRESETS.take(3).forEach { preset ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { selectedPreset = preset }
+                                .padding(vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Icon(
+                                painter = painterResource(preset.iconRes),
+                                contentDescription = null,
+                                modifier = Modifier.size(24.dp),
+                            )
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Column {
+                                Text(
+                                    preset.name,
+                                    style = MaterialTheme.typography.bodyLarge,
+                                )
+                                Text(
+                                    preset.tagline,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                        }
+                    }
+                }
+            } else {
+                val preset = selectedPreset!!
+                Text(
+                    "Enter your ${preset.name} API key:",
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                JetPrefTextField(value = apiKey, onValueChange = { apiKey = it })
+                Spacer(modifier = Modifier.height(4.dp))
+                if (preset.docsUrl != null) {
+                    Text(
+                        "Get one at ${preset.docsUrl}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                }
+                Spacer(modifier = Modifier.height(12.dp))
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.align(Alignment.CenterHorizontally),
+                ) {
+                    TextButton(onClick = { selectedPreset = null }) {
+                        Text("Back")
+                    }
+                    Button(
+                        onClick = {
+                            val endpoint = SavedEndpoint(
+                                id = java.util.UUID.randomUUID().toString(),
+                                name = preset.name,
+                                baseUrl = preset.baseUrl,
+                                apiKey = apiKey.trim(),
+                                model = preset.defaultModel,
+                                presetId = preset.id,
+                            )
+                            val current = SavedEndpoint.deserializeList(
+                                this@steps.prefs.voice.savedEndpoints.get()
+                            )
+                            scope.launch {
+                                this@steps.prefs.voice.savedEndpoints.set(
+                                    SavedEndpoint.serializeList(current + endpoint)
+                                )
+                                this@steps.prefs.voice.activeEndpointId.set(endpoint.id)
+                                this@steps.prefs.voice.isVoiceSetUp.set(true)
+                            }
+                            stepState.setCurrentManual(Steps.FinishUp.id)
+                        },
+                        enabled = apiKey.isNotBlank(),
+                    ) {
+                        Text("Save & Continue")
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+            TextButton(
+                onClick = {
+                    scope.launch { this@steps.prefs.voice.isVoiceSetUp.set(false) }
+                    stepState.setCurrentManual(Steps.FinishUp.id)
+                },
+                modifier = Modifier.align(Alignment.CenterHorizontally),
+            ) {
+                Text(stringRes(R.string.settings__voice__setup__voice_skip))
+            }
+        },
+        FlorisStep(
             id = Steps.FinishUp.id,
             title = stringRes(R.string.setup__finish_up__title),
         ) {
@@ -255,5 +372,6 @@ private sealed class Steps(val id: Int) {
     data object EnableIme : Steps(id = 1)
     data object SelectIme : Steps(id = 2)
     data object SelectNotification : Steps(id = 3)
-    data object FinishUp : Steps(id = 4)
+    data object VoiceInput : Steps(id = 4)
+    data object FinishUp : Steps(id = 5)
 }

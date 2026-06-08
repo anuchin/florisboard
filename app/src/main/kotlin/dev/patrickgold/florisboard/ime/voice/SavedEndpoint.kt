@@ -27,6 +27,7 @@ data class SavedEndpoint(
     val baseUrl: String,
     val apiKey: String,
     val model: String,
+    val presetId: String = "",
 ) {
     companion object {
         val Empty = SavedEndpoint("", "", "", "", "whisper-1")

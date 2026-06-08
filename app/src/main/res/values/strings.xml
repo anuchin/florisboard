@@ -342,6 +342,20 @@
     <string name="snygg__rule_element__subtype_panel_list_item">Subtype panel list item</string>
     <string name="snygg__rule_element__subtype_panel_list_item_icon_leading">Subtype panel list item icon (leading)</string>
     <string name="snygg__rule_element__subtype_panel_list_item_text">Subtype panel list item text</string>
+    <string name="snygg__rule_element__voice_input_root">Voice Input</string>
+    <string name="snygg__rule_element__voice_top_bar">Voice Top Bar</string>
+    <string name="snygg__rule_element__voice_chip">Voice Chip</string>
+    <string name="snygg__rule_element__voice_chip_text">Voice Chip Text</string>
+    <string name="snygg__rule_element__voice_mic_button">Voice Mic Button</string>
+    <string name="snygg__rule_element__voice_mic_button_icon">Voice Mic Button Icon</string>
+    <string name="snygg__rule_element__voice_waveform">Voice Waveform</string>
+    <string name="snygg__rule_element__voice_processing">Voice Processing</string>
+    <string name="snygg__rule_element__voice_transcript_box">Voice Transcript Box</string>
+    <string name="snygg__rule_element__voice_action_bar">Voice Action Bar</string>
+    <string name="snygg__rule_element__voice_action_key">Voice Action Key</string>
+    <string name="snygg__rule_element__voice_bottom_bar">Voice Bottom Bar</string>
+    <string name="snygg__rule_element__voice_bottom_bar_button">Voice Bottom Bar Button</string>
+    <string name="snygg__rule_element__voice_enhance_toggle">Voice Enhance Toggle</string>
 
     <string name="snygg__rule_selector__pressed">Pressed</string>
     <string name="snygg__rule_selector__focus">Focused</string>
@@ -1178,7 +1192,7 @@
     <string name="voice__generating" comment="Label shown while agent mode is generating a response">Generating…</string>
     <string name="voice__generating_sublabel" comment="Sublabel during agent generation">Fulfilling your request</string>
     <string name="voice__cancel" comment="Cancel button label">Cancel</string>
-    <string name="voice__redo" comment="Redo recording button label">Redo</string>
+    <string name="voice__redo" comment="Redo recording button label">Redo</string>/new
     <string name="voice__refine" comment="Refine text button label">Refine</string>
     <string name="voice__insert" comment="Insert transcribed text button label">Insert</string>
     <string name="voice__raw" comment="Toggle to show raw (unrefined) transcript">Raw</string>
@@ -1288,5 +1302,24 @@
     <string name="settings__voice__toggle_active" comment="Toggle endpoint active state">Toggle active</string>
     <string name="settings__voice__customize_prompt" comment="Preference title for customizing a built-in style prompt">Customize prompt</string>
     <string name="settings__voice__customize_prompt_hint" comment="Hint text for prompt customization">Override the system prompt for this refinement style.</string>
+    <string name="settings__voice__stt_quick_add" comment="Group title for STT provider presets">Quick Add STT Provider</string>
+    <string name="settings__voice__llm_quick_add" comment="Group title for LLM provider presets">Quick Add LLM Provider</string>
+    <string name="settings__voice__grant_microphone" comment="Button to grant mic permission">Grant Microphone Access</string>
+    <string name="settings__voice__microphone_required" comment="Description for mic permission">Microphone access is required to record your voice for transcription.</string>
+    <string name="settings__voice__microphone_granted" comment="Status when mic is granted">Microphone access granted</string>
+    <string name="settings__voice__voice_not_setup" comment="Title when voice not configured">Voice input is not set up yet</string>
+    <string name="settings__voice__voice_not_setup_summary" comment="Summary when voice not configured">Add a speech-to-text provider below to start using voice input.</string>
+    <string name="settings__voice__voice_ready" comment="Title when voice is configured">Voice input is ready</string>
+    <string name="settings__voice__no_api_key_needed" comment="Note for local endpoints">No API key required for local endpoints.</string>
+    <string name="settings__voice__preset_added" comment="Badge shown when preset already added">Added</string>
+    <string name="settings__voice__setup__voice_title" comment="Setup wizard voice step title">AI Voice Input (Optional)</string>
+    <string name="settings__voice__setup__voice_description" comment="Setup wizard voice step description">Would you like to enable AI-powered voice input? You can speak to type using AI transcription.</string>
+    <string name="settings__voice__setup__voice_skip" comment="Setup wizard skip button">Set Up Later</string>
+    <string name="settings__voice__setup__voice_enable" comment="Setup wizard enable button">Enable Voice Input</string>
+    <string name="settings__voice__setup__voice_select_provider" comment="Setup wizard provider picker title">Select a Speech-to-Text provider</string>
+    <string name="settings__voice__setup__enter_api_key" comment="Setup wizard API key prompt">Enter your %s API key:</string>
+    <string name="settings__voice__setup__get_key" comment="Setup wizard get key link">Get one at %s</string>
+    <string name="settings__voice__setup__validate_continue" comment="Setup wizard validate button">Validate &amp; Continue</string>
+    <string name="settings__voice__docs_link" comment="Docs link text">Docs ↗</string>
 
 </resources>

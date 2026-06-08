@@ -393,4 +393,117 @@ val FlorisImeThemeBaseStyle = SnyggStylesheet.v2 {
         textMaxLines = textMaxLines(1)
         textOverflow = textOverflow(TextOverflow.Ellipsis)
     }
+
+    FlorisImeUi.VoiceInputRoot.elementName {
+        background = `var`("--background")
+        foreground = `var`("--on-background")
+    }
+
+    FlorisImeUi.VoiceTopBar.elementName {
+        background = rgbaColor(0, 0, 0, 0f)
+        foreground = `var`("--on-background")
+        padding = padding(0.dp, 0.dp, 24.dp, 0.dp)
+    }
+
+    FlorisImeUi.VoiceChip.elementName {
+        background = `var`("--background-variant")
+        foreground = `var`("--on-background")
+        fontSize = fontSize(12.sp)
+        padding = padding(4.dp, 10.dp, 4.dp, 10.dp)
+        shape = roundedCornerShape(999)
+        textMaxLines = textMaxLines(1)
+    }
+
+    FlorisImeUi.VoiceChipText.elementName {
+        fontSize = fontSize(12.sp)
+    }
+
+    FlorisImeUi.VoiceMicButton.elementName {
+        background = `var`("--primary")
+        foreground = `var`("--on-primary")
+        shape = circleShape()
+        shadowElevation = size(4.dp)
+    }
+    FlorisImeUi.VoiceMicButton.elementName(
+        FlorisImeUi.Attr.VoiceState to listOf("recording"),
+    ) {
+        background = rgbaColor(211, 47, 47)
+        foreground = rgbaColor(255, 255, 255)
+    }
+
+    FlorisImeUi.VoiceMicButtonIcon.elementName {
+        foreground = `var`("--on-primary")
+        fontSize = fontSize(38.sp)
+    }
+    FlorisImeUi.VoiceMicButtonIcon.elementName(
+        FlorisImeUi.Attr.VoiceState to listOf("recording"),
+    ) {
+        foreground = rgbaColor(255, 255, 255)
+    }
+
+    FlorisImeUi.VoiceWaveform.elementName {
+        foreground = `var`("--primary")
+        fontSize = fontSize(14.sp)
+    }
+
+    FlorisImeUi.VoiceProcessing.elementName {
+        foreground = `var`("--on-background")
+        fontSize = fontSize(14.sp)
+    }
+
+    FlorisImeUi.VoiceTranscriptBox.elementName {
+        background = `var`("--surface")
+        foreground = `var`("--on-surface")
+        fontSize = fontSize(16.sp)
+        padding = padding(16.dp)
+        shape = `var`("--shape-variant")
+    }
+
+    FlorisImeUi.VoiceActionBar.elementName {
+        foreground = `var`("--on-background")
+        fontSize = fontSize(14.sp)
+    }
+
+    FlorisImeUi.VoiceActionKey.elementName {
+        background = `var`("--surface")
+        foreground = `var`("--on-surface")
+        fontSize = fontSize(14.sp)
+        padding = padding(8.dp, 0.dp)
+        shape = `var`("--shape")
+        textMaxLines = textMaxLines(1)
+    }
+    FlorisImeUi.VoiceActionKey.elementName(selector = SnyggSelector.PRESSED) {
+        background = `var`("--primary")
+        foreground = `var`("--on-primary")
+    }
+
+    FlorisImeUi.VoiceBottomBar.elementName {
+        background = rgbaColor(0, 0, 0, 0f)
+        foreground = `var`("--on-background")
+    }
+
+    FlorisImeUi.VoiceBottomBarButton.elementName {
+        background = `var`("--surface")
+        foreground = `var`("--on-surface")
+        shape = `var`("--shape-variant")
+        fontSize = fontSize(14.sp)
+    }
+    FlorisImeUi.VoiceBottomBarButton.elementName(selector = SnyggSelector.PRESSED) {
+        background = `var`("--primary")
+        foreground = `var`("--on-primary")
+    }
+
+    FlorisImeUi.VoiceEnhanceToggle.elementName {
+        background = `var`("--background-variant")
+        foreground = `var`("--on-background")
+        fontSize = fontSize(14.sp)
+        padding = padding(4.dp, 12.dp, 4.dp, 12.dp)
+        shape = roundedCornerShape(999)
+    }
+    FlorisImeUi.VoiceEnhanceToggle.elementName(
+        FlorisImeUi.Attr.VoiceState to listOf("selected"),
+    ) {
+        background = `var`("--primary")
+        foreground = `var`("--on-primary")
+    }
 }

@@ -16,6 +16,16 @@
 
 package dev.patrickgold.florisboard.app.settings.voice
 
+import android.Manifest
+import android.content.Intent
+import android.content.pm.PackageManager
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -27,12 +37,22 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Mic
+import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material3.Badge
 import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -47,21 +67,29 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import dev.patrickgold.florisboard.R
 import org.florisboard.lib.compose.stringRes
+import dev.patrickgold.florisboard.app.FlorisAppActivity
 import dev.patrickgold.florisboard.app.FlorisPreferenceModel
 import dev.patrickgold.florisboard.app.FlorisPreferenceStore
 import dev.patrickgold.florisboard.ime.voice.LlmApiClient
+import dev.patrickgold.florisboard.ime.voice.LLM_PRESETS
 import dev.patrickgold.florisboard.ime.voice.ModelsResult
+import dev.patrickgold.florisboard.ime.voice.ProviderPreset
 import dev.patrickgold.florisboard.ime.voice.RefinementStyle
+import dev.patrickgold.florisboard.ime.voice.STT_PRESETS
 import dev.patrickgold.florisboard.ime.voice.SavedEndpoint
 import dev.patrickgold.florisboard.ime.voice.ValidationResult
-import dev.patrickgold.florisboard.ime.voice.VoiceProvider
 import dev.patrickgold.florisboard.ime.voice.WhisperApiClient
 import dev.patrickgold.florisboard.lib.compose.FlorisScreen
+import dev.patrickgold.florisboard.lib.util.launchUrl
 import dev.patrickgold.jetpref.datastore.model.collectAsState
 import dev.patrickgold.jetpref.datastore.ui.ExperimentalJetPrefDatastoreUi
 import dev.patrickgold.jetpref.datastore.ui.Preference
@@ -70,9 +98,6 @@ import dev.patrickgold.jetpref.datastore.ui.SwitchPreference
 import dev.patrickgold.jetpref.material.ui.JetPrefAlertDialog
 import dev.patrickgold.jetpref.material.ui.JetPrefTextField
 import kotlinx.coroutines.launch
-
-private val OPENAI_MODELS = listOf("whisper-1")
-private val GROQ_MODELS = listOf("whisper-large-v3", "distil-whisper-large-v3-en", "whisper-large-v3-turbo")
 
 @OptIn(ExperimentalJetPrefDatastoreUi::class)
 @Composable
@@ -83,25 +108,7 @@ fun VoiceScreen() = FlorisScreen {
 
     val prefs by FlorisPreferenceStore
     val scope = rememberCoroutineScope()
-
-    val provider by prefs.voice.provider.collectAsState()
-    val model by prefs.voice.model.collectAsState()
-    val language by prefs.voice.language.collectAsState()
-    val customEndpointUrl by prefs.voice.customEndpointUrl.collectAsState()
-
-    var showProviderDialog by remember { mutableStateOf(false) }
-    var showApiKeyDialog by remember { mutableStateOf(false) }
-    var showEndpointDialog by remember { mutableStateOf(false) }
-    var showModelDialog by remember { mutableStateOf(false) }
-    var showLanguageDialog by remember { mutableStateOf(false) }
-    var showAddEndpointDialog by remember { mutableStateOf(false) }
-    var editingEndpoint by remember { mutableStateOf<SavedEndpoint?>(null) }
-    var showDeleteEndpointConfirm by remember { mutableStateOf<SavedEndpoint?>(null) }
-    var showRefinementStyleDialog by remember { mutableStateOf(false) }
-    var showCustomPromptDialog by remember { mutableStateOf(false) }
-    var showAddLlmEndpointDialog by remember { mutableStateOf(false) }
-    var editingLlmEndpoint by remember { mutableStateOf<SavedEndpoint?>(null) }
-    var showDeleteLlmEndpointConfirm by remember { mutableStateOf<SavedEndpoint?>(null) }
+    val context = LocalContext.current
 
     val savedEndpointsRaw by prefs.voice.savedEndpoints.collectAsState()
     val savedEndpoints = remember(savedEndpointsRaw) {
@@ -115,54 +122,125 @@ fun VoiceScreen() = FlorisScreen {
     }
     val llmActiveEndpointId by prefs.voice.llmActiveEndpointId.collectAsState()
 
-    val refinementEnabled by prefs.voice.refinementEnabled.collectAsState()
     val refinementStyle by prefs.voice.refinementStyle.collectAsState()
     val refinementCustomPrompt by prefs.voice.refinementCustomPrompt.collectAsState()
 
-    var isValidating by remember { mutableStateOf(false) }
-    var validationResult by remember { mutableStateOf<ValidationResult?>(null) }
+    var showAddEndpointDialog by remember { mutableStateOf(false) }
+    var preselectedSttPreset by remember { mutableStateOf<ProviderPreset?>(null) }
+    var editingEndpoint by remember { mutableStateOf<SavedEndpoint?>(null) }
+    var showDeleteEndpointConfirm by remember { mutableStateOf<SavedEndpoint?>(null) }
 
-    val currentApiKeyPref = when (provider) {
-        VoiceProvider.OPENAI -> prefs.voice.openaiApiKey
-        VoiceProvider.GROQ -> prefs.voice.groqApiKey
-        VoiceProvider.CUSTOM -> prefs.voice.customApiKey
-    }
-    val currentApiKey by currentApiKeyPref.collectAsState()
+    var showAddLlmEndpointDialog by remember { mutableStateOf(false) }
+    var preselectedLlmPreset by remember { mutableStateOf<ProviderPreset?>(null) }
+    var editingLlmEndpoint by remember { mutableStateOf<SavedEndpoint?>(null) }
+    var showDeleteLlmEndpointConfirm by remember { mutableStateOf<SavedEndpoint?>(null) }
+
+    var showLanguageDialog by remember { mutableStateOf(false) }
+    var showRefinementStyleDialog by remember { mutableStateOf(false) }
+    var showCustomPromptDialog by remember { mutableStateOf(false) }
+
+    val language by prefs.voice.language.collectAsState()
 
     content {
-        PreferenceGroup(title = stringRes(R.string.settings__voice__provider_group)) {
-            Preference(
-                title = stringRes(R.string.settings__voice__speech_to_text_provider),
-                summary = when (provider) {
-                    VoiceProvider.OPENAI -> stringRes(R.string.settings__voice__provider_openai)
-                    VoiceProvider.GROQ -> stringRes(R.string.settings__voice__provider_groq)
-                    VoiceProvider.CUSTOM -> stringRes(R.string.settings__voice__provider_custom)
-                },
-                onClick = { showProviderDialog = true },
-            )
+        val hasMicPermission = context.checkCallingOrSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED
+
+        if (hasMicPermission) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(20.dp)
+                        .background(
+                            color = MaterialTheme.colorScheme.primary,
+                            shape = CircleShape,
+                        ),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.Check,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onPrimary,
+                        modifier = Modifier.size(12.dp),
+                    )
+                }
+                Text(
+                    text = stringResource(R.string.settings__voice__microphone_granted),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+            }
+        } else {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                shape = RoundedCornerShape(12.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.errorContainer,
+                ),
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.Mic,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onErrorContainer,
+                        modifier = Modifier.size(24.dp),
+                    )
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = stringResource(R.string.settings__voice__grant_microphone),
+                            style = MaterialTheme.typography.titleSmall,
+                            color = MaterialTheme.colorScheme.onErrorContainer,
+                        )
+                        Text(
+                            text = stringResource(R.string.settings__voice__microphone_required),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onErrorContainer.copy(alpha = 0.8f),
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Button(
+                        onClick = {
+                            val intent = Intent(context, FlorisAppActivity::class.java).apply {
+                                flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                                action = "REQUEST_RECORD_AUDIO"
+                            }
+                            context.startActivity(intent)
+                        },
+                    ) {
+                        Text(stringRes(R.string.settings__voice__grant_microphone))
+                    }
+                }
+            }
         }
 
         PreferenceGroup(title = stringRes(R.string.settings__voice__saved_endpoints_group)) {
             if (savedEndpoints.isEmpty()) {
-                Preference(
-                    title = stringRes(R.string.settings__voice__no_saved_endpoints),
-                    summary = stringRes(R.string.settings__voice__no_saved_endpoints_summary),
+                EmptyEndpointsHint(
+                    message = stringRes(R.string.settings__voice__no_saved_endpoints_summary)
                 )
             } else {
                 savedEndpoints.forEach { endpoint ->
                     val isActive = endpoint.id == activeEndpointId
-                    EndpointItem(
-                        name = endpoint.name,
-                        subtitle = "${endpoint.baseUrl} • ${endpoint.model}" +
-                            if (isActive) stringRes(R.string.settings__voice__active_suffix) else "",
+                    EndpointRow(
+                        endpoint = endpoint,
                         isActive = isActive,
-                        onClick = {
+                        onToggleActive = {
                             scope.launch {
-                                if (isActive) {
-                                    prefs.voice.activeEndpointId.set("")
-                                } else {
-                                    prefs.voice.activeEndpointId.set(endpoint.id)
-                                }
+                                prefs.voice.activeEndpointId.set(
+                                    if (isActive) "" else endpoint.id
+                                )
                             }
                         },
                         onEdit = { editingEndpoint = endpoint },
@@ -172,59 +250,25 @@ fun VoiceScreen() = FlorisScreen {
             }
             Preference(
                 title = stringRes(R.string.settings__voice__add_endpoint),
-                onClick = { showAddEndpointDialog = true },
-            )
-        }
-
-        PreferenceGroup(title = stringRes(R.string.settings__voice__api_config_group)) {
-            Preference(
-                title = when (provider) {
-                    VoiceProvider.OPENAI -> stringRes(R.string.settings__voice__api_key_openai)
-                    VoiceProvider.GROQ -> stringRes(R.string.settings__voice__api_key_groq)
-                    VoiceProvider.CUSTOM -> stringRes(R.string.settings__voice__api_key_custom)
-                },
-                summary = if (currentApiKey.isNotBlank()) {
-                    "${currentApiKey.take(4)}${"*".repeat(12)}"
-                } else {
-                    stringRes(R.string.settings__voice__not_set)
-                },
-                onClick = { showApiKeyDialog = true },
-            )
-
-            Preference(
-                title = stringRes(R.string.settings__voice__custom_endpoint_url),
-                summary = customEndpointUrl.ifBlank { stringRes(R.string.settings__voice__not_set) },
-                onClick = { showEndpointDialog = true },
-                visibleIf = { prefs.voice.provider isEqualTo VoiceProvider.CUSTOM },
-            )
-
-            Preference(
-                title = stringRes(R.string.settings__voice__validate_api_key),
-                summary = when {
-                    isValidating -> stringRes(R.string.settings__voice__checking)
-                    validationResult?.isSuccess == true -> stringRes(R.string.settings__voice__connection_successful)
-                    validationResult?.isSuccess == false -> validationResult?.errorMessage
-                    else -> stringRes(R.string.settings__voice__validate_summary)
-                },
+                icon = { Icon(Icons.Filled.Add, null) },
                 onClick = {
-                    isValidating = true
-                    validationResult = null
-                    scope.launch {
-                        val client = buildClientFromPrefs(prefs, savedEndpoints, activeEndpointId)
-                        val result = client.validateApiKey()
-                        validationResult = result
-                        isValidating = false
-                    }
+                    preselectedSttPreset = null
+                    showAddEndpointDialog = true
                 },
-                enabledIf = { currentApiKeyPref isNotEqualTo "" },
             )
         }
 
-        PreferenceGroup(title = stringRes(R.string.settings__voice__model_group)) {
-            Preference(
-                title = stringRes(R.string.settings__voice__model),
-                summary = model.ifBlank { stringRes(R.string.settings__voice__not_set) },
-                onClick = { showModelDialog = true },
+        val activeSttPresetIds = savedEndpoints.mapNotNull { ep ->
+            STT_PRESETS.find { it.baseUrl == ep.baseUrl }?.id
+        }
+        PreferenceGroup(title = stringRes(R.string.settings__voice__stt_quick_add)) {
+            ProviderPresetGrid(
+                presets = STT_PRESETS,
+                activePresetIds = activeSttPresetIds,
+                onSelect = { preset ->
+                    preselectedSttPreset = preset
+                    showAddEndpointDialog = true
+                },
             )
         }
 
@@ -234,11 +278,57 @@ fun VoiceScreen() = FlorisScreen {
                 summary = language.ifBlank { stringRes(R.string.settings__voice__auto_detect) },
                 onClick = { showLanguageDialog = true },
             )
-
             SwitchPreference(
                 prefs.voice.autoCommit,
                 title = stringRes(R.string.settings__voice__auto_commit),
                 summary = stringRes(R.string.settings__voice__auto_commit_summary),
+            )
+        }
+
+        PreferenceGroup(title = stringRes(R.string.settings__voice__llm_provider_group)) {
+            if (llmSavedEndpoints.isEmpty()) {
+                EmptyEndpointsHint(
+                    message = stringRes(R.string.settings__voice__no_llm_endpoints_summary)
+                )
+            } else {
+                llmSavedEndpoints.forEach { endpoint ->
+                    val isActive = endpoint.id == llmActiveEndpointId
+                    EndpointRow(
+                        endpoint = endpoint,
+                        isActive = isActive,
+                        onToggleActive = {
+                            scope.launch {
+                                prefs.voice.llmActiveEndpointId.set(
+                                    if (isActive) "" else endpoint.id
+                                )
+                            }
+                        },
+                        onEdit = { editingLlmEndpoint = endpoint },
+                        onDelete = { showDeleteLlmEndpointConfirm = endpoint },
+                    )
+                }
+            }
+            Preference(
+                title = stringRes(R.string.settings__voice__add_llm_endpoint),
+                icon = { Icon(Icons.Filled.Add, null) },
+                onClick = {
+                    preselectedLlmPreset = null
+                    showAddLlmEndpointDialog = true
+                },
+            )
+        }
+
+        val activeLlmPresetIds = llmSavedEndpoints.mapNotNull { ep ->
+            LLM_PRESETS.find { it.baseUrl == ep.baseUrl }?.id
+        }
+        PreferenceGroup(title = stringRes(R.string.settings__voice__llm_quick_add)) {
+            ProviderPresetGrid(
+                presets = LLM_PRESETS,
+                activePresetIds = activeLlmPresetIds,
+                onSelect = { preset ->
+                    preselectedLlmPreset = preset
+                    showAddLlmEndpointDialog = true
+                },
             )
         }
 
@@ -261,189 +351,120 @@ fun VoiceScreen() = FlorisScreen {
                 visibleIf = { prefs.voice.refinementEnabled isEqualTo true },
             )
             Preference(
-                title = if (refinementStyle == RefinementStyle.CUSTOM) {
+                title = if (refinementStyle == RefinementStyle.CUSTOM)
                     stringRes(R.string.settings__voice__custom_prompt)
-                } else {
-                    stringRes(R.string.settings__voice__customize_prompt)
-                },
-                summary = if (refinementCustomPrompt.isNotBlank()) {
-                    refinementCustomPrompt
-                } else if (refinementStyle == RefinementStyle.CUSTOM) {
-                    stringRes(R.string.settings__voice__not_set)
-                } else {
-                    refinementStyle.shortDescription()
+                else
+                    stringRes(R.string.settings__voice__customize_prompt),
+                summary = refinementCustomPrompt.ifBlank {
+                    if (refinementStyle == RefinementStyle.CUSTOM)
+                        stringRes(R.string.settings__voice__not_set)
+                    else
+                        refinementStyle.shortDescription()
                 },
                 onClick = { showCustomPromptDialog = true },
                 visibleIf = { prefs.voice.refinementEnabled isEqualTo true },
             )
         }
-
-        PreferenceGroup(title = stringRes(R.string.settings__voice__llm_provider_group)) {
-            if (llmSavedEndpoints.isEmpty()) {
-                Preference(
-                    title = stringRes(R.string.settings__voice__no_llm_endpoints),
-                    summary = stringRes(R.string.settings__voice__no_llm_endpoints_summary),
-                )
-            } else {
-                llmSavedEndpoints.forEach { endpoint ->
-                    val isActive = endpoint.id == llmActiveEndpointId
-                    EndpointItem(
-                        name = endpoint.name,
-                        subtitle = "${endpoint.baseUrl} • ${endpoint.model}" +
-                            if (isActive) stringRes(R.string.settings__voice__active_suffix) else "",
-                        isActive = isActive,
-                        onClick = {
-                            scope.launch {
-                                if (isActive) {
-                                    prefs.voice.llmActiveEndpointId.set("")
-                                } else {
-                                    prefs.voice.llmActiveEndpointId.set(endpoint.id)
-                                }
-                            }
-                        },
-                        onEdit = { editingLlmEndpoint = endpoint },
-                        onDelete = { showDeleteLlmEndpointConfirm = endpoint },
-                    )
-                }
-            }
-            Preference(
-                title = stringRes(R.string.settings__voice__add_llm_endpoint),
-                onClick = { showAddLlmEndpointDialog = true },
-            )
-        }
     }
 
-    // Provider selection dialog
-    if (showProviderDialog) {
-        JetPrefAlertDialog(
-            title = stringRes(R.string.settings__voice__select_provider),
-            dismissLabel = stringRes(R.string.settings__voice__cancel),
-            onDismiss = { showProviderDialog = false },
-        ) {
-            Column {
-                VoiceProvider.entries.forEach { entry ->
-                    Preference(
-                        title = when (entry) {
-                            VoiceProvider.OPENAI -> stringRes(R.string.settings__voice__provider_openai)
-                            VoiceProvider.GROQ -> stringRes(R.string.settings__voice__provider_groq)
-                            VoiceProvider.CUSTOM -> stringRes(R.string.settings__voice__provider_custom)
-                        },
-                        summary = when (entry) {
-                            VoiceProvider.OPENAI -> stringRes(R.string.settings__voice__provider_openai_summary)
-                            VoiceProvider.GROQ -> stringRes(R.string.settings__voice__provider_groq_summary)
-                            VoiceProvider.CUSTOM -> stringRes(R.string.settings__voice__provider_custom_summary)
-                        },
-                        onClick = {
-                            scope.launch { prefs.voice.provider.set(entry) }
-                            showProviderDialog = false
-                        },
-                    )
-                }
-            }
-        }
-    }
-
-    // API Key dialog
-    if (showApiKeyDialog) {
-        var apiKey by remember { mutableStateOf(currentApiKey) }
-        JetPrefAlertDialog(
-            title = when (provider) {
-                VoiceProvider.OPENAI -> stringRes(R.string.settings__voice__api_key_openai)
-                VoiceProvider.GROQ -> stringRes(R.string.settings__voice__api_key_groq)
-                VoiceProvider.CUSTOM -> stringRes(R.string.settings__voice__api_key_custom)
-            },
-            confirmLabel = stringRes(R.string.settings__voice__save),
-            onConfirm = {
-                scope.launch { currentApiKeyPref.set(apiKey.trim()) }
-                showApiKeyDialog = false
-                validationResult = null
-            },
-            dismissLabel = stringRes(R.string.settings__voice__cancel),
-            onDismiss = { showApiKeyDialog = false },
-        ) {
-            JetPrefTextField(
-                value = apiKey,
-                onValueChange = { apiKey = it },
-            )
-        }
-    }
-
-    // Custom Endpoint URL dialog
-    if (showEndpointDialog) {
-        var endpointUrl by remember { mutableStateOf(customEndpointUrl) }
-        JetPrefAlertDialog(
-            title = stringRes(R.string.settings__voice__custom_endpoint_url),
-            confirmLabel = stringRes(R.string.settings__voice__save),
-            onConfirm = {
-                scope.launch { prefs.voice.customEndpointUrl.set(endpointUrl.trimEnd('/')) }
-                showEndpointDialog = false
-                validationResult = null
-            },
-            dismissLabel = stringRes(R.string.settings__voice__cancel),
-            onDismiss = { showEndpointDialog = false },
-        ) {
-            Column {
-                Text(
-                    stringRes(R.string.settings__voice__endpoint_url_hint),
-                    modifier = Modifier.padding(bottom = 8.dp),
-                )
-                JetPrefTextField(
-                    value = endpointUrl,
-                    onValueChange = { endpointUrl = it },
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    stringRes(R.string.settings__voice__endpoint_url_example),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-        }
-    }
-
-    // Model selection dialog
-    if (showModelDialog) {
-        var selectedModel by remember { mutableStateOf(model) }
-        val suggestedModels = when (provider) {
-            VoiceProvider.OPENAI -> OPENAI_MODELS
-            VoiceProvider.GROQ -> GROQ_MODELS
-            VoiceProvider.CUSTOM -> OPENAI_MODELS + GROQ_MODELS
-        }
-        JetPrefAlertDialog(
-            title = stringRes(R.string.settings__voice__select_model),
-            confirmLabel = stringRes(R.string.settings__voice__save),
-            onConfirm = {
+    if (showAddEndpointDialog || editingEndpoint != null) {
+        EndpointEditorDialog(
+            isEdit = editingEndpoint != null,
+            existingEndpoint = editingEndpoint,
+            preset = if (editingEndpoint != null) null else preselectedSttPreset,
+            defaultModel = preselectedSttPreset?.defaultModel ?: "whisper-1",
+            fetchModels = { url, key -> WhisperApiClient(url, key).fetchModels() },
+            validateEndpoint = { url, key -> WhisperApiClient(url, key).validateApiKey() },
+            onSave = { endpoint ->
+                val current = SavedEndpoint.deserializeList(prefs.voice.savedEndpoints.get())
+                val updated = if (editingEndpoint != null)
+                    current.map { if (it.id == endpoint.id) endpoint else it }
+                else
+                    current + endpoint
                 scope.launch {
-                    prefs.voice.model.set(selectedModel)
-                    if (provider == VoiceProvider.CUSTOM) {
-                        prefs.voice.customModel.set(selectedModel)
+                    prefs.voice.savedEndpoints.set(SavedEndpoint.serializeList(updated))
+                    prefs.voice.activeEndpointId.set(endpoint.id)
+                }
+            },
+            onDismiss = {
+                showAddEndpointDialog = false
+                editingEndpoint = null
+                preselectedSttPreset = null
+            },
+            editTitle = stringRes(R.string.settings__voice__edit_endpoint),
+            addTitle = stringRes(R.string.settings__voice__add_endpoint_dialog),
+        )
+    }
+
+    showDeleteEndpointConfirm?.let { endpoint ->
+        DeleteConfirmDialog(
+            name = endpoint.name,
+            titleRes = R.string.settings__voice__delete_endpoint,
+            onConfirm = {
+                val current = SavedEndpoint.deserializeList(prefs.voice.savedEndpoints.get())
+                scope.launch {
+                    prefs.voice.savedEndpoints.set(
+                        SavedEndpoint.serializeList(current.filter { it.id != endpoint.id })
+                    )
+                    if (prefs.voice.activeEndpointId.get() == endpoint.id) {
+                        prefs.voice.activeEndpointId.set("")
                     }
                 }
-                showModelDialog = false
+                showDeleteEndpointConfirm = null
             },
-            dismissLabel = stringRes(R.string.settings__voice__cancel),
-            onDismiss = { showModelDialog = false },
-        ) {
-            Column {
-                suggestedModels.forEach { suggested ->
-                    Preference(
-                        title = suggested,
-                        onClick = { selectedModel = suggested },
-                    )
-                }
-                Text(
-                    stringRes(R.string.settings__voice__custom_model_hint),
-                    modifier = Modifier.padding(top = 8.dp, bottom = 4.dp),
-                )
-                JetPrefTextField(
-                    value = selectedModel,
-                    onValueChange = { selectedModel = it },
-                )
-            }
-        }
+            onDismiss = { showDeleteEndpointConfirm = null },
+        )
     }
 
-    // Language dialog
+    if (showAddLlmEndpointDialog || editingLlmEndpoint != null) {
+        EndpointEditorDialog(
+            isEdit = editingLlmEndpoint != null,
+            existingEndpoint = editingLlmEndpoint,
+            preset = if (editingLlmEndpoint != null) null else preselectedLlmPreset,
+            defaultModel = preselectedLlmPreset?.defaultModel ?: "gpt-4o-mini",
+            fetchModels = { url, key -> LlmApiClient(url, key, "").fetchModels() },
+            validateEndpoint = { url, key -> LlmApiClient(url, key, "").validateApiKey() },
+            onSave = { endpoint ->
+                val current = SavedEndpoint.deserializeList(prefs.voice.llmSavedEndpoints.get())
+                val updated = if (editingLlmEndpoint != null)
+                    current.map { if (it.id == endpoint.id) endpoint else it }
+                else
+                    current + endpoint
+                scope.launch {
+                    prefs.voice.llmSavedEndpoints.set(SavedEndpoint.serializeList(updated))
+                    prefs.voice.llmActiveEndpointId.set(endpoint.id)
+                }
+            },
+            onDismiss = {
+                showAddLlmEndpointDialog = false
+                editingLlmEndpoint = null
+                preselectedLlmPreset = null
+            },
+            editTitle = stringRes(R.string.settings__voice__edit_llm_endpoint),
+            addTitle = stringRes(R.string.settings__voice__add_llm_endpoint_dialog),
+        )
+    }
+
+    showDeleteLlmEndpointConfirm?.let { endpoint ->
+        DeleteConfirmDialog(
+            name = endpoint.name,
+            titleRes = R.string.settings__voice__delete_llm_endpoint,
+            onConfirm = {
+                val current = SavedEndpoint.deserializeList(prefs.voice.llmSavedEndpoints.get())
+                scope.launch {
+                    prefs.voice.llmSavedEndpoints.set(
+                        SavedEndpoint.serializeList(current.filter { it.id != endpoint.id })
+                    )
+                    if (prefs.voice.llmActiveEndpointId.get() == endpoint.id) {
+                        prefs.voice.llmActiveEndpointId.set("")
+                    }
+                }
+                showDeleteLlmEndpointConfirm = null
+            },
+            onDismiss = { showDeleteLlmEndpointConfirm = null },
+        )
+    }
+
     if (showLanguageDialog) {
         var languageValue by remember { mutableStateOf(language) }
         JetPrefAlertDialog(
@@ -465,67 +486,11 @@ fun VoiceScreen() = FlorisScreen {
                     stringRes(R.string.settings__voice__language_auto_hint),
                     modifier = Modifier.padding(bottom = 8.dp),
                 )
-                JetPrefTextField(
-                    value = languageValue,
-                    onValueChange = { languageValue = it },
-                )
+                JetPrefTextField(value = languageValue, onValueChange = { languageValue = it })
             }
         }
     }
 
-    // Add/Edit Whisper endpoint dialog (shared)
-    if (showAddEndpointDialog || editingEndpoint != null) {
-        EndpointEditorDialog(
-            isEdit = editingEndpoint != null,
-            existingEndpoint = editingEndpoint,
-            defaultModel = "whisper-1",
-            fetchModels = { url, key -> WhisperApiClient(url, key).fetchModels() },
-            validateEndpoint = { url, key -> WhisperApiClient(url, key).validateApiKey() },
-            onSave = { endpoint ->
-                val current = SavedEndpoint.deserializeList(prefs.voice.savedEndpoints.get())
-                val updated = if (editingEndpoint != null) {
-                    current.map { if (it.id == endpoint.id) endpoint else it }
-                } else {
-                    current + endpoint
-                }
-                scope.launch {
-                    prefs.voice.savedEndpoints.set(SavedEndpoint.serializeList(updated))
-                    prefs.voice.activeEndpointId.set(endpoint.id)
-                }
-            },
-            onDismiss = {
-                showAddEndpointDialog = false
-                editingEndpoint = null
-            },
-            editTitle = stringRes(R.string.settings__voice__edit_endpoint),
-            addTitle = stringRes(R.string.settings__voice__add_endpoint_dialog),
-        )
-    }
-
-    // Delete endpoint confirm dialog
-    showDeleteEndpointConfirm?.let { endpoint ->
-        JetPrefAlertDialog(
-            title = stringRes(R.string.settings__voice__delete_endpoint),
-            confirmLabel = stringRes(R.string.settings__voice__delete),
-            onConfirm = {
-                val current = SavedEndpoint.deserializeList(prefs.voice.savedEndpoints.get())
-                val updated = current.filter { it.id != endpoint.id }
-                scope.launch {
-                    prefs.voice.savedEndpoints.set(SavedEndpoint.serializeList(updated))
-                    if (prefs.voice.activeEndpointId.get() == endpoint.id) {
-                        prefs.voice.activeEndpointId.set("")
-                    }
-                }
-                showDeleteEndpointConfirm = null
-            },
-            dismissLabel = stringRes(R.string.settings__voice__cancel),
-            onDismiss = { showDeleteEndpointConfirm = null },
-        ) {
-            Text(stringResource(R.string.settings__voice__delete_confirm, endpoint.name))
-        }
-    }
-
-    // Refinement style selection dialog
     if (showRefinementStyleDialog) {
         JetPrefAlertDialog(
             title = stringRes(R.string.settings__voice__refinement_style_dialog),
@@ -547,13 +512,17 @@ fun VoiceScreen() = FlorisScreen {
         }
     }
 
-    // Custom prompt dialog
     if (showCustomPromptDialog) {
-        var promptValue by remember { mutableStateOf(refinementCustomPrompt) }
-        val isOverride = refinementStyle != RefinementStyle.CUSTOM
+        val refinementStyleSnapshot by prefs.voice.refinementStyle.collectAsState()
+        val refinementCustomPromptSnapshot by prefs.voice.refinementCustomPrompt.collectAsState()
+        var promptValue by remember { mutableStateOf(refinementCustomPromptSnapshot) }
+        val isOverride = refinementStyleSnapshot != RefinementStyle.CUSTOM
+
         JetPrefAlertDialog(
-            title = if (isOverride) stringRes(R.string.settings__voice__customize_prompt)
-                    else stringRes(R.string.settings__voice__custom_prompt_dialog),
+            title = if (isOverride)
+                stringRes(R.string.settings__voice__customize_prompt)
+            else
+                stringRes(R.string.settings__voice__custom_prompt_dialog),
             confirmLabel = stringRes(R.string.settings__voice__save),
             onConfirm = {
                 scope.launch { prefs.voice.refinementCustomPrompt.set(promptValue.trim()) }
@@ -570,81 +539,244 @@ fun VoiceScreen() = FlorisScreen {
                 )
                 if (isOverride && promptValue.isBlank()) {
                     Text(
-                        "Default: ${refinementStyle.systemPrompt().take(80)}…",
+                        "Default: ${refinementStyleSnapshot.systemPrompt().take(120)}\u2026",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(bottom = 8.dp),
                     )
                 }
-                JetPrefTextField(
-                    value = promptValue,
-                    onValueChange = { promptValue = it },
-                )
+                JetPrefTextField(value = promptValue, onValueChange = { promptValue = it })
             }
-        }
-    }
-
-    // Add/Edit LLM endpoint dialog (shared)
-    if (showAddLlmEndpointDialog || editingLlmEndpoint != null) {
-        EndpointEditorDialog(
-            isEdit = editingLlmEndpoint != null,
-            existingEndpoint = editingLlmEndpoint,
-            defaultModel = "gpt-4o-mini",
-            fetchModels = { url, key -> LlmApiClient(url, key, "").fetchModels() },
-            validateEndpoint = { url, key -> LlmApiClient(url, key, "").validateApiKey() },
-            onSave = { endpoint ->
-                val current = SavedEndpoint.deserializeList(prefs.voice.llmSavedEndpoints.get())
-                val updated = if (editingLlmEndpoint != null) {
-                    current.map { if (it.id == endpoint.id) endpoint else it }
-                } else {
-                    current + endpoint
-                }
-                scope.launch {
-                    prefs.voice.llmSavedEndpoints.set(SavedEndpoint.serializeList(updated))
-                    prefs.voice.llmActiveEndpointId.set(endpoint.id)
-                }
-            },
-            onDismiss = {
-                showAddLlmEndpointDialog = false
-                editingLlmEndpoint = null
-            },
-            editTitle = stringRes(R.string.settings__voice__edit_llm_endpoint),
-            addTitle = stringRes(R.string.settings__voice__add_llm_endpoint_dialog),
-        )
-    }
-
-    // Delete LLM endpoint confirm dialog
-    showDeleteLlmEndpointConfirm?.let { endpoint ->
-        JetPrefAlertDialog(
-            title = stringRes(R.string.settings__voice__delete_llm_endpoint),
-            confirmLabel = stringRes(R.string.settings__voice__delete),
-            onConfirm = {
-                val current = SavedEndpoint.deserializeList(prefs.voice.llmSavedEndpoints.get())
-                val updated = current.filter { it.id != endpoint.id }
-                scope.launch {
-                    prefs.voice.llmSavedEndpoints.set(SavedEndpoint.serializeList(updated))
-                    if (prefs.voice.llmActiveEndpointId.get() == endpoint.id) {
-                        prefs.voice.llmActiveEndpointId.set("")
-                    }
-                }
-                showDeleteLlmEndpointConfirm = null
-            },
-            dismissLabel = stringRes(R.string.settings__voice__cancel),
-            onDismiss = { showDeleteLlmEndpointConfirm = null },
-        ) {
-            Text(stringResource(R.string.settings__voice__delete_confirm, endpoint.name))
         }
     }
 }
 
-// ════════════════════════════════════════════════════════════════════════════
-//  Shared endpoint editor dialog — used for both Whisper and LLM endpoints
-// ════════════════════════════════════════════════════════════════════════════
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ProviderPresetGrid(
+    presets: List<ProviderPreset>,
+    activePresetIds: List<String>,
+    onSelect: (ProviderPreset) -> Unit,
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        presets.chunked(2).forEach { rowPresets ->
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                rowPresets.forEach { preset ->
+                    val alreadyAdded = preset.id in activePresetIds
+                    ProviderPresetCard(
+                        preset = preset,
+                        alreadyAdded = alreadyAdded,
+                        modifier = Modifier.weight(1f),
+                        onClick = { onSelect(preset) },
+                    )
+                }
+                if (rowPresets.size == 1) Spacer(modifier = Modifier.weight(1f))
+            }
+        }
+    }
+}
+
+@Composable
+private fun ProviderPresetCard(
+    preset: ProviderPreset,
+    alreadyAdded: Boolean,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit,
+) {
+    val borderColor = if (alreadyAdded)
+        MaterialTheme.colorScheme.primary
+    else
+        MaterialTheme.colorScheme.outlineVariant
+
+    Card(
+        modifier = modifier
+            .clickable(onClick = onClick)
+            .border(
+                width = if (alreadyAdded) 1.5.dp else 0.5.dp,
+                color = borderColor,
+                shape = RoundedCornerShape(12.dp),
+            ),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = if (alreadyAdded)
+                MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.15f)
+            else
+                MaterialTheme.colorScheme.surface,
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Icon(
+                    imageVector = ImageVector.vectorResource(preset.iconRes),
+                    contentDescription = "${preset.name} logo",
+                    modifier = Modifier.size(28.dp),
+                    tint = MaterialTheme.colorScheme.onSurface,
+                )
+                if (alreadyAdded) {
+                    Box(
+                        modifier = Modifier
+                            .size(18.dp)
+                            .background(
+                                color = MaterialTheme.colorScheme.primary,
+                                shape = CircleShape,
+                            ),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.Check,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onPrimary,
+                            modifier = Modifier.size(11.dp),
+                        )
+                    }
+                }
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = preset.name,
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Text(
+                text = preset.tagline,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+    }
+}
+
+@Composable
+private fun EndpointRow(
+    endpoint: SavedEndpoint,
+    isActive: Boolean,
+    onToggleActive: () -> Unit,
+    onEdit: () -> Unit,
+    onDelete: () -> Unit,
+) {
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onToggleActive),
+        color = if (isActive)
+            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.25f)
+        else
+            MaterialTheme.colorScheme.surface,
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(8.dp)
+                    .background(
+                        color = if (isActive) MaterialTheme.colorScheme.primary
+                        else MaterialTheme.colorScheme.outlineVariant,
+                        shape = CircleShape,
+                    ),
+            )
+            Spacer(modifier = Modifier.width(12.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = endpoint.name,
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                    if (isActive) {
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Badge(
+                            containerColor = MaterialTheme.colorScheme.primary,
+                        ) {
+                            Text(
+                                text = stringResource(R.string.settings__voice__preset_added),
+                                color = MaterialTheme.colorScheme.onPrimary,
+                                style = MaterialTheme.typography.labelSmall,
+                                modifier = Modifier.padding(horizontal = 4.dp),
+                            )
+                        }
+                    }
+                }
+                Text(
+                    text = "${endpoint.baseUrl} \u00b7 ${endpoint.model}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+            IconButton(onClick = onEdit, modifier = Modifier.size(36.dp)) {
+                Icon(
+                    imageVector = Icons.Filled.Edit,
+                    contentDescription = stringRes(R.string.settings__voice__edit),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(18.dp),
+                )
+            }
+            IconButton(onClick = onDelete, modifier = Modifier.size(36.dp)) {
+                Icon(
+                    imageVector = Icons.Filled.Delete,
+                    contentDescription = stringRes(R.string.settings__voice__delete_desc),
+                    tint = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.size(18.dp),
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun EmptyEndpointsHint(message: String) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(
+            imageVector = Icons.Outlined.Info,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.size(18.dp),
+        )
+        Text(
+            text = message,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+}
 
 @Composable
 private fun EndpointEditorDialog(
     isEdit: Boolean,
     existingEndpoint: SavedEndpoint?,
+    preset: ProviderPreset?,
     defaultModel: String,
     fetchModels: suspend (baseUrl: String, apiKey: String) -> ModelsResult,
     validateEndpoint: suspend (baseUrl: String, apiKey: String) -> ValidationResult,
@@ -654,36 +786,41 @@ private fun EndpointEditorDialog(
     addTitle: String,
 ) {
     val scope = rememberCoroutineScope()
-    var epName by remember { mutableStateOf(existingEndpoint?.name ?: "") }
-    var epUrl by remember { mutableStateOf(existingEndpoint?.baseUrl ?: "") }
-    var epApiKey by remember { mutableStateOf(existingEndpoint?.apiKey ?: "") }
-    var epModel by remember { mutableStateOf(existingEndpoint?.model ?: defaultModel) }
+    val context = LocalContext.current
+
+    var epName by remember {
+        mutableStateOf(existingEndpoint?.name ?: preset?.name ?: "")
+    }
+    var epUrl by remember {
+        mutableStateOf(existingEndpoint?.baseUrl ?: preset?.baseUrl ?: "")
+    }
+    var epApiKey by remember {
+        mutableStateOf(existingEndpoint?.apiKey ?: "")
+    }
+    var epModel by remember {
+        mutableStateOf(existingEndpoint?.model ?: preset?.defaultModel ?: defaultModel)
+    }
+
     var epValidating by remember { mutableStateOf(false) }
     var epValidationResult by remember { mutableStateOf<ValidationResult?>(null) }
     var epModels by remember { mutableStateOf<List<String>>(emptyList()) }
     var epFetchingModels by remember { mutableStateOf(false) }
     var epModelExpanded by remember { mutableStateOf(false) }
-    var epModelsFetched by remember { mutableStateOf(false) }
     var epModelsError by remember { mutableStateOf<String?>(null) }
 
     fun doFetchModels() {
         if (epUrl.isBlank() || epApiKey.isBlank()) return
         epFetchingModels = true
         epModelsError = null
-        epModelsFetched = false
         scope.launch {
             val result = fetchModels(epUrl.trimEnd('/'), epApiKey.trim())
             if (result.error == null && result.models.isNotEmpty()) {
                 epModels = result.models
-                if (epModel !in result.models) {
-                    epModel = result.models.first()
-                }
-                epModelsFetched = true
+                if (epModel !in result.models) epModel = result.models.first()
                 epModelsError = null
             } else {
                 epModels = emptyList()
-                epModelsFetched = false
-                epModelsError = result.error ?: "No models found"
+                epModelsError = result.error ?: "No models returned"
             }
             epFetchingModels = false
         }
@@ -694,41 +831,104 @@ private fun EndpointEditorDialog(
         confirmLabel = stringRes(R.string.settings__voice__save),
         onConfirm = {
             val id = existingEndpoint?.id ?: java.util.UUID.randomUUID().toString()
-            onSave(SavedEndpoint(
-                id = id,
-                name = epName.trim(),
-                baseUrl = epUrl.trimEnd('/'),
-                apiKey = epApiKey.trim(),
-                model = epModel.trim(),
-            ))
+            onSave(
+                SavedEndpoint(
+                    id = id,
+                    name = epName.trim(),
+                    baseUrl = epUrl.trimEnd('/'),
+                    apiKey = epApiKey.trim(),
+                    model = epModel.trim(),
+                    presetId = existingEndpoint?.presetId ?: preset?.id ?: "",
+                )
+            )
             onDismiss()
         },
         dismissLabel = stringRes(R.string.settings__voice__cancel),
         onDismiss = onDismiss,
-        confirmEnabled = epName.isNotBlank() && epUrl.isNotBlank() && epApiKey.isNotBlank(),
+        confirmEnabled = epName.isNotBlank() && epUrl.isNotBlank() &&
+            (epApiKey.isNotBlank() || preset?.requiresApiKey == false),
     ) {
         Column {
-            Text(stringRes(R.string.settings__voice__endpoint_name), modifier = Modifier.padding(bottom = 4.dp))
+            if (!isEdit && preset != null) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Icon(
+                        imageVector = ImageVector.vectorResource(preset.iconRes),
+                        contentDescription = "${preset.name} logo",
+                        modifier = Modifier.size(22.dp),
+                        tint = MaterialTheme.colorScheme.onSurface,
+                    )
+                    Text(
+                        text = preset.name,
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                    if (preset.docsUrl != null) {
+                        Spacer(modifier = Modifier.weight(1f))
+                        Text(
+                            text = stringResource(R.string.settings__voice__docs_link),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.clickable {
+                                context.launchUrl(preset.docsUrl)
+                            },
+                        )
+                    }
+                }
+            }
+
+            Text(
+                stringRes(R.string.settings__voice__endpoint_name),
+                style = MaterialTheme.typography.labelMedium,
+                modifier = Modifier.padding(bottom = 4.dp),
+            )
             JetPrefTextField(value = epName, onValueChange = { epName = it })
             Spacer(modifier = Modifier.height(8.dp))
 
-            Text(stringRes(R.string.settings__voice__endpoint_base_url), modifier = Modifier.padding(bottom = 4.dp))
+            Text(
+                stringRes(R.string.settings__voice__endpoint_base_url),
+                style = MaterialTheme.typography.labelMedium,
+                modifier = Modifier.padding(bottom = 4.dp),
+            )
             JetPrefTextField(value = epUrl, onValueChange = { epUrl = it })
             Spacer(modifier = Modifier.height(8.dp))
 
-            Text(stringRes(R.string.settings__voice__endpoint_api_key), modifier = Modifier.padding(bottom = 4.dp))
-            JetPrefTextField(value = epApiKey, onValueChange = { epApiKey = it })
-            Spacer(modifier = Modifier.height(8.dp))
+            if (preset?.requiresApiKey != false) {
+                Text(
+                    stringRes(R.string.settings__voice__endpoint_api_key),
+                    style = MaterialTheme.typography.labelMedium,
+                    modifier = Modifier.padding(bottom = 4.dp),
+                )
+                JetPrefTextField(value = epApiKey, onValueChange = { epApiKey = it })
+                Spacer(modifier = Modifier.height(8.dp))
+            } else {
+                Text(
+                    stringResource(R.string.settings__voice__no_api_key_needed),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(bottom = 8.dp),
+                )
+            }
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text(stringRes(R.string.settings__voice__model), modifier = Modifier.padding(bottom = 4.dp))
+                Text(
+                    stringRes(R.string.settings__voice__model),
+                    style = MaterialTheme.typography.labelMedium,
+                )
                 OutlinedButton(
                     onClick = { doFetchModels() },
-                    enabled = epUrl.isNotBlank() && epApiKey.isNotBlank() && !epFetchingModels,
+                    enabled = epUrl.isNotBlank() &&
+                        (epApiKey.isNotBlank() || preset?.requiresApiKey == false) &&
+                        !epFetchingModels,
                 ) {
                     Text(
                         if (epFetchingModels) stringRes(R.string.settings__voice__fetching)
@@ -736,13 +936,14 @@ private fun EndpointEditorDialog(
                     )
                 }
             }
+
             if (epModels.isNotEmpty()) {
                 Box {
                     OutlinedButton(
                         onClick = { epModelExpanded = true },
                         modifier = Modifier.fillMaxWidth(),
                     ) {
-                        Text(epModel.ifBlank { "Select model..." })
+                        Text(epModel.ifBlank { "Select model\u2026" })
                     }
                     DropdownMenu(
                         expanded = epModelExpanded,
@@ -767,34 +968,32 @@ private fun EndpointEditorDialog(
                 )
             } else {
                 JetPrefTextField(value = epModel, onValueChange = { epModel = it })
-                if (epFetchingModels) {
+                AnimatedVisibility(visible = epModelsError != null) {
                     Text(
-                        stringRes(R.string.settings__voice__fetching_models),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-                if (epModelsError != null && !epModelsFetched) {
-                    Text(
-                        epModelsError!!,
+                        text = epModelsError ?: "",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.error,
                         modifier = Modifier.padding(top = 2.dp),
                     )
                 }
             }
-            Spacer(modifier = Modifier.height(8.dp))
+
+            Spacer(modifier = Modifier.height(12.dp))
 
             Button(
                 onClick = {
                     epValidating = true
                     epValidationResult = null
                     scope.launch {
-                        epValidationResult = validateEndpoint(epUrl.trimEnd('/'), epApiKey.trim())
+                        epValidationResult = validateEndpoint(
+                            epUrl.trimEnd('/'), epApiKey.trim()
+                        )
                         epValidating = false
                     }
                 },
-                enabled = epUrl.isNotBlank() && epApiKey.isNotBlank() && !epValidating,
+                enabled = epUrl.isNotBlank() &&
+                    (epApiKey.isNotBlank() || preset?.requiresApiKey == false) &&
+                    !epValidating,
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 Text(
@@ -802,134 +1001,55 @@ private fun EndpointEditorDialog(
                     else stringRes(R.string.settings__voice__validate_endpoint),
                 )
             }
-            if (epValidationResult != null) {
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = if (epValidationResult!!.isSuccess) stringRes(R.string.settings__voice__connection_successful)
-                           else epValidationResult!!.errorMessage
-                               ?: stringRes(R.string.settings__voice__validation_failed),
-                    color = if (epValidationResult!!.isSuccess) MaterialTheme.colorScheme.primary
-                           else MaterialTheme.colorScheme.error,
-                    style = MaterialTheme.typography.bodySmall,
-                )
+
+            AnimatedVisibility(
+                visible = epValidationResult != null,
+                enter = fadeIn() + expandVertically(),
+                exit = fadeOut() + shrinkVertically(),
+            ) {
+                epValidationResult?.let { result ->
+                    Text(
+                        text = if (result.isSuccess)
+                            stringRes(R.string.settings__voice__connection_successful)
+                        else
+                            result.errorMessage ?: stringRes(R.string.settings__voice__validation_failed),
+                        color = if (result.isSuccess) MaterialTheme.colorScheme.primary
+                        else MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.padding(top = 6.dp),
+                    )
+                }
             }
         }
     }
 }
-
-// ════════════════════════════════════════════════════════════════════════════
-//  Helpers
-// ════════════════════════════════════════════════════════════════════════════
-
-private fun buildClientFromPrefs(
-    prefs: FlorisPreferenceModel,
-    savedEndpoints: List<SavedEndpoint>,
-    activeEndpointId: String,
-): WhisperApiClient {
-    if (activeEndpointId.isNotBlank()) {
-        val active = savedEndpoints.find { it.id == activeEndpointId }
-        if (active != null) {
-            return WhisperApiClient(
-                baseUrl = active.baseUrl.trimEnd('/'),
-                apiKey = active.apiKey,
-            )
-        }
-    }
-    val provider = prefs.voice.provider.get()
-    return when (provider) {
-        VoiceProvider.OPENAI -> WhisperApiClient(
-            baseUrl = "https://api.openai.com",
-            apiKey = prefs.voice.openaiApiKey.get(),
-        )
-        VoiceProvider.GROQ -> WhisperApiClient(
-            baseUrl = "https://api.groq.com/openai",
-            apiKey = prefs.voice.groqApiKey.get(),
-        )
-        VoiceProvider.CUSTOM -> WhisperApiClient(
-            baseUrl = prefs.voice.customEndpointUrl.get().trimEnd('/'),
-            apiKey = prefs.voice.customApiKey.get(),
-        )
-    }
-}
-
-// ════════════════════════════════════════════════════════════════════════════
-//  Endpoint list item with edit/delete actions
-// ════════════════════════════════════════════════════════════════════════════
 
 @Composable
-private fun EndpointItem(
+private fun DeleteConfirmDialog(
     name: String,
-    subtitle: String,
-    isActive: Boolean,
-    onClick: () -> Unit,
-    onEdit: () -> Unit,
-    onDelete: () -> Unit,
+    titleRes: Int,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit,
 ) {
-    Surface(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick),
-        color = if (isActive)
-            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
-        else MaterialTheme.colorScheme.surface,
+    JetPrefAlertDialog(
+        title = stringResource(titleRes),
+        confirmLabel = stringRes(R.string.settings__voice__delete),
+        onConfirm = onConfirm,
+        dismissLabel = stringRes(R.string.settings__voice__cancel),
+        onDismiss = onDismiss,
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = name,
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurface,
-                )
-                Text(
-                    text = subtitle,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
-            IconButton(
-                onClick = onEdit,
-                modifier = Modifier.size(40.dp),
-            ) {
-                Icon(
-                    imageVector = Icons.Filled.Edit,
-                    contentDescription = stringRes(R.string.settings__voice__edit),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(20.dp),
-                )
-            }
-            Spacer(modifier = Modifier.width(4.dp))
-            IconButton(
-                onClick = onDelete,
-                modifier = Modifier.size(40.dp),
-            ) {
-                Icon(
-                    imageVector = Icons.Filled.Delete,
-                    contentDescription = stringRes(R.string.settings__voice__delete_desc),
-                    tint = MaterialTheme.colorScheme.error,
-                    modifier = Modifier.size(20.dp),
-                )
-            }
-        }
+        Text(stringResource(R.string.settings__voice__delete_confirm, name))
     }
 }
 
 private fun RefinementStyle.shortDescription(): String = when (this) {
-    RefinementStyle.CLEAN_UP -> "Remove filler words and clean up grammar"
+    RefinementStyle.CLEAN_UP -> "Remove filler words and fix grammar"
     RefinementStyle.CASUAL -> "Relaxed, conversational tone"
     RefinementStyle.FORMAL -> "Professional and polished"
     RefinementStyle.PROFESSIONAL -> "Business-appropriate language"
-    RefinementStyle.ACADEMIC -> "Scholarly tone with precise vocabulary"
+    RefinementStyle.ACADEMIC -> "Scholarly tone, precise vocabulary"
     RefinementStyle.CONCISE -> "Shorten while keeping key meaning"
-    RefinementStyle.BULLET_POINTS -> "Convert to organized bullet points"
+    RefinementStyle.BULLET_POINTS -> "Convert to organised bullet points"
     RefinementStyle.AGENT -> "Generate content from voice instructions"
-    RefinementStyle.CUSTOM -> "Use your own custom system prompt"
+    RefinementStyle.CUSTOM -> "Your own custom system prompt"
 }
-
-

@@ -318,76 +318,41 @@ class VoiceInputManager(context: Context) {
         durationTickJob = null
     }
 
-    private fun buildWhisperClient(): WhisperApiClient {
+    private fun findActiveSttEndpoint(): SavedEndpoint? {
         val activeId = prefs.voice.activeEndpointId.get()
-        if (activeId.isNotBlank()) {
-            val endpoints = SavedEndpoint.deserializeList(prefs.voice.savedEndpoints.get())
-            val active = endpoints.find { it.id == activeId }
-            if (active != null) {
-                return WhisperApiClient(
-                    baseUrl = active.baseUrl.trimEnd('/'),
-                    apiKey = active.apiKey,
-                )
-            }
-        }
-        val provider = prefs.voice.provider.get()
-        return when (provider) {
-            VoiceProvider.OPENAI -> WhisperApiClient(
-                baseUrl = "https://api.openai.com",
-                apiKey = prefs.voice.openaiApiKey.get(),
-            )
-            VoiceProvider.GROQ -> WhisperApiClient(
-                baseUrl = "https://api.groq.com/openai",
-                apiKey = prefs.voice.groqApiKey.get(),
-            )
-            VoiceProvider.CUSTOM -> WhisperApiClient(
-                baseUrl = prefs.voice.customEndpointUrl.get().trimEnd('/'),
-                apiKey = prefs.voice.customApiKey.get(),
-            )
-        }
+        if (activeId.isBlank()) return null
+        val endpoints = SavedEndpoint.deserializeList(prefs.voice.savedEndpoints.get())
+        return endpoints.find { it.id == activeId }
+    }
+
+    private fun findActiveLlmEndpoint(): SavedEndpoint? {
+        val activeId = prefs.voice.llmActiveEndpointId.get()
+        if (activeId.isBlank()) return null
+        val endpoints = SavedEndpoint.deserializeList(prefs.voice.llmSavedEndpoints.get())
+        return endpoints.find { it.id == activeId }
+    }
+
+    private fun buildWhisperClient(): WhisperApiClient {
+        val active = findActiveSttEndpoint()
+            ?: throw IllegalStateException("No active STT endpoint configured. Open Settings → Voice.")
+        return WhisperApiClient(
+            baseUrl = active.baseUrl.trimEnd('/'),
+            apiKey = active.apiKey,
+        )
     }
 
     private fun buildLlmClient(): LlmApiClient {
-        val activeId = prefs.voice.llmActiveEndpointId.get()
-        if (activeId.isNotBlank()) {
-            val endpoints = SavedEndpoint.deserializeList(prefs.voice.llmSavedEndpoints.get())
-            val active = endpoints.find { it.id == activeId }
-            if (active != null) {
-                return LlmApiClient(
-                    baseUrl = active.baseUrl.trimEnd('/'),
-                    apiKey = active.apiKey,
-                    model = active.model,
-                )
-            }
-        }
-        val provider = prefs.voice.provider.get()
-        return when (provider) {
-            VoiceProvider.OPENAI -> LlmApiClient(
-                baseUrl = "https://api.openai.com",
-                apiKey = prefs.voice.openaiApiKey.get(),
-                model = "gpt-4o-mini",
-            )
-            VoiceProvider.GROQ -> LlmApiClient(
-                baseUrl = "https://api.groq.com/openai",
-                apiKey = prefs.voice.groqApiKey.get(),
-                model = "llama-3.1-8b-instant",
-            )
-            VoiceProvider.CUSTOM -> LlmApiClient(
-                baseUrl = prefs.voice.customEndpointUrl.get().trimEnd('/'),
-                apiKey = prefs.voice.customApiKey.get(),
-                model = prefs.voice.customModel.get(),
-            )
-        }
+        val active = findActiveLlmEndpoint()
+            ?: throw IllegalStateException("No active LLM endpoint configured. Open Settings → Voice.")
+        return LlmApiClient(
+            baseUrl = active.baseUrl.trimEnd('/'),
+            apiKey = active.apiKey,
+            model = active.model,
+        )
     }
 
     private fun getActiveModel(): String {
-        val activeId = prefs.voice.activeEndpointId.get()
-        if (activeId.isNotBlank()) {
-            val endpoints = SavedEndpoint.deserializeList(prefs.voice.savedEndpoints.get())
-            val active = endpoints.find { it.id == activeId }
-            if (active != null) return active.model
-        }
-        return prefs.voice.model.get()
+        return findActiveSttEndpoint()?.model?.ifBlank { "whisper-1" } ?: "whisper-1"
     }
 
     fun validateCurrentProvider(onResult: (ValidationResult) -> Unit) {
@@ -403,27 +368,15 @@ class VoiceInputManager(context: Context) {
      * for display in the UI header chip.
      */
     fun snapshotProviderInfo(): Triple<String, String, String> {
-        val activeId = prefs.voice.activeEndpointId.get()
-        if (activeId.isNotBlank()) {
-            val endpoints = SavedEndpoint.deserializeList(prefs.voice.savedEndpoints.get())
-            val active = endpoints.find { it.id == activeId }
-            if (active != null) {
-                return Triple(
-                    active.name.ifBlank { "Custom" },
-                    active.model.ifBlank { "whisper-1" },
-                    prefs.voice.language.get().ifBlank { "Auto" },
-                )
-            }
+        val active = findActiveSttEndpoint()
+        if (active != null) {
+            return Triple(
+                active.name.ifBlank { "Custom" },
+                active.model.ifBlank { "whisper-1" },
+                prefs.voice.language.get().ifBlank { "Auto" },
+            )
         }
-        val provider = prefs.voice.provider.get()
-        val providerName = when (provider) {
-            VoiceProvider.OPENAI -> "OpenAI"
-            VoiceProvider.GROQ -> "Groq"
-            VoiceProvider.CUSTOM -> "Custom"
-        }
-        val model = getActiveModel().ifBlank { "whisper-1" }
-        val language = prefs.voice.language.get().ifBlank { "Auto" }
-        return Triple(providerName, model, language)
+        return Triple("Not configured", "", "Auto")
     }
 }
 
@@ -456,7 +409,7 @@ internal fun sanitizeError(t: Throwable): String {
             "Connection timed out."
         lc.contains("network") || lc.contains("failed to connect") ->
             "Network error. Check your connection."
-        lc.contains("no active endpoint") || lc.contains("missing") ->
+        (lc.contains("no active") && lc.contains("endpoint")) || lc.contains("missing") ->
             "Voice input isn't configured. Open Settings → Voice."
         else -> cleaned.take(140)
     }

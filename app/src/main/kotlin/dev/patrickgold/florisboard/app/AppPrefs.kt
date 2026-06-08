@@ -757,6 +757,10 @@ abstract class FlorisPreferenceModel : PreferenceModel() {
 
     val voice = Voice()
     inner class Voice {
+        val isVoiceSetUp = boolean(
+            key = "voice__is_voice_set_up",
+            default = false,
+        )
         val provider = enum(
             key = "voice__provider",
             default = VoiceProvider.OPENAI,
@@ -994,6 +998,16 @@ abstract class FlorisPreferenceModel : PreferenceModel() {
                     entry.keepAsIs()
                 }
             }
+
+            // Migrate voice provider prefs
+            // Old per-provider API keys are kept for runtime migration to SavedEndpoints
+            "voice__provider" -> entry.keepAsIs()
+            "voice__openai_api_key" -> entry.keepAsIs()
+            "voice__groq_api_key" -> entry.keepAsIs()
+            "voice__custom_endpoint_url" -> entry.keepAsIs()
+            "voice__custom_api_key" -> entry.keepAsIs()
+            "voice__custom_model" -> entry.keepAsIs()
+            "voice__model" -> entry.keepAsIs()
 
             // Default: keep entry
             else -> entry.keepAsIs()

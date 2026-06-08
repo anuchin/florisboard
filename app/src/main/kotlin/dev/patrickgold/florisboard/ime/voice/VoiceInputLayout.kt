@@ -35,7 +35,6 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.animation.togetherWith
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
@@ -43,8 +42,6 @@ import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.gestures.waitForUpOrCancellation
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
@@ -55,7 +52,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -70,18 +66,7 @@ import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Send
 import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material.icons.outlined.AutoAwesome
-import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.FilledTonalButton
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.SuggestionChip
-import androidx.compose.material3.SuggestionChipDefaults
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -98,24 +83,17 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.graphics.isUnspecified
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import com.materialkolor.PaletteStyle
-import com.materialkolor.dynamicColorScheme
 import dev.patrickgold.florisboard.FlorisImeService
 import dev.patrickgold.florisboard.R
 import dev.patrickgold.florisboard.app.FlorisAppActivity
@@ -123,40 +101,26 @@ import dev.patrickgold.florisboard.app.FlorisPreferenceStore
 import dev.patrickgold.florisboard.ime.ImeUiMode
 import dev.patrickgold.florisboard.ime.keyboard.FlorisImeSizing
 import dev.patrickgold.florisboard.ime.text.keyboard.TextKeyData
+import dev.patrickgold.florisboard.ime.theme.FlorisImeUi
 import dev.patrickgold.florisboard.keyboardManager
 import dev.patrickgold.jetpref.datastore.model.collectAsState
-
-// ════════════════════════════════════════════════════════════════════════════
-//  Animation constants
-// ════════════════════════════════════════════════════════════════════════════
+import org.florisboard.lib.snygg.ui.SnyggBox
+import org.florisboard.lib.snygg.ui.SnyggButton
+import org.florisboard.lib.snygg.ui.SnyggChip
+import org.florisboard.lib.snygg.ui.SnyggColumn
+import org.florisboard.lib.snygg.ui.SnyggIcon
+import org.florisboard.lib.snygg.ui.SnyggIconButton
+import org.florisboard.lib.snygg.ui.SnyggRow
+import org.florisboard.lib.snygg.ui.SnyggText
+import org.florisboard.lib.snygg.ui.rememberSnyggThemeQuery
 
 private const val STATE_TRANSITION_MS = 280
 private const val RING_EXPAND_MS = 1800
 private const val WAVEFORM_BAR_COUNT = 28
 
-
-// ════════════════════════════════════════════════════════════════════════════
-//  Entry point — wraps content in a dynamic M3 theme using the app's accent
-// ════════════════════════════════════════════════════════════════════════════
-
-private val DEFAULT_SEED = Color(0xFF4CAF50)
-
 @Composable
 fun VoiceInputLayout(modifier: Modifier = Modifier) {
-        val prefs by FlorisPreferenceStore
-    val accentColor by prefs.theme.accentColor.collectAsState()
-    val isDark = isSystemInDarkTheme()
-
-    val seedColor = if (accentColor.isUnspecified) DEFAULT_SEED else accentColor
-    val colorScheme = dynamicColorScheme(
-        seedColor = seedColor,
-        isDark = isDark,
-        isAmoled = false,
-        style = PaletteStyle.Neutral,
-    )
-    MaterialTheme(colorScheme = colorScheme) {
-        VoiceInputLayoutContent(modifier)
-    }
+    VoiceInputLayoutContent(modifier)
 }
 
 @Composable
@@ -175,35 +139,11 @@ private fun VoiceInputLayoutContent(modifier: Modifier) {
 
     var swipeOffsetX by remember { mutableFloatStateOf(0f) }
 
-    val colorScheme = MaterialTheme.colorScheme
-    val bgTop = colorScheme.surfaceContainerLowest
-    val bgMid = colorScheme.surfaceContainerLow
-    val bgBottom = colorScheme.surfaceContainer
-    val accentGlow = colorScheme.primary.copy(alpha = 0.08f)
-
-    Box(
+    SnyggBox(
+        elementName = FlorisImeUi.VoiceInputRoot.elementName,
         modifier = modifier
             .fillMaxWidth()
             .height(FlorisImeSizing.imeUiHeight())
-            .drawBehind {
-                drawRect(
-                    brush = Brush.verticalGradient(
-                        0.0f to bgTop,
-                        0.55f to bgMid,
-                        1.0f to bgBottom,
-                    ),
-                )
-                drawCircle(
-                    brush = Brush.radialGradient(
-                        0.0f to accentGlow,
-                        1.0f to Color.Transparent,
-                        center = Offset(size.width * 0.5f, size.height * 0.15f),
-                        radius = size.minDimension * 0.6f,
-                    ),
-                    radius = size.minDimension * 0.6f,
-                    center = Offset(size.width * 0.5f, size.height * 0.15f),
-                )
-            }
             .pointerInput(Unit) {
                 detectHorizontalDragGestures(
                     onDragEnd = {
@@ -219,8 +159,12 @@ private fun VoiceInputLayoutContent(modifier: Modifier) {
                 }
             }
             .graphicsLayer { translationX = swipeOffsetX },
+        contentAlignment = Alignment.Center,
     ) {
-        Column(modifier = Modifier.fillMaxSize()) {
+        SnyggColumn(
+            elementName = FlorisImeUi.VoiceInputRoot.elementName,
+            modifier = Modifier.fillMaxSize(),
+        ) {
             VoiceTopBar(
                 provider = providerInfo.first,
                 model = providerInfo.second,
@@ -255,10 +199,6 @@ private fun VoiceInputLayoutContent(modifier: Modifier) {
     }
 }
 
-// ════════════════════════════════════════════════════════════════════════════
-//  Top bar
-// ════════════════════════════════════════════════════════════════════════════
-
 @Composable
 private fun VoiceTopBar(
     provider: String,
@@ -267,7 +207,8 @@ private fun VoiceTopBar(
     onClose: () -> Unit,
 ) {
     val closeDesc = stringResource(R.string.voice__close)
-    Row(
+    SnyggRow(
+        elementName = FlorisImeUi.VoiceTopBar.elementName,
         modifier = Modifier
             .fillMaxWidth()
             .height(44.dp)
@@ -282,25 +223,20 @@ private fun VoiceTopBar(
 
         VoiceChip(label = language)
         Spacer(modifier = Modifier.width(6.dp))
-        IconButton(
+        SnyggIconButton(
+            elementName = FlorisImeUi.VoiceTopBar.elementName,
+            modifier = Modifier.size(32.dp),
             onClick = onClose,
-            modifier = Modifier
-                .size(32.dp)
-                .semantics { contentDescription = closeDesc },
         ) {
-            Icon(
+            SnyggIcon(
+                elementName = FlorisImeUi.VoiceTopBar.elementName,
                 imageVector = Icons.Filled.Close,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                contentDescription = closeDesc,
                 modifier = Modifier.size(16.dp),
             )
         }
     }
 }
-
-// ════════════════════════════════════════════════════════════════════════════
-//  Stage router — switches between content states with smooth transitions
-// ════════════════════════════════════════════════════════════════════════════
 
 @Composable
 private fun VoiceStage(
@@ -380,10 +316,6 @@ private fun VoiceStage(
     }
 }
 
-// ════════════════════════════════════════════════════════════════════════════
-//  Recording / Idle stage — the big mic + waveform + timer + enhance toggle
-// ════════════════════════════════════════════════════════════════════════════
-
 @Composable
 private fun RecordingStage(
     state: VoiceInputState,
@@ -396,10 +328,10 @@ private fun RecordingStage(
     onStopRecording: () -> Unit,
     onToggleRefinement: () -> Unit,
 ) {
-    val colorScheme = MaterialTheme.colorScheme
     val timerDesc = stringResource(R.string.voice__listening)
 
-    Column(
+    SnyggColumn(
+        elementName = FlorisImeUi.VoiceInputRoot.elementName,
         modifier = Modifier
             .fillMaxSize()
             .padding(horizontal = 24.dp),
@@ -432,12 +364,9 @@ private fun RecordingStage(
 
         Spacer(modifier = Modifier.height(20.dp))
 
-        Text(
+        SnyggText(
+            elementName = FlorisImeUi.VoiceInputRoot.elementName,
             text = formatDuration(durationMs),
-            style = MaterialTheme.typography.headlineSmall,
-            color = if (state == VoiceInputState.RECORDING)
-                colorScheme.onSurface else colorScheme.outline,
-            letterSpacing = 1.5.sp,
             modifier = Modifier.semantics {
                 contentDescription = timerDesc
             },
@@ -445,13 +374,12 @@ private fun RecordingStage(
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        Text(
+        SnyggText(
+            elementName = FlorisImeUi.VoiceInputRoot.elementName,
             text = when (state) {
                 VoiceInputState.RECORDING -> stringResource(R.string.voice__listening)
                 else -> stringResource(R.string.voice__tap_to_start)
             },
-            style = MaterialTheme.typography.bodyMedium,
-            color = colorScheme.onSurfaceVariant,
         )
 
         Spacer(modifier = Modifier.height(24.dp))
@@ -466,7 +394,11 @@ private fun RecordingStage(
 
 @Composable
 private fun PulseRings(amplitude: Float) {
-    val ringColor = MaterialTheme.colorScheme.error
+    val micStyle = rememberSnyggThemeQuery(
+        FlorisImeUi.VoiceMicButton.elementName,
+        attributes = mapOf(FlorisImeUi.Attr.VoiceState to listOf("recording")),
+    )
+    val ringColor = micStyle.background()
     val transition = rememberInfiniteTransition(label = "pulse")
     for (i in 0 until 3) {
         val phase = i / 3f
@@ -503,7 +435,15 @@ private fun VoiceMicButton(
     onRelease: () -> Unit,
     onTap: () -> Unit,
 ) {
-    val colorScheme = MaterialTheme.colorScheme
+    val stateAttr = mapOf(FlorisImeUi.Attr.VoiceState to listOf(if (isRecording) "recording" else "idle"))
+    val micStyle = rememberSnyggThemeQuery(
+        FlorisImeUi.VoiceMicButton.elementName,
+        attributes = stateAttr,
+    )
+    val iconStyle = rememberSnyggThemeQuery(
+        FlorisImeUi.VoiceMicButtonIcon.elementName,
+        attributes = stateAttr,
+    )
     val currentIsRecording by rememberUpdatedState(isRecording)
     var pressed by remember { mutableStateOf(false) }
 
@@ -526,14 +466,8 @@ private fun VoiceMicButton(
     )
 
     val showBreath = !isRecording
-
-    val idleGradient = Brush.linearGradient(
-        colors = listOf(colorScheme.primary, colorScheme.primaryContainer),
-    )
-    val recordGradient = Brush.linearGradient(
-        colors = listOf(colorScheme.error, colorScheme.errorContainer),
-    )
-    val gradient = if (isRecording) recordGradient else idleGradient
+    val bgColor = micStyle.background()
+    val iconColor = iconStyle.foreground()
 
     val micDesc = stringResource(
         if (isRecording) R.string.voice__stop_recording else R.string.voice__start_recording
@@ -546,19 +480,7 @@ private fun VoiceMicButton(
             .then(if (showBreath) Modifier.scale(breathScale) else Modifier)
             .clip(CircleShape)
             .drawBehind {
-                drawCircle(brush = gradient)
-                drawCircle(
-                    brush = Brush.radialGradient(
-                        0.0f to (if (isRecording)
-                            colorScheme.error.copy(alpha = 0.55f)
-                        else colorScheme.primary.copy(alpha = 0.45f)),
-                        1.0f to Color.Transparent,
-                        center = center,
-                        radius = size.minDimension * 0.7f,
-                    ),
-                    radius = size.minDimension * 0.7f,
-                    center = center,
-                )
+                drawCircle(color = bgColor)
             }
             .semantics { contentDescription = micDesc }
             .pointerInput(Unit) {
@@ -582,10 +504,11 @@ private fun VoiceMicButton(
             },
         contentAlignment = Alignment.Center,
     ) {
-        Icon(
+        SnyggIcon(
+            elementName = FlorisImeUi.VoiceMicButtonIcon.elementName,
+            attributes = stateAttr,
             imageVector = if (isRecording) Icons.Filled.Stop else Icons.Filled.Mic,
             contentDescription = null,
-            tint = colorScheme.onPrimary,
             modifier = Modifier.size(38.dp),
         )
     }
@@ -596,10 +519,11 @@ private fun VoiceWaveform(
     history: List<Float>,
     isActive: Boolean,
 ) {
-    val colorScheme = MaterialTheme.colorScheme
-    val activeColor = colorScheme.primary
-    val peakColor = colorScheme.tertiary
-    val baseColor = colorScheme.surfaceVariant
+    val waveformStyle = rememberSnyggThemeQuery(FlorisImeUi.VoiceWaveform.elementName)
+    val activeColor = waveformStyle.foreground()
+    val peakColor = activeColor.copy(alpha = 0.7f)
+    val rootStyle = rememberSnyggThemeQuery(FlorisImeUi.VoiceInputRoot.elementName)
+    val baseColor = rootStyle.foreground().copy(alpha = 0.3f)
     val barCount = WAVEFORM_BAR_COUNT
     val barWidth = 3.5.dp
     val barGap = 3.dp
@@ -650,49 +574,17 @@ private fun EnhanceToggle(
     isAgentMode: Boolean,
     onToggle: () -> Unit,
 ) {
-    FilterChip(
-        selected = enabled,
+    val stateAttr = if (enabled) mapOf(FlorisImeUi.Attr.VoiceState to listOf("selected")) else emptyMap()
+    SnyggChip(
+        elementName = FlorisImeUi.VoiceEnhanceToggle.elementName,
+        attributes = stateAttr,
         onClick = onToggle,
-        label = {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    text = if (isAgentMode) stringResource(R.string.voice__agent)
-                           else stringResource(R.string.voice__enhance),
-                    style = MaterialTheme.typography.labelLarge,
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Surface(
-                    shape = RoundedCornerShape(10.dp),
-                    color = if (enabled)
-                        MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
-                    else MaterialTheme.colorScheme.surfaceContainerHighest,
-                ) {
-                    Text(
-                        text = if (enabled) stringResource(R.string.voice__on)
-                               else stringResource(R.string.voice__off),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = if (enabled) MaterialTheme.colorScheme.primary
-                               else MaterialTheme.colorScheme.outline,
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
-                    )
-                }
-            }
-        },
-        leadingIcon = {
-            Icon(
-                imageVector = Icons.Outlined.AutoAwesome,
-                contentDescription = null,
-                tint = if (enabled) MaterialTheme.colorScheme.tertiary
-                       else MaterialTheme.colorScheme.outline,
-                modifier = Modifier.size(16.dp),
-            )
-        },
+        enabled = true,
+        imageVector = Icons.Outlined.AutoAwesome,
+        text = if (isAgentMode) stringResource(R.string.voice__agent)
+               else stringResource(R.string.voice__enhance),
     )
 }
-
-// ════════════════════════════════════════════════════════════════════════════
-//  Processing / Refining stage — spinner + cancel
-// ════════════════════════════════════════════════════════════════════════════
 
 @Composable
 private fun ProcessingStage(
@@ -700,9 +592,11 @@ private fun ProcessingStage(
     sublabel: String,
     onCancel: () -> Unit,
 ) {
-    val colorScheme = MaterialTheme.colorScheme
+    val processingStyle = rememberSnyggThemeQuery(FlorisImeUi.VoiceProcessing.elementName)
+    val indicatorColor = processingStyle.foreground()
 
-    Column(
+    SnyggColumn(
+        elementName = FlorisImeUi.VoiceProcessing.elementName,
         modifier = Modifier
             .fillMaxSize()
             .padding(horizontal = 24.dp),
@@ -711,35 +605,35 @@ private fun ProcessingStage(
     ) {
         CircularProgressIndicator(
             modifier = Modifier.size(56.dp),
-            color = colorScheme.primary,
+            color = indicatorColor,
             strokeWidth = 5.dp,
         )
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        Text(
+        SnyggText(
+            elementName = FlorisImeUi.VoiceProcessing.elementName,
             text = label,
-            style = MaterialTheme.typography.titleMedium,
-            color = colorScheme.onSurface,
         )
         Spacer(modifier = Modifier.height(6.dp))
-        Text(
+        SnyggText(
+            elementName = FlorisImeUi.VoiceProcessing.elementName,
             text = sublabel,
-            style = MaterialTheme.typography.bodySmall,
-            color = colorScheme.outline,
         )
 
         Spacer(modifier = Modifier.height(28.dp))
 
-        OutlinedButton(onClick = onCancel) {
-            Text(stringResource(R.string.voice__cancel))
+        SnyggButton(
+            elementName = FlorisImeUi.VoiceActionKey.elementName,
+            onClick = onCancel,
+        ) {
+            SnyggText(
+                elementName = FlorisImeUi.VoiceActionKey.elementName,
+                text = stringResource(R.string.voice__cancel),
+            )
         }
     }
 }
-
-// ════════════════════════════════════════════════════════════════════════════
-//  Success stage — editable transcript + action bar
-// ════════════════════════════════════════════════════════════════════════════
 
 @Composable
 private fun SuccessStage(
@@ -753,62 +647,57 @@ private fun SuccessStage(
     onDismiss: () -> Unit,
     isAgentMode: Boolean,
 ) {
-    val colorScheme = MaterialTheme.colorScheme
     val text = uiState.transcribedText
     val hasRawAndRefined = uiState.rawTranscribedText.isNotBlank() && uiState.refinedText.isNotBlank()
+    val transcriptStyle = rememberSnyggThemeQuery(FlorisImeUi.VoiceTranscriptBox.elementName)
 
-    Column(
+    SnyggColumn(
+        elementName = FlorisImeUi.VoiceInputRoot.elementName,
         modifier = Modifier
             .fillMaxSize()
             .padding(horizontal = 24.dp, vertical = 8.dp),
     ) {
-        Row(
+        SnyggRow(
+            elementName = FlorisImeUi.VoiceInputRoot.elementName,
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text(
+            SnyggText(
+                elementName = FlorisImeUi.VoiceTranscriptBox.elementName,
                 text = when {
                     isAgentMode && uiState.isRefined -> stringResource(R.string.voice__generated_result)
                     isAgentMode -> stringResource(R.string.voice__instruction)
                     uiState.isRefined -> stringResource(R.string.voice__refined_transcript)
                     else -> stringResource(R.string.voice__transcript)
                 },
-                style = MaterialTheme.typography.labelMedium,
-                color = colorScheme.onSurfaceVariant,
             )
             Spacer(modifier = Modifier.weight(1f))
-            Text(
+            SnyggText(
+                elementName = FlorisImeUi.VoiceInputRoot.elementName,
                 text = stringResource(R.string.voice__word_count, countWords(text)),
-                style = MaterialTheme.typography.labelMedium,
-                color = colorScheme.outline,
             )
         }
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        Surface(
+        SnyggBox(
+            elementName = FlorisImeUi.VoiceTranscriptBox.elementName,
             modifier = Modifier
                 .weight(1f)
                 .fillMaxWidth(),
-            shape = RoundedCornerShape(20.dp),
-            color = colorScheme.surfaceContainerHigh,
-            border = BorderStroke(1.dp, colorScheme.outlineVariant),
         ) {
             Box(modifier = Modifier.padding(16.dp)) {
                 if (text.isBlank()) {
-                    Text(
+                    SnyggText(
+                        elementName = FlorisImeUi.VoiceTranscriptBox.elementName,
                         text = stringResource(R.string.voice__empty_result),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = colorScheme.outline,
                     )
                 } else {
                     BasicTextField(
                         value = text,
                         onValueChange = onTextChange,
-                        textStyle = MaterialTheme.typography.bodyLarge.copy(
-                            color = colorScheme.onSurface,
-                        ),
-                        cursorBrush = SolidColor(colorScheme.primary),
+                        textStyle = TextStyle(color = transcriptStyle.foreground()),
+                        cursorBrush = SolidColor(transcriptStyle.foreground()),
                         keyboardOptions = KeyboardOptions(
                             capitalization = KeyboardCapitalization.Sentences,
                             imeAction = ImeAction.Default,
@@ -821,78 +710,87 @@ private fun SuccessStage(
 
         Spacer(modifier = Modifier.height(12.dp))
 
-        Row(
+        SnyggRow(
+            elementName = FlorisImeUi.VoiceActionBar.elementName,
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            OutlinedButton(
+            SnyggButton(
+                elementName = FlorisImeUi.VoiceActionKey.elementName,
                 onClick = onRedo,
                 modifier = Modifier.weight(1f),
             ) {
-                Icon(
+                SnyggIcon(
+                    elementName = FlorisImeUi.VoiceActionKey.elementName,
                     imageVector = Icons.Filled.Refresh,
                     contentDescription = null,
                     modifier = Modifier.size(15.dp),
                 )
                 Spacer(modifier = Modifier.width(6.dp))
-                Text(stringResource(R.string.voice__redo))
+                SnyggText(
+                    elementName = FlorisImeUi.VoiceActionKey.elementName,
+                    text = stringResource(R.string.voice__redo),
+                )
             }
             if (refinementEnabled && !uiState.isRefined) {
-                FilledTonalButton(
+                SnyggButton(
+                    elementName = FlorisImeUi.VoiceActionKey.elementName,
                     onClick = onRefine,
                     modifier = Modifier.weight(1f),
                 ) {
-                    Icon(
+                    SnyggIcon(
+                        elementName = FlorisImeUi.VoiceActionKey.elementName,
                         imageVector = if (isAgentMode) Icons.Filled.Send else Icons.Outlined.AutoAwesome,
                         contentDescription = null,
                         modifier = Modifier.size(15.dp),
                     )
                     Spacer(modifier = Modifier.width(6.dp))
-                    Text(
-                        if (isAgentMode) stringResource(R.string.voice__generate)
-                        else stringResource(R.string.voice__refine)
+                    SnyggText(
+                        elementName = FlorisImeUi.VoiceActionKey.elementName,
+                        text = if (isAgentMode) stringResource(R.string.voice__generate)
+                               else stringResource(R.string.voice__refine),
                     )
                 }
             }
             if (hasRawAndRefined) {
-                FilledTonalButton(
+                SnyggButton(
+                    elementName = FlorisImeUi.VoiceActionKey.elementName,
                     onClick = onToggleRawRefined,
                     modifier = Modifier.weight(1f),
                 ) {
-                    Text(
-                        if (isAgentMode) {
+                    SnyggText(
+                        elementName = FlorisImeUi.VoiceActionKey.elementName,
+                        text = if (isAgentMode) {
                             if (uiState.isRefined) stringResource(R.string.voice__instruction)
                             else stringResource(R.string.voice__generated_result)
                         } else {
                             if (uiState.isRefined) stringResource(R.string.voice__raw)
                             else stringResource(R.string.voice__refined)
-                        }
+                        },
                     )
                 }
             }
-            Button(
+            SnyggButton(
+                elementName = FlorisImeUi.VoiceActionKey.elementName,
                 onClick = onInsert,
                 modifier = Modifier.weight(1.2f),
             ) {
-                Icon(
+                SnyggIcon(
+                    elementName = FlorisImeUi.VoiceActionKey.elementName,
                     imageVector = Icons.Filled.Send,
                     contentDescription = null,
                     modifier = Modifier.size(15.dp),
                 )
                 Spacer(modifier = Modifier.width(6.dp))
-                Text(
+                SnyggText(
+                    elementName = FlorisImeUi.VoiceActionKey.elementName,
                     text = stringResource(R.string.voice__insert),
-                    style = MaterialTheme.typography.labelLarge,
                 )
             }
         }
     }
 }
-
-// ════════════════════════════════════════════════════════════════════════════
-//  Error stage
-// ════════════════════════════════════════════════════════════════════════════
 
 @Composable
 private fun ErrorStage(
@@ -901,136 +799,146 @@ private fun ErrorStage(
     onDismiss: () -> Unit,
     onOpenSettings: () -> Unit,
 ) {
-    val colorScheme = MaterialTheme.colorScheme
     val showSettingsCta = message.contains("not configured", ignoreCase = true) ||
         message.contains("Settings", ignoreCase = true)
 
-    Column(
+    SnyggColumn(
+        elementName = FlorisImeUi.VoiceProcessing.elementName,
         modifier = Modifier
             .fillMaxSize()
             .padding(horizontal = 24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
-        Surface(
+        SnyggBox(
+            elementName = FlorisImeUi.VoiceMicButton.elementName,
+            attributes = mapOf(FlorisImeUi.Attr.VoiceState to listOf("recording")),
             modifier = Modifier.size(64.dp),
-            shape = CircleShape,
-            color = colorScheme.errorContainer,
-            border = BorderStroke(1.dp, colorScheme.error.copy(alpha = 0.4f)),
+            contentAlignment = Alignment.Center,
         ) {
-            Box(contentAlignment = Alignment.Center) {
-                Icon(
-                    imageVector = Icons.Filled.Error,
-                    contentDescription = null,
-                    tint = colorScheme.error,
-                    modifier = Modifier.size(32.dp),
-                )
-            }
+            SnyggIcon(
+                elementName = FlorisImeUi.VoiceMicButtonIcon.elementName,
+                attributes = mapOf(FlorisImeUi.Attr.VoiceState to listOf("recording")),
+                imageVector = Icons.Filled.Error,
+                contentDescription = null,
+                modifier = Modifier.size(32.dp),
+            )
         }
 
         Spacer(modifier = Modifier.height(20.dp))
 
-        Text(
+        SnyggText(
+            elementName = FlorisImeUi.VoiceProcessing.elementName,
             text = stringResource(R.string.voice__error_title),
-            style = MaterialTheme.typography.titleMedium,
-            color = colorScheme.onSurface,
         )
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        Text(
+        SnyggText(
+            elementName = FlorisImeUi.VoiceProcessing.elementName,
             text = message,
-            style = MaterialTheme.typography.bodyMedium,
-            color = colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center,
             modifier = Modifier.widthIn(max = 320.dp),
         )
 
         Spacer(modifier = Modifier.height(28.dp))
 
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            OutlinedButton(onClick = onDismiss) {
-                Text(stringResource(R.string.voice__dismiss))
+        SnyggRow(
+            elementName = FlorisImeUi.VoiceActionBar.elementName,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            SnyggButton(
+                elementName = FlorisImeUi.VoiceActionKey.elementName,
+                onClick = onDismiss,
+            ) {
+                SnyggText(
+                    elementName = FlorisImeUi.VoiceActionKey.elementName,
+                    text = stringResource(R.string.voice__dismiss),
+                )
             }
             if (showSettingsCta) {
-                FilledTonalButton(onClick = onOpenSettings) {
-                    Text(stringResource(R.string.voice__open_settings))
+                SnyggButton(
+                    elementName = FlorisImeUi.VoiceActionKey.elementName,
+                    onClick = onOpenSettings,
+                ) {
+                    SnyggText(
+                        elementName = FlorisImeUi.VoiceActionKey.elementName,
+                        text = stringResource(R.string.voice__open_settings),
+                    )
                 }
             }
-            Button(onClick = onRetry) {
-                Text(stringResource(R.string.voice__try_again))
+            SnyggButton(
+                elementName = FlorisImeUi.VoiceActionKey.elementName,
+                onClick = onRetry,
+            ) {
+                SnyggText(
+                    elementName = FlorisImeUi.VoiceActionKey.elementName,
+                    text = stringResource(R.string.voice__try_again),
+                )
             }
         }
     }
 }
-
-// ════════════════════════════════════════════════════════════════════════════
-//  Permission stage
-// ════════════════════════════════════════════════════════════════════════════
 
 @Composable
 private fun PermissionStage(
     onRequestPermission: () -> Unit,
 ) {
-    val colorScheme = MaterialTheme.colorScheme
-
-    Column(
+    SnyggColumn(
+        elementName = FlorisImeUi.VoiceProcessing.elementName,
         modifier = Modifier
             .fillMaxSize()
             .padding(horizontal = 24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
-        Surface(
+        SnyggBox(
+            elementName = FlorisImeUi.VoiceMicButton.elementName,
             modifier = Modifier.size(64.dp),
-            shape = CircleShape,
-            color = colorScheme.primaryContainer,
+            contentAlignment = Alignment.Center,
         ) {
-            Box(contentAlignment = Alignment.Center) {
-                Icon(
-                    imageVector = Icons.Filled.Mic,
-                    contentDescription = null,
-                    tint = colorScheme.primary,
-                    modifier = Modifier.size(28.dp),
-                )
-            }
+            SnyggIcon(
+                elementName = FlorisImeUi.VoiceMicButtonIcon.elementName,
+                imageVector = Icons.Filled.Mic,
+                contentDescription = null,
+                modifier = Modifier.size(28.dp),
+            )
         }
 
         Spacer(modifier = Modifier.height(20.dp))
 
-        Text(
+        SnyggText(
+            elementName = FlorisImeUi.VoiceProcessing.elementName,
             text = stringResource(R.string.voice__permission_title),
-            style = MaterialTheme.typography.titleMedium,
-            color = colorScheme.onSurface,
         )
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        Text(
+        SnyggText(
+            elementName = FlorisImeUi.VoiceProcessing.elementName,
             text = stringResource(R.string.voice__permission_description),
-            style = MaterialTheme.typography.bodyMedium,
-            color = colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center,
             modifier = Modifier.widthIn(max = 320.dp),
         )
 
         Spacer(modifier = Modifier.height(28.dp))
 
-        Button(onClick = onRequestPermission) {
-            Icon(
+        SnyggButton(
+            elementName = FlorisImeUi.VoiceActionKey.elementName,
+            onClick = onRequestPermission,
+        ) {
+            SnyggIcon(
+                elementName = FlorisImeUi.VoiceActionKey.elementName,
                 imageVector = Icons.Filled.Mic,
                 contentDescription = null,
                 modifier = Modifier.size(15.dp),
             )
             Spacer(modifier = Modifier.width(6.dp))
-            Text(stringResource(R.string.voice__grant_permission))
+            SnyggText(
+                elementName = FlorisImeUi.VoiceActionKey.elementName,
+                text = stringResource(R.string.voice__grant_permission),
+            )
         }
     }
 }
-
-// ════════════════════════════════════════════════════════════════════════════
-//  Bottom bar — backspace, enter, paste, ABC
-// ════════════════════════════════════════════════════════════════════════════
 
 @Composable
 private fun VoiceBottomBar(
@@ -1038,121 +946,85 @@ private fun VoiceBottomBar(
     state: VoiceInputState,
     onCancelProcessing: () -> Unit,
 ) {
-    val colorScheme = MaterialTheme.colorScheme
     val backspaceDesc = stringResource(R.string.voice__backspace)
     val enterDesc = stringResource(R.string.voice__enter)
     val pasteDesc = stringResource(R.string.voice__paste)
     val switchDesc = stringResource(R.string.voice__switch_keyboard)
 
-    Row(
+    SnyggRow(
+        elementName = FlorisImeUi.VoiceBottomBar.elementName,
         modifier = Modifier
             .fillMaxWidth()
             .height(52.dp)
             .padding(horizontal = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        BarActionButton(
-            modifier = Modifier.weight(1f).fillMaxHeight().padding(4.dp),
+        SnyggButton(
+            elementName = FlorisImeUi.VoiceBottomBarButton.elementName,
             onClick = { keyboardManager.inputEventDispatcher.sendDownUp(TextKeyData.DELETE) },
+            modifier = Modifier.weight(1f).fillMaxHeight().padding(4.dp),
         ) {
-            Icon(
+            SnyggIcon(
+                elementName = FlorisImeUi.VoiceBottomBarButton.elementName,
                 imageVector = Icons.Filled.ArrowBackIosNew,
                 contentDescription = backspaceDesc,
-                tint = colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(16.dp),
             )
         }
-        BarActionButton(
-            modifier = Modifier.weight(1f).fillMaxHeight().padding(4.dp),
+        SnyggButton(
+            elementName = FlorisImeUi.VoiceBottomBarButton.elementName,
             onClick = { FlorisImeService.sendDownAndUpKeyEvent(KeyEvent.KEYCODE_ENTER) },
+            modifier = Modifier.weight(1f).fillMaxHeight().padding(4.dp),
         ) {
-            Icon(
+            SnyggIcon(
+                elementName = FlorisImeUi.VoiceBottomBarButton.elementName,
                 imageVector = Icons.Filled.ArrowForwardIos,
                 contentDescription = enterDesc,
-                tint = colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(16.dp),
             )
         }
-        BarActionButton(
-            modifier = Modifier.weight(1f).fillMaxHeight().padding(4.dp),
+        SnyggButton(
+            elementName = FlorisImeUi.VoiceBottomBarButton.elementName,
             onClick = { FlorisImeService.performClipboardPaste() },
+            modifier = Modifier.weight(1f).fillMaxHeight().padding(4.dp),
         ) {
-            Icon(
+            SnyggIcon(
+                elementName = FlorisImeUi.VoiceBottomBarButton.elementName,
                 imageVector = Icons.Filled.ContentPaste,
                 contentDescription = pasteDesc,
-                tint = colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(18.dp),
             )
         }
         Spacer(modifier = Modifier.weight(1.5f))
-        BarActionButton(
-            modifier = Modifier.weight(1.5f).fillMaxHeight().padding(4.dp),
+        SnyggButton(
+            elementName = FlorisImeUi.VoiceBottomBarButton.elementName,
             onClick = { keyboardManager.activeState.imeUiMode = ImeUiMode.TEXT },
+            modifier = Modifier.weight(1.5f).fillMaxHeight().padding(4.dp),
         ) {
-            Icon(
+            SnyggIcon(
+                elementName = FlorisImeUi.VoiceBottomBarButton.elementName,
                 imageVector = Icons.Filled.Keyboard,
                 contentDescription = switchDesc,
-                tint = colorScheme.primary,
                 modifier = Modifier.size(18.dp),
             )
             Spacer(modifier = Modifier.width(6.dp))
-            Text(
+            SnyggText(
+                elementName = FlorisImeUi.VoiceBottomBarButton.elementName,
                 text = stringResource(R.string.voice__abc),
-                style = MaterialTheme.typography.labelLarge,
-                color = colorScheme.primary,
             )
         }
     }
 }
 
 @Composable
-private fun BarActionButton(
-    modifier: Modifier = Modifier,
-    onClick: () -> Unit,
-    content: @Composable () -> Unit,
-) {
-    FilledTonalButton(
-        onClick = onClick,
-        modifier = modifier,
-        shape = RoundedCornerShape(12.dp),
-        colors = androidx.compose.material3.ButtonDefaults.filledTonalButtonColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-            contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-        ),
-    ) {
-        content()
-    }
-}
-
-// ════════════════════════════════════════════════════════════════════════════
-//  Small primitives — display chip
-// ════════════════════════════════════════════════════════════════════════════
-
-@Composable
 private fun VoiceChip(label: String) {
-    SuggestionChip(
+    SnyggChip(
+        elementName = FlorisImeUi.VoiceChip.elementName,
         onClick = {},
-        label = {
-            Text(
-                text = label,
-                style = MaterialTheme.typography.labelMedium,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-        },
         enabled = false,
-        shape = RoundedCornerShape(999.dp),
-        colors = SuggestionChipDefaults.suggestionChipColors(
-            disabledContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-            disabledLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
-        ),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+        text = label,
     )
 }
-
-// ════════════════════════════════════════════════════════════════════════════
-//  Helpers
-// ════════════════════════════════════════════════════════════════════════════
 
 private fun formatDuration(durationMs: Long): String {
     val totalSeconds = (durationMs / 1000).coerceAtLeast(0)
@@ -1181,9 +1053,4 @@ private fun rememberOpenVoiceSettings(): () -> Unit {
 private fun countWords(text: String): Int {
     if (text.isBlank()) return 0
     return text.trim().split(Regex("\\s+")).size
-}
-
-@Composable
-private fun isSystemInDarkTheme(): Boolean {
-    return androidx.compose.foundation.isSystemInDarkTheme()
 }

@@ -371,6 +371,63 @@ enum class FlorisImeUi(val elementName: String, val resId: Int?) {
         resId = R.string.snygg__rule_element__smartbar_candidate_spacer,
     ),
 
+    VoiceInputRoot(
+        elementName = "voice-input-root",
+        resId = R.string.snygg__rule_element__voice_input_root,
+    ),
+    VoiceTopBar(
+        elementName = "voice-top-bar",
+        resId = R.string.snygg__rule_element__voice_top_bar,
+    ),
+    VoiceChip(
+        elementName = "voice-chip",
+        resId = R.string.snygg__rule_element__voice_chip,
+    ),
+    VoiceChipText(
+        elementName = "voice-chip-text",
+        resId = R.string.snygg__rule_element__voice_chip_text,
+    ),
+    VoiceMicButton(
+        elementName = "voice-mic-button",
+        resId = R.string.snygg__rule_element__voice_mic_button,
+    ),
+    VoiceMicButtonIcon(
+        elementName = "voice-mic-button-icon",
+        resId = R.string.snygg__rule_element__voice_mic_button_icon,
+    ),
+    VoiceWaveform(
+        elementName = "voice-waveform",
+        resId = R.string.snygg__rule_element__voice_waveform,
+    ),
+    VoiceProcessing(
+        elementName = "voice-processing",
+        resId = R.string.snygg__rule_element__voice_processing,
+    ),
+    VoiceTranscriptBox(
+        elementName = "voice-transcript-box",
+        resId = R.string.snygg__rule_element__voice_transcript_box,
+    ),
+    VoiceActionBar(
+        elementName = "voice-action-bar",
+        resId = R.string.snygg__rule_element__voice_action_bar,
+    ),
+    VoiceActionKey(
+        elementName = "voice-action-key",
+        resId = R.string.snygg__rule_element__voice_action_key,
+    ),
+    VoiceBottomBar(
+        elementName = "voice-bottom-bar",
+        resId = R.string.snygg__rule_element__voice_bottom_bar,
+    ),
+    VoiceBottomBarButton(
+        elementName = "voice-bottom-bar-button",
+        resId = R.string.snygg__rule_element__voice_bottom_bar_button,
+    ),
+    VoiceEnhanceToggle(
+        elementName = "voice-enhance-toggle",
+        resId = R.string.snygg__rule_element__voice_enhance_toggle,
+    ),
+
     SubtypePanel(
         elementName = "subtype-panel",
         resId = R.string.snygg__rule_element__subtype_panel,
@@ -425,5 +482,6 @@ enum class FlorisImeUi(val elementName: String, val resId: Int?) {
         const val Mode = "mode"
         const val ShiftState = "shiftstate"
         const val WindowMode = "windowmode"
+        const val VoiceState = "voicestate"
     }
 }
