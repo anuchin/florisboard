@@ -178,9 +178,9 @@ private object VoiceAnimations {
 
 @Composable
 fun VoiceInputLayout(modifier: Modifier = Modifier) {
-    val context = LocalContext.current
-    val voiceInputManager = remember { VoiceInputManager(context) }
-    val keyboardManager by context.keyboardManager()
+    val ctx = LocalContext.current
+    val voiceInputManager = remember { VoiceInputManager(ctx) }
+    val keyboardManager by ctx.keyboardManager()
     val uiState by voiceInputManager.uiState.collectAsState()
 
     // Provider info snapshot, captured at composition time.
@@ -374,11 +374,11 @@ private fun VoiceStage(
             )
             VoiceInputState.PERMISSION_REQUIRED -> PermissionStage(
                 onRequestPermission = {
-                    val intent = Intent(context, FlorisAppActivity::class.java).apply {
+                    val intent = Intent(ctx, FlorisAppActivity::class.java).apply {
                         flags = Intent.FLAG_ACTIVITY_NEW_TASK
                         action = "REQUEST_RECORD_AUDIO"
                     }
-                    context.startActivity(intent)
+                    ctx.startActivity(intent)
                 },
             )
         }
@@ -1280,17 +1280,17 @@ private fun formatDuration(durationMs: Long): String {
 
 @Composable
 private fun rememberOpenVoiceSettings(): () -> Unit {
-    val context = LocalContext.current
-    return remember(context) {
+    val ctx = LocalContext.current
+    return remember(ctx) {
         {
             val intent = Intent(
                 Intent.ACTION_VIEW,
                 Uri.parse("ui://florisboard/settings/voice"),
             ).apply {
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK
-                setPackage(context.packageName)
+                setPackage(ctx.packageName)
             }
-            runCatching { context.startActivity(intent) }
+            runCatching { ctx.startActivity(intent) }
         }
     }
 }
