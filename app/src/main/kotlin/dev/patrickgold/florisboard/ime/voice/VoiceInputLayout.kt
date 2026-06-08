@@ -21,7 +21,7 @@ import android.content.Intent
 import android.net.Uri
 import android.view.KeyEvent
 import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.animateFloatAsState
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.Spring
@@ -146,7 +146,6 @@ fun VoiceInputLayout(modifier: Modifier = Modifier) {
         val prefs by FlorisPreferenceStore
     val accentColor by prefs.theme.accentColor.collectAsState()
     val isDark = isSystemInDarkTheme()
-    val refinementStyle by prefs.voice.refinementStyle.collectAsState()
 
     val seedColor = if (accentColor.isUnspecified) DEFAULT_SEED else accentColor
     val colorScheme = dynamicColorScheme(
@@ -166,6 +165,8 @@ private fun VoiceInputLayoutContent(modifier: Modifier) {
     val voiceInputManager = remember { VoiceInputManager(ctx) }
     val keyboardManager by ctx.keyboardManager()
     val uiState by voiceInputManager.uiState.collectAsState()
+    val prefs by FlorisPreferenceStore
+    val refinementStyle by prefs.voice.refinementStyle.collectAsState()
 
     val providerInfo = remember(voiceInputManager) {
         voiceInputManager.snapshotProviderInfo()
@@ -1145,10 +1146,7 @@ private fun VoiceChip(label: String) {
             disabledContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
             disabledLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
         ),
-        border = SuggestionChipDefaults.suggestionChipBorder(
-            borderColor = MaterialTheme.colorScheme.outlineVariant,
-            disabledBorderColor = MaterialTheme.colorScheme.outlineVariant,
-        ),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
     )
 }
 

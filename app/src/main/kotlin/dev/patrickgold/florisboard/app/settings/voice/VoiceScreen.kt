@@ -632,7 +632,7 @@ fun VoiceScreen() = FlorisScreen {
             dismissLabel = stringRes(R.string.settings__voice__cancel),
             onDismiss = { showDeleteLlmEndpointConfirm = null },
         ) {
-            Text(stringRes(R.string.settings__voice__delete_confirm, endpoint.name))
+            Text(stringResource(R.string.settings__voice__delete_confirm, endpoint.name))
         }
     }
 }
