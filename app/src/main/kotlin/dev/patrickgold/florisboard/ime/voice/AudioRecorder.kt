@@ -39,6 +39,9 @@ class AudioRecorder(private val context: Context) {
     private val _amplitude = MutableStateFlow(0f)
     val amplitude: StateFlow<Float> = _amplitude
 
+    private val _amplitudeHistory = MutableStateFlow(List(AMPLITUDE_HISTORY_SIZE) { 0f })
+    val amplitudeHistory: StateFlow<List<Float>> = _amplitudeHistory
+
     private val bufferSize = AudioRecord.getMinBufferSize(
         sampleRate, channelConfig, audioFormat,
     )
@@ -78,9 +81,11 @@ class AudioRecorder(private val context: Context) {
         audioRecord = record
         record.startRecording()
         isRecording = true
+        _amplitudeHistory.value = List(AMPLITUDE_HISTORY_SIZE) { 0f }
 
         val allSamples = mutableListOf<Short>()
         val buffer = ShortArray(bufferSize / 2)
+        var smoothed = 0f
 
         try {
             while (isRecording) {
@@ -94,7 +99,11 @@ class AudioRecorder(private val context: Context) {
                         val abs = kotlin.math.abs(buffer[i].toInt())
                         if (abs > max) max = abs
                     }
-                    _amplitude.value = max.toFloat() / Short.MAX_VALUE
+                    val raw = max.toFloat() / Short.MAX_VALUE
+                    // Exponential moving average for smoother waveform visuals
+                    smoothed = smoothed * SMOOTHING_FACTOR + raw * (1f - SMOOTHING_FACTOR)
+                    _amplitude.value = smoothed
+                    pushAmplitudeSample(smoothed)
                 }
             }
         } finally {
@@ -102,6 +111,7 @@ class AudioRecorder(private val context: Context) {
             record.release()
             audioRecord = null
             _amplitude.value = 0f
+            // Do NOT clear history here — UI may still want to fade it out.
         }
 
         pcmToWav(allSamples.toShortArray())
@@ -112,6 +122,29 @@ class AudioRecorder(private val context: Context) {
      */
     fun stop() {
         isRecording = false
+    }
+
+    /**
+     * Clears the waveform history. Call when the user dismisses the voice UI
+     * or moves to a non-recording state.
+     */
+    fun clearHistory() {
+        _amplitudeHistory.value = List(AMPLITUDE_HISTORY_SIZE) { 0f }
+    }
+
+    private val historyScratch = ArrayDeque<Float>(AMPLITUDE_HISTORY_SIZE)
+    private fun pushAmplitudeSample(sample: Float) {
+        val current = _amplitudeHistory.value
+        // Throttle: only update the history at a sane visual rate (≈30Hz).
+        if (current.size != AMPLITUDE_HISTORY_SIZE) {
+            historyScratch.clear()
+            historyScratch.addAll(current)
+        }
+        if (historyScratch.size >= AMPLITUDE_HISTORY_SIZE) {
+            historyScratch.removeFirst()
+        }
+        historyScratch.addLast(sample)
+        _amplitudeHistory.value = historyScratch.toList()
     }
 
     private fun pcmToWav(pcmData: ShortArray): ByteArray {
@@ -161,5 +194,10 @@ class AudioRecorder(private val context: Context) {
     private fun writeShort(out: DataOutputStream, value: Short) {
         out.writeByte(value.toInt() and 0xff)
         out.writeByte((value.toInt() shr 8) and 0xff)
+    }
+
+    companion object {
+        private const val AMPLITUDE_HISTORY_SIZE = 36
+        private const val SMOOTHING_FACTOR = 0.65f
     }
 }
