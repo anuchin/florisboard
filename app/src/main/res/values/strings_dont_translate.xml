@@ -1,15 +1,15 @@
 <resources>
-    <item name="floris_app_name" translatable="false" type="string">@string/app_name</item>
+    <item name="voxkb_app_name" translatable="false" type="string">@string/app_name</item>
 
-    <string name="florisboard__repo_url" translatable="false">https://github.com/florisboard/florisboard</string>
-    <string name="florisboard__issue_tracker_url" translatable="false">https://github.com/florisboard/florisboard/issues</string>
-    <string name="florisboard__privacy_policy_url" translatable="false">https://florisboard.org/legal/privacy/</string>
-    <string name="florisboard__changelog_url" translatable="false">https://github.com/florisboard/florisboard/releases/v{version}</string>
-    <string name="florisboard__commit_by_hash_url" translatable="false">https://github.com/florisboard/florisboard/commit/{hash}</string>
-    <string name="florisboard__spell_checker_wiki_url" translatable="false">https://github.com/florisboard/florisboard/wiki/System-spell-checker-service</string>
-    <string name="florisboard__theme_editor_wiki_url" translatable="false">https://github.com/florisboard/florisboard/wiki/Using-the-new-Theme-Editor</string>
-    <string name="florisboard__internal_key_codes_url" translatable="false">https://github.com/florisboard/florisboard/blob/main/app/src/main/kotlin/dev/patrickgold/florisboard/ime/text/key/KeyCode.kt</string>
-    <string name="florisboard__character_key_codes_url" translatable="false">https://unicode-table.com/en</string>
+    <string name="voxkb__repo_url" translatable="false">https://github.com/voxkb/voxkb</string>
+    <string name="voxkb__issue_tracker_url" translatable="false">https://github.com/voxkb/voxkb/issues</string>
+    <string name="voxkb__privacy_policy_url" translatable="false">https://voxkb.org/legal/privacy/</string>
+    <string name="voxkb__changelog_url" translatable="false">https://github.com/voxkb/voxkb/releases/v{version}</string>
+    <string name="voxkb__commit_by_hash_url" translatable="false">https://github.com/voxkb/voxkb/commit/{hash}</string>
+    <string name="voxkb__spell_checker_wiki_url" translatable="false">https://github.com/voxkb/voxkb/wiki/System-spell-checker-service</string>
+    <string name="voxkb__theme_editor_wiki_url" translatable="false">https://github.com/voxkb/voxkb/wiki/Using-the-new-Theme-Editor</string>
+    <string name="voxkb__internal_key_codes_url" translatable="false">https://github.com/voxkb/voxkb/blob/main/app/src/main/kotlin/com/voxkb/ime/text/key/KeyCode.kt</string>
+    <string name="voxkb__character_key_codes_url" translatable="false">https://unicode-table.com/en</string>
 
     <string name="general__system_string_placeholder" translatable="false">%s</string>
     <string name="general__empty_string" translatable="false"/>

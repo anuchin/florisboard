@@ -4,7 +4,7 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 /*
- * Copyright (C) 2025-2026 The FlorisBoard Contributors
+ * Copyright (C) 2025-2026 The VoxKB Contributors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -39,7 +39,7 @@ kotlin {
 }
 
 configure<LibraryExtension> {
-    namespace = "org.florisboard.lib.snygg"
+    namespace = "com.voxkb.lib.snygg"
     compileSdk = projectCompileSdk.toInt()
 
     defaultConfig {
@@ -110,7 +110,7 @@ dependencies {
 tasks.register<JavaExec>("generateJsonSchema") {
     description = "Generate the JSON schema for Snygg themes"
     dependsOn("compileDebugKotlin")
-    mainClass.set("org.florisboard.lib.snygg.SnyggJsonSchemaGenerator")
+    mainClass.set("com.voxkb.lib.snygg.SnyggJsonSchemaGenerator")
     val debugRuntime = configurations.named("debugRuntimeClasspath")
     val compileTask = tasks.named<KotlinCompile>("compileDebugKotlin")
     val debugRuntimeArtifactView = debugRuntime.get().incoming.artifactView {

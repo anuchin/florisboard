@@ -20,7 +20,7 @@ kotlin {
 }
 
 configure<LibraryExtension> {
-    namespace = "org.florisboard.lib.color"
+    namespace = "com.voxkb.lib.color"
     compileSdk = projectCompileSdk.toInt()
 
     defaultConfig {

@@ -1,0 +1,766 @@
+{
+  "$": "ime.extension.keyboard",
+  "meta": {
+    "id": "com.voxkb.localization",
+    "version": "0.2.0",
+    "title": "Default subtype presets / popup mappings",
+    "description": "Default subtype presets and popup mappings which are always available.",
+    "maintainers": [ "patrickgold <patrick@patrickgold.dev>" ],
+    "license": "apache-2.0"
+  },
+  "dependencies": [
+    "com.voxkb.composers",
+    "com.voxkb.currencysets",
+    "com.voxkb.layouts"
+  ],
+  "punctuationRules": [
+    {
+      "id": "default",
+      "label": "Default",
+      "symbolsPrecedingAutoSpace": ".,?‽!\"&%)]}»",
+      "symbolsFollowingAutoSpace": "",
+      "symbolsPrecedingPhantomSpace": ".,;:?‽!&%)]}»©®™",
+      "symbolsFollowingPhantomSpace": "¿⸘¡([{",
+      "symbolsTerminatingSentence": ".?‽!"
+    }
+  ],
+  "popupMappings": [
+    { "id": "default", "authors": [ "patrickgold" ] },
+    { "id": "ar", "authors": [ "HeiWiper" ] },
+    { "id": "ast", "authors": [ "Softastur" ] },
+    { "id": "bg", "authors": [ "iorvethe" ] },
+    { "id": "bn-BD", "authors": [ "iamrasel" ] },
+    { "id": "ca", "authors": [ "mikelloc" ] },
+    { "id": "cjk", "authors": [ "moonbeamcelery" ] },
+    { "id": "ckb", "authors": [ "GoRaN" ] },
+    { "id": "cs", "authors": [ "stefan-misik" ] },
+    { "id": "da", "authors": [ "patrickgold" ] },
+    { "id": "de", "authors": [ "patrickgold" ] },
+    { "id": "de-DE-neobone", "authors": [ "ostrya" ] },
+    { "id": "el", "authors": [ "tsiflimagas" ] },
+    { "id": "en", "authors": [ "patrickgold" ] },
+    { "id": "eo", "authors": [ "jeremiah-miller" ] },
+    { "id": "es", "authors": [ "patrickgold" ] },
+    { "id": "et", "authors": [ "OneSheepy" ] },
+    { "id": "fa", "authors": [ "PHELAT" ] },
+    { "id": "fa2", "authors": [ "M-Koushan" ] },
+    { "id": "fa3", "authors": [ "SaeID-Rz" ] },
+    { "id": "fi", "authors": [ "patrickgold" ] },
+    { "id": "fo", "authors": [ "BinFlush" ] },
+    { "id": "fr", "authors": [ "patrickgold" ] },
+    { "id": "hi-IN", "authors": [ "npnpatidar" ] },
+    { "id": "hr", "authors": [ "hedidnothingwrong" ] },
+    { "id": "hu", "authors": [ "zoli111, gabik65" ] },
+    { "id": "hy", "authors": [ "PJTSearch" ] },
+    { "id": "id", "authors": [ "Linerly" ] },
+    { "id": "is", "authors": [ "patrickgold" ] },
+    { "id": "it", "authors": [ "patrickgold" ] },
+    { "id": "iw", "authors": [ "Antony" ] },
+    { "id": "ja-JP-jis", "authors": [ "waelwindows" ] },
+    { "id": "ka-std", "authors": [ "nE" ] },
+    { "id": "kab", "authors": [ "yanis867" ] },
+    { "id": "ko", "authors": [ "patrickgold", "Hayleia" ] },
+    { "id": "ko-KR", "authors": [ "Shunnuo" ] },
+    { "id": "ku", "authors": [ "GoRaN" ] },
+    { "id": "lt", "authors": [ "patrickgold" ] },
+    { "id": "lv", "authors": [ "patrickgold", "eandersons" ] },
+    { "id": "nb", "authors": [ "patrickgold" ] },
+    { "id": "nn", "authors": [ "patrickgold" ] },
+    { "id": "pl", "authors": [ "Mikołaj Biel" ] },
+    { "id": "pt", "authors": [ "patrickgold" ] },
+    { "id": "pt-BR", "authors": [ "rickym7" ] },
+    { "id": "ro", "authors": [ "bertin0" ] },
+    { "id": "ru", "authors": [ "williamtheaker", "33kk" ] },
+    { "id": "rue", "authors": [ "svvvst" ] },
+    { "id": "sk", "authors": [ "stefan-misik", "majso" ] },
+    { "id": "sr", "authors": [ "hedidnothingwrong", "GrbavaCigla" ] },
+    { "id": "sv", "authors": [ "patrickgold" ] },
+    { "id": "tr", "authors": [ "kisekinopureya", "patrickgold", "dvrnynr" ] },
+    { "id": "udm", "authors": [ "vorgoron" ] },
+    { "id": "uk", "authors": [ "williamtheaker", "33kk", "honsiorovskyi" ] },
+    { "id": "uk-cyr-ext", "authors": [ "williamtheaker", "33kk", "honsiorovskyi" ] },
+    { "id": "ur-PK", "authors": [ "mubashir-rehman", "mirfatif" ] },
+    { "id": "vi-VN", "authors": [ "patrickgold", "Hayleia" ] }
+  ],
+  "subtypePresets": [
+    {
+      "languageTag": "en-US",
+      "composer": "com.voxkb.composers:appender",
+      "currencySet": "com.voxkb.currencysets:dollar",
+      "popupMapping": "com.voxkb.localization:en",
+      "preferred": {
+        "characters": "com.voxkb.layouts:qwerty"
+      }
+    },
+    {
+      "languageTag": "en-UK",
+      "composer": "com.voxkb.composers:appender",
+      "currencySet": "com.voxkb.currencysets:pound",
+      "popupMapping": "com.voxkb.localization:en",
+      "preferred": {
+        "characters": "com.voxkb.layouts:qwerty"
+      }
+    },
+    {
+      "languageTag": "en-CA",
+      "composer": "com.voxkb.composers:appender",
+      "currencySet": "com.voxkb.currencysets:dollar",
+      "popupMapping": "com.voxkb.localization:en",
+      "preferred": {
+        "characters": "com.voxkb.layouts:qwerty"
+      }
+    },
+    {
+      "languageTag": "en-AU",
+      "composer": "com.voxkb.composers:appender",
+      "currencySet": "com.voxkb.currencysets:dollar",
+      "popupMapping": "com.voxkb.localization:en",
+      "preferred": {
+        "characters": "com.voxkb.layouts:qwerty"
+      }
+    },
+    {
+      "languageTag": "de-DE",
+      "composer": "com.voxkb.composers:appender",
+      "currencySet": "com.voxkb.currencysets:euro",
+      "popupMapping": "com.voxkb.localization:de",
+      "preferred": {
+        "characters": "com.voxkb.layouts:qwertz"
+      }
+    },
+    {
+      "languageTag": "de-AT",
+      "composer": "com.voxkb.composers:appender",
+      "currencySet": "com.voxkb.currencysets:euro",
+      "popupMapping": "com.voxkb.localization:de",
+      "preferred": {
+        "characters": "com.voxkb.layouts:qwertz"
+      }
+    },
+    {
+      "languageTag": "de-CH",
+      "composer": "com.voxkb.composers:appender",
+      "currencySet": "com.voxkb.currencysets:euro",
+      "popupMapping": "com.voxkb.localization:de",
+      "preferred": {
+        "characters": "com.voxkb.layouts:swiss_german"
+      }
+    },
+    {
+      "languageTag": "de-DE-neobone",
+      "composer": "com.voxkb.composers:appender",
+      "currencySet": "com.voxkb.currencysets:euro",
+      "popupMapping": "com.voxkb.localization:de-DE-neobone",
+      "preferred": {
+        "characters": "com.voxkb.layouts:neo2",
+        "symbols": "com.voxkb.layouts:neo2",
+        "numericRow": "com.voxkb.layouts:neo2"
+      }
+    },
+    {
+      "languageTag": "fr-FR",
+      "composer": "com.voxkb.composers:appender",
+      "currencySet": "com.voxkb.currencysets:euro",
+      "popupMapping": "com.voxkb.localization:fr",
+      "preferred": {
+        "characters": "com.voxkb.layouts:azerty"
+      }
+    },
+    {
+      "languageTag": "fr-CA",
+      "composer": "com.voxkb.composers:appender",
+      "currencySet": "com.voxkb.currencysets:dollar",
+      "popupMapping": "com.voxkb.localization:fr",
+      "preferred": {
+        "characters": "com.voxkb.layouts:canadian_french"
+      }
+    },
+    {
+      "languageTag": "fr-CH",
+      "composer": "com.voxkb.composers:appender",
+      "currencySet": "com.voxkb.currencysets:euro",
+      "popupMapping": "com.voxkb.localization:fr",
+      "preferred": {
+        "characters": "com.voxkb.layouts:swiss_french"
+      }
+    },
+    {
+      "languageTag": "it-IT",
+      "composer": "com.voxkb.composers:appender",
+      "currencySet": "com.voxkb.currencysets:euro",
+      "popupMapping": "com.voxkb.localization:it",
+      "preferred": {
+        "characters": "com.voxkb.layouts:qwerty"
+      }
+    },
+    {
+      "languageTag": "it-CH",
+      "composer": "com.voxkb.composers:appender",
+      "currencySet": "com.voxkb.currencysets:euro",
+      "popupMapping": "com.voxkb.localization:it",
+      "preferred": {
+        "characters": "com.voxkb.layouts:swiss_italian"
+      }
+    },
+    {
+      "languageTag": "es-ES",
+      "composer": "com.voxkb.composers:appender",
+      "currencySet": "com.voxkb.currencysets:euro",
+      "popupMapping": "com.voxkb.localization:es",
+      "preferred": {
+        "characters": "com.voxkb.layouts:spanish"
+      }
+    },
+    {
+      "languageTag": "es-US",
+      "composer": "com.voxkb.composers:appender",
+      "currencySet": "com.voxkb.currencysets:dollar",
+      "popupMapping": "com.voxkb.localization:es",
+      "preferred": {
+        "characters": "com.voxkb.layouts:spanish"
+      }
+    },
+    {
+      "languageTag": "es-419",
+      "composer": "com.voxkb.composers:appender",
+      "currencySet": "com.voxkb.currencysets:dollar",
+      "popupMapping": "com.voxkb.localization:es",
+      "preferred": {
+        "characters": "com.voxkb.layouts:spanish"
+      }
+    },
+    {
+      "languageTag": "pt-PT",
+      "composer": "com.voxkb.composers:appender",
+      "currencySet": "com.voxkb.currencysets:euro",
+      "popupMapping": "com.voxkb.localization:pt",
+      "preferred": {
+        "characters": "com.voxkb.layouts:qwerty"
+      }
+    },
+    {
+      "languageTag": "pt-BR",
+      "composer": "com.voxkb.composers:appender",
+      "currencySet": "com.voxkb.currencysets:dollar",
+      "popupMapping": "com.voxkb.localization:pt-BR",
+      "preferred": {
+        "characters": "com.voxkb.layouts:qwerty"
+      }
+    },
+    {
+      "languageTag": "nb-NO",
+      "composer": "com.voxkb.composers:appender",
+      "currencySet": "com.voxkb.currencysets:dollar",
+      "popupMapping": "com.voxkb.localization:nb",
+      "preferred": {
+        "characters": "com.voxkb.layouts:norwegian"
+      }
+    },
+    {
+      "languageTag": "nn-NO",
+      "composer": "com.voxkb.composers:appender",
+      "currencySet": "com.voxkb.currencysets:dollar",
+      "popupMapping": "com.voxkb.localization:nn",
+      "preferred": {
+        "characters": "com.voxkb.layouts:norwegian"
+      }
+    },
+    {
+      "languageTag": "sv-SE",
+      "composer": "com.voxkb.composers:appender",
+      "currencySet": "com.voxkb.currencysets:dollar",
+      "popupMapping": "com.voxkb.localization:sv",
+      "preferred": {
+        "characters": "com.voxkb.layouts:swedish_finnish"
+      }
+    },
+    {
+      "languageTag": "fi-FI",
+      "composer": "com.voxkb.composers:appender",
+      "currencySet": "com.voxkb.currencysets:euro",
+      "popupMapping": "com.voxkb.localization:fi",
+      "preferred": {
+        "characters": "com.voxkb.layouts:swedish_finnish"
+      }
+    },
+    {
+      "languageTag": "da-DK",
+      "composer": "com.voxkb.composers:appender",
+      "currencySet": "com.voxkb.currencysets:dollar",
+      "popupMapping": "com.voxkb.localization:da",
+      "preferred": {
+        "characters": "com.voxkb.layouts:danish"
+      }
+    },
+    {
+      "languageTag": "id",
+      "composer": "com.voxkb.composers:appender",
+      "currencySet": "com.voxkb.currencysets:dollar",
+      "popupMapping": "com.voxkb.localization:id",
+      "preferred": {
+        "characters": "com.voxkb.layouts:qwerty"
+      }
+    },
+    {
+      "languageTag": "is-IS",
+      "composer": "com.voxkb.composers:appender",
+      "currencySet": "com.voxkb.currencysets:dollar",
+      "popupMapping": "com.voxkb.localization:is",
+      "preferred": {
+        "characters": "com.voxkb.layouts:icelandic"
+      }
+    },
+    {
+      "languageTag": "fo",
+      "composer": "com.voxkb.composers:appender",
+      "currencySet": "com.voxkb.currencysets:dollar",
+      "popupMapping": "com.voxkb.localization:fo",
+      "preferred": {
+        "characters": "com.voxkb.layouts:faroese"
+      }
+    },
+    {
+      "languageTag": "fa-FA",
+      "composer": "com.voxkb.composers:appender",
+      "currencySet": "com.voxkb.currencysets:rial",
+      "popupMapping": "com.voxkb.localization:fa",
+      "preferred": {
+        "characters": "com.voxkb.layouts:persian",
+        "symbols": "com.voxkb.layouts:persian",
+        "symbols2": "com.voxkb.layouts:persian",
+        "numericRow": "com.voxkb.layouts:persian"
+      }
+    },
+    {
+      "languageTag": "fa-FA",
+      "composer": "com.voxkb.composers:appender",
+      "currencySet": "com.voxkb.currencysets:rial",
+      "popupMapping": "com.voxkb.localization:fa2",
+      "preferred": {
+        "characters": "com.voxkb.layouts:persian2",
+        "symbols": "com.voxkb.layouts:persian",
+        "symbols2": "com.voxkb.layouts:persian",
+        "numericRow": "com.voxkb.layouts:persian"
+      }
+    },
+    {
+      "languageTag": "fa-FA",
+      "composer": "com.voxkb.composers:appender",
+      "currencySet": "com.voxkb.currencysets:rial",
+      "popupMapping": "com.voxkb.localization:fa3",
+      "preferred": {
+        "characters": "com.voxkb.layouts:persian3",
+        "symbols": "com.voxkb.layouts:persian",
+        "symbols2": "com.voxkb.layouts:persian",
+        "numericRow": "com.voxkb.layouts:western_arabic"
+      }
+    },
+    {
+      "languageTag": "ar",
+      "composer": "com.voxkb.composers:appender",
+      "currencySet": "com.voxkb.currencysets:rial",
+      "popupMapping": "com.voxkb.localization:ar",
+      "preferred": {
+        "characters": "com.voxkb.layouts:arabic",
+        "symbols": "com.voxkb.layouts:eastern",
+        "symbols2": "com.voxkb.layouts:eastern",
+        "numericRow": "com.voxkb.layouts:eastern_arabic"
+      }
+    },
+    {
+      "languageTag": "az",
+      "composer": "com.voxkb.composers:appender",
+      "currencySet": "com.voxkb.currencysets:azerbaijani_manat",
+      "popupMapping": "com.voxkb.localization:tr",
+      "preferred": {
+        "characters": "com.voxkb.layouts:azerbaijani"
+      }
+    },
+    {
+      "languageTag": "hu",
+      "composer": "com.voxkb.composers:appender",
+      "currencySet": "com.voxkb.currencysets:euro",
+      "popupMapping": "com.voxkb.localization:hu",
+      "preferred": {
+        "characters": "com.voxkb.layouts:hungarian"
+      }
+    },
+    {
+      "languageTag": "eo",
+      "composer": "com.voxkb.composers:appender",
+      "currencySet": "com.voxkb.currencysets:dollar",
+      "popupMapping": "com.voxkb.localization:eo",
+      "preferred": {
+        "characters": "com.voxkb.layouts:esperanto"
+      }
+    },
+    {
+      "languageTag": "hr",
+      "composer": "com.voxkb.composers:appender",
+      "currencySet": "com.voxkb.currencysets:euro",
+      "popupMapping": "com.voxkb.localization:hr",
+      "preferred": {
+        "characters": "com.voxkb.layouts:qwertz"
+      }
+    },
+    {
+      "languageTag": "hy",
+      "composer": "com.voxkb.composers:appender",
+      "currencySet": "com.voxkb.currencysets:armenian_dram",
+      "popupMapping": "com.voxkb.localization:hy",
+      "preferred": {
+        "characters": "com.voxkb.layouts:armenian_alt_phonetic",
+        "symbols": "com.voxkb.layouts:armenian"
+      }
+    },
+    {
+      "languageTag": "hy",
+      "composer": "com.voxkb.composers:appender",
+      "currencySet": "com.voxkb.currencysets:armenian_dram",
+      "popupMapping": "com.voxkb.localization:hy",
+      "preferred": {
+        "characters": "com.voxkb.layouts:western_armenian",
+        "symbols": "com.voxkb.layouts:armenian"
+      }
+    },
+    {
+      "languageTag": "hy",
+      "composer": "com.voxkb.composers:appender",
+      "currencySet": "com.voxkb.currencysets:armenian_dram",
+      "popupMapping": "com.voxkb.localization:hy",
+      "preferred": {
+        "characters": "com.voxkb.layouts:eastern_armenian",
+        "symbols": "com.voxkb.layouts:armenian"
+      }
+    },
+    {
+      "languageTag": "ka-GE",
+      "composer": "com.voxkb.composers:appender",
+      "currencySet": "com.voxkb.currencysets:georgian_lari",
+      "popupMapping": "com.voxkb.localization:ka-std",
+      "preferred": {
+        "characters": "com.voxkb.layouts:georgian_standard"
+      }
+    },
+    {
+      "languageTag": "ru",
+      "composer": "com.voxkb.composers:appender",
+      "currencySet": "com.voxkb.currencysets:russian_ruble",
+      "popupMapping": "com.voxkb.localization:ru",
+      "preferred": {
+        "characters": "com.voxkb.layouts:jcuken_russian"
+      }
+    },
+    {
+      "languageTag": "rue",
+      "composer": "com.voxkb.composers:appender",
+      "currencySet": "com.voxkb.currencysets:euro",
+      "popupMapping": "com.voxkb.localization:rue",
+      "preferred": {
+        "characters": "com.voxkb.layouts:rusyn"
+      }
+    },
+    {
+      "languageTag": "uk",
+      "composer": "com.voxkb.composers:appender",
+      "currencySet": "com.voxkb.currencysets:ukrainian_hryvnia",
+      "popupMapping": "com.voxkb.localization:uk",
+      "preferred": {
+        "characters": "com.voxkb.layouts:jcuken_ukrainian"
+      }
+    },
+    {
+      "languageTag": "el",
+      "composer": "com.voxkb.composers:appender",
+      "currencySet": "com.voxkb.currencysets:euro",
+      "popupMapping": "com.voxkb.localization:el",
+      "preferred": {
+        "characters": "com.voxkb.layouts:greek"
+      }
+    },
+    {
+      "languageTag": "ro",
+      "composer": "com.voxkb.composers:appender",
+      "currencySet": "com.voxkb.currencysets:euro",
+      "popupMapping": "com.voxkb.localization:ro",
+      "preferred": {
+        "characters": "com.voxkb.layouts:qwerty"
+      }
+    },
+    {
+      "languageTag": "pl",
+      "composer": "com.voxkb.composers:appender",
+      "currencySet": "com.voxkb.currencysets:euro",
+      "popupMapping": "com.voxkb.localization:pl",
+      "preferred": {
+        "characters": "com.voxkb.layouts:qwerty"
+      }
+    },
+    {
+      "languageTag": "bg-bg",
+      "composer": "com.voxkb.composers:appender",
+      "currencySet": "com.voxkb.currencysets:dollar",
+      "popupMapping": "com.voxkb.localization:bg",
+      "preferred": {
+        "characters": "com.voxkb.layouts:bulgarian_phonetic"
+      }
+    },
+    {
+      "languageTag": "tr",
+      "composer": "com.voxkb.composers:appender",
+      "currencySet": "com.voxkb.currencysets:turkish_lira",
+      "popupMapping": "com.voxkb.localization:tr",
+      "preferred": {
+        "characters": "com.voxkb.layouts:qwerty"
+      }
+    },
+    {
+      "languageTag": "iw-IL",
+      "composer": "com.voxkb.composers:appender",
+      "currencySet": "com.voxkb.currencysets:israeli_new_shekel",
+      "popupMapping": "com.voxkb.localization:iw",
+      "preferred": {
+        "characters": "com.voxkb.layouts:hebrew"
+      }
+    },
+    {
+      "languageTag": "ckb",
+      "composer": "com.voxkb.composers:appender",
+      "currencySet": "com.voxkb.currencysets:dollar",
+      "popupMapping": "com.voxkb.localization:ckb",
+      "preferred": {
+        "characters": "com.voxkb.layouts:kurdish",
+        "symbols": "com.voxkb.layouts:eastern",
+        "symbols2": "com.voxkb.layouts:eastern",
+        "numericRow": "com.voxkb.layouts:eastern_arabic"
+      }
+    },
+    {
+      "languageTag": "sr-RS",
+      "composer": "com.voxkb.composers:appender",
+      "currencySet": "com.voxkb.currencysets:dollar",
+      "popupMapping": "com.voxkb.localization:sr",
+      "preferred": {
+        "characters": "com.voxkb.layouts:serbian_cyrillic"
+      }
+    },
+    {
+      "languageTag": "sl-SI",
+      "composer": "com.voxkb.composers:appender",
+      "currencySet": "com.voxkb.currencysets:euro",
+      "popupMapping": "com.voxkb.localization:sl-SI",
+      "preferred": {
+        "characters": "com.voxkb.layouts:slovenian"
+      }
+    },
+    {
+      "languageTag": "lv-LV",
+      "composer": "com.voxkb.composers:appender",
+      "currencySet": "com.voxkb.currencysets:euro",
+      "popupMapping": "com.voxkb.localization:lv",
+      "preferred": {
+        "characters": "com.voxkb.layouts:qwerty"
+      }
+    },
+    {
+      "languageTag": "ku",
+      "composer": "com.voxkb.composers:appender",
+      "currencySet": "com.voxkb.currencysets:dollar",
+      "popupMapping": "com.voxkb.localization:ku",
+      "preferred": {
+        "characters": "com.voxkb.layouts:kurdish_kurmanci"
+      }
+    },
+    {
+      "languageTag": "ca",
+      "composer": "com.voxkb.composers:appender",
+      "currencySet": "com.voxkb.currencysets:euro",
+      "popupMapping": "com.voxkb.localization:ca",
+      "preferred": {
+        "characters": "com.voxkb.layouts:catalan"
+      }
+    },
+    {
+      "languageTag": "IPA-IPA",
+      "composer": "com.voxkb.composers:appender",
+      "currencySet": "com.voxkb.currencysets:dollar",
+      "preferred": {
+        "characters": "com.voxkb.layouts:ipa",
+        "symbols": "com.voxkb.layouts:ipa",
+        "symbols2": "com.voxkb.layouts:ipa"
+      }
+    },
+    {
+      "languageTag": "sk",
+      "composer": "com.voxkb.composers:appender",
+      "currencySet": "com.voxkb.currencysets:euro",
+      "popupMapping": "com.voxkb.localization:sk",
+      "preferred": {
+        "characters": "com.voxkb.layouts:qwertz"
+      }
+    },
+    {
+      "languageTag": "cs",
+      "composer": "com.voxkb.composers:appender",
+      "currencySet": "com.voxkb.currencysets:euro",
+      "popupMapping": "com.voxkb.localization:cs",
+      "preferred": {
+        "characters": "com.voxkb.layouts:qwertz"
+      }
+    },
+    {
+      "languageTag": "ko",
+      "composer": "com.voxkb.composers:hangul-unicode",
+      "currencySet": "com.voxkb.currencysets:south_korean_won",
+      "popupMapping": "com.voxkb.localization:ko",
+      "preferred": {
+        "characters": "com.voxkb.layouts:korean"
+      }
+    },
+    {
+      "languageTag": "ko-KR",
+      "composer": "com.voxkb.composers:hangul-unicode",
+      "currencySet": "com.voxkb.currencysets:south_korean_won",
+      "popupMapping": "com.voxkb.localization:ko",
+      "preferred": {
+        "characters": "com.voxkb.layouts:korean_phonetic"
+      }
+    },
+    {
+      "languageTag": "lt-LT",
+      "composer": "com.voxkb.composers:appender",
+      "currencySet": "com.voxkb.currencysets:euro",
+      "popupMapping": "com.voxkb.localization:lt",
+      "preferred": {
+        "characters": "com.voxkb.layouts:qwerty"
+      }
+    },
+    {
+      "languageTag": "ja-JP-jis",
+      "composer": "com.voxkb.composers:kana-unicode",
+      "currencySet": "com.voxkb.currencysets:yen",
+      "popupMapping": "com.voxkb.localization:ja-JP-jis",
+      "preferred": {
+        "characters": "com.voxkb.layouts:jis",
+        "symbols": "com.voxkb.layouts:cjk",
+        "symbols2": "com.voxkb.layouts:cjk",
+        "numericRow": "com.voxkb.layouts:cjk"
+      }
+    },
+    {
+      "languageTag": "th-kd",
+      "composer": "com.voxkb.composers:appender",
+      "currencySet": "com.voxkb.currencysets:thai_baht",
+      "preferred": {
+        "characters": "com.voxkb.layouts:thai_kedmanee",
+        "numericRow": "com.voxkb.layouts:thai"
+      }
+    },
+    {
+      "languageTag": "vi-VN",
+      "composer": "com.voxkb.composers:telex",
+      "currencySet": "com.voxkb.currencysets:vietnamese_dong",
+      "popupMapping": "com.voxkb.localization:vi-VN",
+      "preferred": {
+        "characters": "com.voxkb.layouts:qwerty"
+      }
+    },
+    {
+      "languageTag": "ig-NG",
+      "composer": "com.voxkb.composers:appender",
+      "currencySet": "com.voxkb.currencysets:nigerian_naira",
+      "preferred": {
+        "characters": "com.voxkb.layouts:igbo"
+      }
+    },
+    {
+      "languageTag": "hoc",
+      "composer": "com.voxkb.composers:appender",
+      "currencySet": "com.voxkb.currencysets:indian_rupee",
+      "preferred": {
+        "characters": "com.voxkb.layouts:warang_citi",
+        "numericRow": "com.voxkb.layouts:warang_citi"
+      }
+    },
+    {
+      "languageTag": "udm",
+      "composer": "com.voxkb.composers:appender",
+      "currencySet": "com.voxkb.currencysets:russian_ruble",
+      "popupMapping": "com.voxkb.localization:udm",
+      "preferred": {
+        "characters": "com.voxkb.layouts:udmurt_extended"
+      }
+    },
+    {
+      "languageTag": "ur-PK",
+      "composer": "com.voxkb.composers:appender",
+      "currencySet": "com.voxkb.currencysets:pakistani_rupee",
+      "popupMapping": "com.voxkb.localization:ur-PK",
+      "preferred": {
+        "characters": "com.voxkb.layouts:urdu_phonetic"
+      }
+    },
+    {
+      "languageTag": "zh-CN-zhengma",
+      "composer": "com.voxkb.composers:appender",
+      "nlpProviders": {
+        "spelling": "com.voxkb.nlp.providers.han.shape",
+        "suggestion": "com.voxkb.nlp.providers.han.shape"
+      },
+      "currencySet": "com.voxkb.currencysets:yen",
+      "popupMapping": "com.voxkb.localization:cjk",
+      "preferred": {
+        "characters": "com.voxkb.layouts:qwerty",
+        "symbols": "com.voxkb.layouts:cjk",
+        "symbols2": "com.voxkb.layouts:cjk"
+      }
+    },
+	  {
+      "languageTag": "bn-BD",
+      "composer": "com.voxkb.composers:appender",
+      "currencySet": "com.voxkb.currencysets:bangladeshi_taka",
+      "popupMapping": "com.voxkb.localization:bn-BD",
+      "preferred": {
+        "characters": "com.voxkb.layouts:bengali_bd",
+        "numericRow": "com.voxkb.layouts:bengali",
+        "numericAdvanced": "com.voxkb.layouts:bengali"
+      }
+    },
+    {
+      "languageTag": "hi-IN",
+      "composer": "com.voxkb.composers:appender",
+      "currencySet": "com.voxkb.currencysets:indian_rupee",
+      "popupMapping": "com.voxkb.localization:hi-IN",
+      "preferred": {
+        "characters": "com.voxkb.layouts:hindi_in",
+        "numericRow": "com.voxkb.layouts:devanagari"
+      }
+    },
+    {
+      "languageTag": "ast",
+      "composer": "com.voxkb.composers:appender",
+      "currencySet": "com.voxkb.currencysets:euro",
+      "popupMapping": "com.voxkb.localization:ast",
+      "preferred": {
+        "characters": "com.voxkb.layouts:qwerty"
+      }
+    },
+    {
+      "languageTag": "ta-lk",
+      "composer": "com.voxkb.composers:appender",
+      "currencySet": "com.voxkb.currencysets:indian_rupee",
+      "preferred": {
+        "characters": "com.voxkb.layouts:tamil"
+      }
+    },
+    {
+      "languageTag": "kab",
+      "composer": "com.voxkb.composers:appender",
+      "currencySet": "com.voxkb.currencysets:euro",
+      "popupMapping": "com.voxkb.localization:kab",
+      "preferred": {
+        "characters": "com.voxkb.layouts:qwerty"
+      }
+    }
+  ]
+}

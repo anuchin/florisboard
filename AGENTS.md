@@ -1,4 +1,4 @@
-# FlorisBoard
+# VoxKB
 
 Free, open-source Android keyboard (Kotlin + Jetpack Compose). Multi-module Gradle build, targets Android 8+ (minSdk 26, compileSdk/targetSdk 36). AGP 9.0.0, Kotlin 2.3.20, JDK 17.
 
@@ -7,7 +7,7 @@ Free, open-source Android keyboard (Kotlin + Jetpack Compose). Multi-module Grad
 - Manual build (matches CI): `./gradlew clean && ./gradlew assembleDebug --stacktrace`
 - Build types: `debug` (appId suffix `.debug`, installs side-by-side with stable), `beta` (appId suffix `.beta`), `release`, `benchmark` (appId suffix `.bench`).
 - Library modules: `:lib:android`, `:lib:color`, `:lib:compose`, `:lib:kotlin`, `:lib:native`, `:lib:snygg`. App depends on all of them.
-- App entrypoint modules under `app/`: the IME service `dev.patrickgold.florisboard.FlorisImeService` and the app class `dev.patrickgold.florisboard.FlorisApplication` (see `app/src/main/AndroidManifest.xml`).
+- App entrypoint modules under `app/`: the IME service `com.voxkb.VoxKBImeService` and the app class `com.voxkb.VoxKBApplication` (see `app/src/main/AndroidManifest.xml`).
 - Lint baseline: `app/lint.xml`. Run `./gradlew :app:lintDebug`.
 - System requirements: Linux or WSL2, 16GB RAM, Android Studio (or IntelliJ + Android/Compose plugins), JDK 17, CMake 3.22+, Clang 15+, Rust toolchain. IntelliJ users must enable "Future AGP Versions" or AGP 9.0.0 will not sync (see CONTRIBUTING.md).
 
@@ -16,13 +16,13 @@ Free, open-source Android keyboard (Kotlin + Jetpack Compose). Multi-module Grad
 - JUnit 5 platform (`useJUnitPlatform`). Frameworks: Kotest 6, Turbine, kotlinx-coroutines-test.
 - Run all unit tests: `./gradlew test`.
 - Run a single module: `./gradlew :app:testDebugUnitTest` (or `:lib:snygg:testDebugUnitTest`, etc.).
-- Run a single test class/method: `./gradlew :app:testDebugUnitTest --tests "dev.patrickgold.florisboard.SomeTest" --tests "*.<methodName>"`.
+- Run a single test class/method: `./gradlew :app:testDebugUnitTest --tests "com.voxkb.SomeTest" --tests "*.<methodName>"`.
 - Coverage via Kover (`./gradlew koverXmlReport` / `koverHtmlReport`).
 - Instrumentation tests live in `app/src/androidTest` and `app/src/test`; use Espresso/ext-junit for androidTest.
 
 ## Repository layout
 
-- `app/` — application module, namespace `dev.patrickgold.florisboard`.
+- `app/` — application module, namespace `com.voxkb`.
 - `lib/*` — internal libraries (UI, theming/Snygg, color, native bridge, kotlin utils, android base).
 - `libnative/dummy/` — a placeholder native module (not included in `settings.gradle.kts`); real native code lives in `lib/native/src/main/rust/` and is built via CMake target `fl_native`.
 - `benchmark/` — currently excluded from `settings.gradle.kts` (commented out).
@@ -44,8 +44,8 @@ Free, open-source Android keyboard (Kotlin + Jetpack Compose). Multi-module Grad
 
 ## CI (`.github/workflows/`)
 
-- `android.yml` — runs on push to `main` and `feature/*`, and on PRs to `main`. Builds with JDK 17 + CMake/Ninja, then `./gradlew assembleDebug --stacktrace`. Uploads `app/build/outputs/apk/debug/*.apk` as the `florisboard-debug-apk` artifact. Many doc-only paths are `paths-ignore`d. Submodules are checked out recursively.
-- `validate-strings-no-translations.yml` — fails any PR that touches `app/src/main/res/values-*/strings.xml` (skips the `florisboard-bot` bot).
+- `android.yml` — runs on push to `main` and `feature/*`, and on PRs to `main`. Builds with JDK 17 + CMake/Ninja, then `./gradlew assembleDebug --stacktrace`. Uploads `app/build/outputs/apk/debug/*.apk` as the `voxkb-debug-apk` artifact. Many doc-only paths are `paths-ignore`d. Submodules are checked out recursively.
+- `validate-strings-no-translations.yml` — fails any PR that touches `app/src/main/res/values-*/strings.xml` (skips the `voxkb-bot` bot).
 - `crowdin-upload.yml` — managed by the bot; do not invoke manually.
 
 ## Style & conventions

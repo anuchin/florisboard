@@ -15,11 +15,11 @@ jobs:
         id: precheck
         run: |
           pr_author="${{ github.event.pull_request.user.login }}"
-          if [[ "$pr_author" == "florisboard-bot" ]]; then
-            echo "PR is by florisboard-bot, skipping validation!"
+          if [[ "$pr_author" == "voxkb-bot" ]]; then
+            echo "PR is by voxkb-bot, skipping validation!"
             echo "require_validation=false" >> "$GITHUB_OUTPUT"
           else
-            echo "PR is not by florisboard-bot, requiring validation!"
+            echo "PR is not by voxkb-bot, requiring validation!"
             echo "require_validation=true" >> "$GITHUB_OUTPUT"
           fi
 
@@ -58,7 +58,7 @@ jobs:
 
             Hey there!
 
-            We detected illegal changes that disobey the [contribution guidelines](https://github.com/florisboard/florisboard/blob/main/CONTRIBUTING.md#translation). This is a kind reminder that pull requests must not contain translated `strings.xml` files, as those are exclusively managed from Crowdin.
+            We detected illegal changes that disobey the [contribution guidelines](https://github.com/voxkb/voxkb/blob/main/CONTRIBUTING.md#translation). This is a kind reminder that pull requests must not contain translated `strings.xml` files, as those are exclusively managed from Crowdin.
 
             Please remove changes to the following files:
             ```

@@ -1,0 +1,49 @@
+{
+  "$": "ime.extension.theme",
+  "meta": {
+    "id": "com.voxkb.themes.my",
+    "version": "0.2.0",
+    "title": "VoxKB default themes (Material You)",
+    "description": "Default Material You themes (both day and night) for the keyboard UI",
+    "maintainers": [ "patrickgold <patrick@patrickgold.dev>", "lm41 <lm41@lm41.xyz>" ],
+    "license": "apache-2.0"
+  },
+  "themes": [
+    {
+      "id": "voxkb_day_my",
+      "label": "VoxKB Day (Material You)",
+      "authors": [ "lm41" ],
+      "isNight": false
+    },
+    {
+      "id": "voxkb_day_my_borderless",
+      "label": "VoxKB Day Borderless (Material You)",
+      "authors": [ "lm41" ],
+      "isNight": false
+    },
+    {
+      "id": "voxkb_night_my",
+      "label": "VoxKB Night (Material You)",
+      "authors": [ "lm41" ],
+      "isNight": true
+    },
+    {
+      "id": "voxkb_night_my_borderless",
+      "label": "VoxKB Night Borderless (Material You)",
+      "authors": [ "lm41" ],
+      "isNight": true
+    },
+    {
+      "id": "voxkb_pure_night_my",
+      "label": "VoxKB Pure Night (Material You)",
+      "authors": [ "lm41" ],
+      "isNight": true
+    },
+    {
+      "id": "voxkb_pure_night_my_borderless",
+      "label": "VoxKB Pure Night Borderless (Material You)",
+      "authors": [ "lm41" ],
+      "isNight": true
+    }
+  ]
+}

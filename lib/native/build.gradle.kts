@@ -2,7 +2,7 @@ import com.android.build.api.dsl.LibraryExtension
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 /*
- * Copyright (C) 2025 The FlorisBoard Contributors
+ * Copyright (C) 2025 The VoxKB Contributors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -31,7 +31,7 @@ kotlin {
 }
 
 configure<LibraryExtension> {
-    namespace = "org.florisboard.libnative"
+    namespace = "com.voxkb.libnative"
     compileSdk = projectCompileSdk.toInt()
     ndkVersion = tools.versions.ndk.get()
 

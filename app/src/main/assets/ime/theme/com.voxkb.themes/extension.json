@@ -1,0 +1,49 @@
+{
+  "$": "ime.extension.theme",
+  "meta": {
+    "id": "com.voxkb.themes",
+    "version": "0.2.0",
+    "title": "VoxKB default themes",
+    "description": "Default themes (both day and night) for the keyboard UI",
+    "maintainers": [ "patrickgold <patrick@patrickgold.dev>", "lm41 <lm41@lm41.xyz>" ],
+    "license": "apache-2.0"
+  },
+  "themes": [
+    {
+      "id": "voxkb_day",
+      "label": "VoxKB Day",
+      "authors": [ "patrickgold" ],
+      "isNight": false
+    },
+    {
+      "id": "voxkb_day_borderless",
+      "label": "VoxKB Day (Borderless)",
+      "authors": [ "patrickgold" ],
+      "isNight": false
+    },
+    {
+      "id": "voxkb_night",
+      "label": "VoxKB Night",
+      "authors": [ "patrickgold" ],
+      "isNight": true
+    },
+    {
+      "id": "voxkb_night_borderless",
+      "label": "VoxKB Night (Borderless)",
+      "authors": [ "patrickgold" ],
+      "isNight": true
+    },
+    {
+      "id": "voxkb_pure_night",
+      "label": "VoxKB Pure Night",
+      "authors": [ "serebit" ],
+      "isNight": true
+    },
+    {
+      "id": "voxkb_pure_night_borderless",
+      "label": "VoxKB Pure Night (Borderless)",
+      "authors": [ "serebit" ],
+      "isNight": true
+    }
+  ]
+}

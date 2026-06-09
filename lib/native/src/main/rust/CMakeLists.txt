@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.22)
 
-project(florisboard)
+project(voxkb)
 
 if(CMAKE_HOST_WIN32)
     set(USER_HOME "$ENV{USERPROFILE}")
@@ -16,7 +16,7 @@ else()
     message(STATUS "Using Rust toolchain: ${RUSTUP_EXECUTABLE}")
 endif()
 
-### FlorisBoard ###
+### VoxKB ###
 
 add_library(fl_native SHARED src/lib.c)
 

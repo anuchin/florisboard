@@ -1,19 +1,19 @@
 <img align="left" width="80" height="80"
 src=".github/repo_icon.png" alt="App icon">
 
-# FlorisBoard [![Crowdin](https://badges.crowdin.net/florisboard/localized.svg)](https://crowdin.florisboard.org) [![Matrix badge](https://img.shields.io/badge/chat-%23florisboard%3amatrix.org-blue)](https://matrix.to/#/#florisboard:matrix.org) [![Contributor Covenant](https://img.shields.io/badge/Contributor%20Covenant-2.1-4baaaa.svg)](CODE_OF_CONDUCT.md) [![FlorisBoard CI](https://github.com/florisboard/florisboard/actions/workflows/android.yml/badge.svg?event=push)](https://github.com/florisboard/florisboard/actions/workflows/android.yml)
+# VoxKB [![Crowdin](https://badges.crowdin.net/voxkb/localized.svg)](https://crowdin.voxkb.org) [![Matrix badge](https://img.shields.io/badge/chat-%23voxkb%3amatrix.org-blue)](https://matrix.to/#/#voxkb:matrix.org) [![Contributor Covenant](https://img.shields.io/badge/Contributor%20Covenant-2.1-4baaaa.svg)](CODE_OF_CONDUCT.md) [![VoxKB CI](https://github.com/voxkb/voxkb/actions/workflows/android.yml/badge.svg?event=push)](https://github.com/voxkb/voxkb/actions/workflows/android.yml)
 
-**FlorisBoard** is a free and open-source keyboard for Android 8.0+
+**VoxKB** is a free and open-source keyboard for Android 8.0+
 devices. It aims at being modern, user-friendly and customizable while
 fully respecting your privacy. Currently in beta state.
 
 <table>
 <tr>
 <th style="text-align: center; width: 50%">
-<h3>Stable <a href="https://github.com/florisboard/florisboard/releases/latest"><img alt="Latest stable release" src="https://img.shields.io/github/v/release/florisboard/florisboard?sort=semver&display_name=tag&color=28a745"></a></h3>
+<h3>Stable <a href="https://github.com/voxkb/voxkb/releases/latest"><img alt="Latest stable release" src="https://img.shields.io/github/v/release/voxkb/voxkb?sort=semver&display_name=tag&color=28a745"></a></h3>
 </th>
 <th style="text-align: center; width: 50%">
-<h3>Preview <a href="https://github.com/florisboard/florisboard/releases"><img alt="Latest preview release" src="https://img.shields.io/github/v/release/florisboard/florisboard?include_prereleases&sort=semver&display_name=tag&color=fd7e14"></a></h3>
+<h3>Preview <a href="https://github.com/voxkb/voxkb/releases"><img alt="Latest preview release" src="https://img.shields.io/github/v/release/voxkb/voxkb?include_prereleases&sort=semver&display_name=tag&color=fd7e14"></a></h3>
 </th>
 </tr>
 <tr>
@@ -27,12 +27,12 @@ fully respecting your privacy. Currently in beta state.
 <tr>
 <td style="vertical-align: top">
 <p>
-<a href="https://apt.izzysoft.de/fdroid/index/apk/dev.patrickgold.florisboard"><img src="https://gitlab.com/IzzyOnDroid/repo/-/raw/master/assets/IzzyOnDroid.png" height="64" alt="IzzySoft repo badge"></a>
-<a href="https://f-droid.org/packages/dev.patrickgold.florisboard"><img src="https://fdroid.gitlab.io/artwork/badge/get-it-on.png" height="64" alt="F-Droid badge"></a>
+<a href="https://apt.izzysoft.de/fdroid/index/apk/com.voxkb"><img src="https://gitlab.com/IzzyOnDroid/repo/-/raw/master/assets/IzzyOnDroid.png" height="64" alt="IzzySoft repo badge"></a>
+<a href="https://f-droid.org/packages/com.voxkb"><img src="https://fdroid.gitlab.io/artwork/badge/get-it-on.png" height="64" alt="F-Droid badge"></a>
 </p>
 <p>
 
-**Google Play**: Join the [FlorisBoard Test Group](https://groups.google.com/g/florisboard-closed-beta-test), then visit the [testing page](https://play.google.com/apps/testing/dev.patrickgold.florisboard). Once joined and installed, updates will be delivered like for any other app. ([Store entry](https://play.google.com/store/apps/details?id=dev.patrickgold.florisboard))
+**Google Play**: Join the [VoxKB Test Group](https://groups.google.com/g/voxkb-closed-beta-test), then visit the [testing page](https://play.google.com/apps/testing/com.voxkb). Once joined and installed, updates will be delivered like for any other app. ([Store entry](https://play.google.com/store/apps/details?id=com.voxkb))
 
 </p>
 <p>
@@ -47,10 +47,10 @@ fully respecting your privacy. Currently in beta state.
 </p>
 </td>
 <td style="vertical-align: top">
-<p><a href="https://apt.izzysoft.de/fdroid/index/apk/dev.patrickgold.florisboard.beta"><img src="https://gitlab.com/IzzyOnDroid/repo/-/raw/master/assets/IzzyOnDroid.png" height="64" alt="IzzySoft repo badge"></a></p>
+<p><a href="https://apt.izzysoft.de/fdroid/index/apk/com.voxkb.beta"><img src="https://gitlab.com/IzzyOnDroid/repo/-/raw/master/assets/IzzyOnDroid.png" height="64" alt="IzzySoft repo badge"></a></p>
 <p>
 
-**Google Play**: Join the [FlorisBoard Test Group](https://groups.google.com/g/florisboard-closed-beta-test), then visit the [preview testing page](https://play.google.com/apps/testing/dev.patrickgold.florisboard.beta). Once joined and installed, updates will be delivered like for any other app. ([Store entry](https://play.google.com/store/apps/details?id=dev.patrickgold.florisboard.beta))
+**Google Play**: Join the [VoxKB Test Group](https://groups.google.com/g/voxkb-closed-beta-test), then visit the [preview testing page](https://play.google.com/apps/testing/com.voxkb.beta). Once joined and installed, updates will be delivered like for any other app. ([Store entry](https://play.google.com/store/apps/details?id=com.voxkb.beta))
 
 </p>
 <p>
@@ -67,7 +67,7 @@ fully respecting your privacy. Currently in beta state.
 </tr>
 </table>
 
-Beginning with v0.7 FlorisBoard will enter the public beta on Google Play.
+Beginning with v0.7 VoxKB will enter the public beta on Google Play.
 
 ## Highlighted features
 - Integrated clipboard manager / history
@@ -82,12 +82,12 @@ Beginning with v0.7 FlorisBoard will enter the public beta on Google Play.
 Feature roadmap: See [ROADMAP.md](ROADMAP.md)
 
 ## Contributing
-Want to contribute to FlorisBoard? That's great to hear! There are lots of
+Want to contribute to VoxKB? That's great to hear! There are lots of
 different ways to help out, please see the [contribution guidelines](CONTRIBUTING.md) for more info.
 
 ## Addons Store
-The official [Addons Store](https://beta.addons.florisboard.org) offers the possibility for the community to share and download FlorisBoard extensions.
-Instructions on how to publish addons can be found [here](https://github.com/florisboard/florisboard/wiki/How-to-publish-on-FlorisBoard-Addons).
+The official [Addons Store](https://beta.addons.voxkb.org) offers the possibility for the community to share and download VoxKB extensions.
+Instructions on how to publish addons can be found [here](https://github.com/voxkb/voxkb/wiki/How-to-publish-on-VoxKB-Addons).
 
 Many thanks to Ali ([@4H1R](https://github.com/4H1R)) for implementing the store!
 
@@ -95,23 +95,23 @@ Many thanks to Ali ([@4H1R](https://github.com/4H1R)) for implementing the store
 > During the initial beta release phase, the Addons Store _will_ only accept theme extensions.
 > Later on we plan to add support for language packs and keyboard extensions.
 
-## List of permissions FlorisBoard requests
-Please refer to this [page](https://github.com/florisboard/florisboard/wiki/List-of-permissions-FlorisBoard-requests)
+## List of permissions VoxKB requests
+Please refer to this [page](https://github.com/voxkb/voxkb/wiki/List-of-permissions-VoxKB-requests)
 to get more information on this topic.
 
 ## APK signing certificate hashes
 
-The package names and SHA-256 hashes of the signature certificate are listed below, so you can verify both FlorisBoard variants with apksigner by using `apksigner verify --print-certs florisboard-<version>-<track>.apk` when you download the APK.
+The package names and SHA-256 hashes of the signature certificate are listed below, so you can verify both VoxKB variants with apksigner by using `apksigner verify --print-certs voxkb-<version>-<track>.apk` when you download the APK.
 If you have [AppVerifier](https://github.com/soupslurpr/AppVerifier) installed, you can alternatively copy both the package name and the hash of the corresponding track and share them to AppVerifier.
 
 ##### Stable track:
 
-dev.patrickgold.florisboard<br>
+com.voxkb<br>
 0B:80:71:64:50:8E:AF:EB:1F:BB:81:5B:E7:A2:3C:77:FE:68:9D:94:B1:43:75:C9:9B:DA:A9:B6:57:7F:D6:D6
 
 ##### Preview track:
 
-dev.patrickgold.florisboard.beta<br>
+com.voxkb.beta<br>
 0B:80:71:64:50:8E:AF:EB:1F:BB:81:5B:E7:A2:3C:77:FE:68:9D:94:B1:43:75:C9:9B:DA:A9:B6:57:7F:D6:D6
 
 
@@ -133,7 +133,7 @@ Many thanks to [Nikolay Anzarov](https://www.behance.net/nikolayanzarov) ([@Bloo
 
 ## License
 ```
-Copyright 2020-2026 The FlorisBoard Contributors
+Copyright 2020-2026 The VoxKB Contributors
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -148,11 +148,11 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ```
 
-Thanks to [The FlorisBoard Contributors](https://github.com/florisboard/florisboard/graphs/contributors) for making this project possible!
+Thanks to [The VoxKB Contributors](https://github.com/voxkb/voxkb/graphs/contributors) for making this project possible!
 
 <!-- BEGIN SECTION: obtainium_links -->
 <!-- auto-generated link templates, do NOT edit by hand -->
 <!-- see fastlane/update-readme.sh -->
-[obtainium_preview]: https://apps.obtainium.imranr.dev/redirect.html?r=obtainium://app/%7B%22id%22%3A%22dev.patrickgold.florisboard.beta%22%2C%22url%22%3A%22https%3A%2F%2Fgithub.com%2Fflorisboard%2Fflorisboard%22%2C%22author%22%3A%22florisboard%22%2C%22name%22%3A%22FlorisBoard%20Preview%22%2C%22additionalSettings%22%3A%22%7B%5C%22includePrereleases%5C%22%3Atrue%2C%5C%22fallbackToOlderReleases%5C%22%3Atrue%2C%5C%22apkFilterRegEx%5C%22%3A%5C%22preview%5C%22%7D%22%7D%0A
-[obtainium_stable]: https://apps.obtainium.imranr.dev/redirect.html?r=obtainium://app/%7B%22id%22%3A%22dev.patrickgold.florisboard%22%2C%22url%22%3A%22https%3A%2F%2Fgithub.com%2Fflorisboard%2Fflorisboard%22%2C%22author%22%3A%22florisboard%22%2C%22name%22%3A%22FlorisBoard%20Stable%22%2C%22additionalSettings%22%3A%22%7B%5C%22includePrereleases%5C%22%3Afalse%2C%5C%22fallbackToOlderReleases%5C%22%3Atrue%2C%5C%22apkFilterRegEx%5C%22%3A%5C%22stable%5C%22%7D%22%7D%0A
+[obtainium_preview]: https://apps.obtainium.imranr.dev/redirect.html?r=obtainium://app/%7B%22id%22%3A%22com.voxkb.beta%22%2C%22url%22%3A%22https%3A%2F%2Fgithub.com%2Fvoxkb%2Fvoxkb%22%2C%22author%22%3A%22voxkb%22%2C%22name%22%3A%22VoxKB%20Preview%22%2C%22additionalSettings%22%3A%22%7B%5C%22includePrereleases%5C%22%3Atrue%2C%5C%22fallbackToOlderReleases%5C%22%3Atrue%2C%5C%22apkFilterRegEx%5C%22%3A%5C%22preview%5C%22%7D%22%7D%0A
+[obtainium_stable]: https://apps.obtainium.imranr.dev/redirect.html?r=obtainium://app/%7B%22id%22%3A%22com.voxkb%22%2C%22url%22%3A%22https%3A%2F%2Fgithub.com%2Fvoxkb%2Fvoxkb%22%2C%22author%22%3A%22voxkb%22%2C%22name%22%3A%22VoxKB%20Stable%22%2C%22additionalSettings%22%3A%22%7B%5C%22includePrereleases%5C%22%3Afalse%2C%5C%22fallbackToOlderReleases%5C%22%3Atrue%2C%5C%22apkFilterRegEx%5C%22%3A%5C%22stable%5C%22%7D%22%7D%0A
 <!-- END SECTION: obtainium_links -->
