@@ -5,7 +5,7 @@ use jni::sys::jint;
 use jni::JNIEnv;
 
 #[no_mangle]
-pub extern "system" fn Java_org_voxkb_libnative_TestKt_dummyAdd(
+pub extern "system" fn Java_com_voxkb_libnative_TestKt_dummyAdd(
     _env: JNIEnv,
     _class: JClass,
     a: jint,
