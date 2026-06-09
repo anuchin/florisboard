@@ -95,7 +95,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
-import androidx.compose.ui.graphics.Stroke
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
@@ -331,13 +331,14 @@ private fun VoiceTopBar(
         Spacer(modifier = Modifier.weight(1f))
 
         if (timerAlpha > 0.01f) {
+            val listeningDesc = stringResource(R.string.voice__listening)
             SnyggText(
                 elementName = VoxKBImeUi.VoiceInputRoot.elementName,
                 text = formatDuration(durationMs),
                 modifier = Modifier
                     .graphicsLayer { alpha = timerAlpha }
                     .semantics {
-                        contentDescription = stringResource(R.string.voice__listening)
+                        contentDescription = listeningDesc
                     },
             )
         }
