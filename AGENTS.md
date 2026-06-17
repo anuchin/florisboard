@@ -31,7 +31,6 @@ Free, open-source Android keyboard (Kotlin + Jetpack Compose). Multi-module Grad
 
 ## Critical constraints (read before editing)
 
-- **AI policy (`AI_POLICY.md`)** is strict and is part of the contribution agreement. Autonomous AI agent contributions are prohibited, and any code, comments, commit messages, or PR descriptions must be human-authored. Machine translation and dedicated narrow-AI spellcheckers are the only AI exceptions (must be disclosed in the PR's first comment). The PR template requires the contributor to confirm they read both `CONTRIBUTING.md` and `AI_POLICY.md`.
 - **Translations are Crowdin-only.** Never add or edit files matching `app/src/main/res/values-*/strings.xml` — the `validate-strings-no-translations.yml` workflow will fail the PR. The base `app/src/main/res/values/strings.xml` is the source of truth that Crowdin syncs against. `app/lint.xml` downgrades `ExtraTranslation` to a warning for the same reason.
 
 ## Generated / owned artifacts (do not hand-edit)

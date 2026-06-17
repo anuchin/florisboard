@@ -42,6 +42,9 @@ val VoxKBImeThemeBaseStyle = SnyggStylesheet.v2 {
         "--on-background" to rgbaColor(255, 255, 255)
         "--on-background-disabled" to rgbaColor(80, 80, 80)
         "--on-surface" to rgbaColor(255, 255, 255)
+        "--error" to rgbaColor(211, 47, 47)
+        "--on-error" to rgbaColor(255, 255, 255)
+        "--warning" to rgbaColor(255, 152, 0)
 
         "--shape" to roundedCornerShape(8.dp)
         "--shape-variant" to roundedCornerShape(12.dp)
@@ -427,8 +430,14 @@ val VoxKBImeThemeBaseStyle = SnyggStylesheet.v2 {
     VoxKBImeUi.VoiceMicButton.elementName(
         VoxKBImeUi.Attr.VoiceState to listOf("recording"),
     ) {
-        background = rgbaColor(211, 47, 47)
-        foreground = rgbaColor(255, 255, 255)
+        background = `var`("--error")
+        foreground = `var`("--on-error")
+    }
+    VoxKBImeUi.VoiceMicButton.elementName(
+        VoxKBImeUi.Attr.VoiceState to listOf("error"),
+    ) {
+        background = `var`("--error")
+        foreground = `var`("--on-error")
     }
 
     VoxKBImeUi.VoiceMicButtonIcon.elementName {
@@ -445,10 +454,25 @@ val VoxKBImeThemeBaseStyle = SnyggStylesheet.v2 {
         foreground = `var`("--primary")
         fontSize = fontSize(14.sp)
     }
+    VoxKBImeUi.VoiceWaveform.elementName(
+        VoxKBImeUi.Attr.VoiceState to listOf("recording"),
+    ) {
+        foreground = `var`("--primary")
+    }
+    VoxKBImeUi.VoiceWaveform.elementName(
+        VoxKBImeUi.Attr.VoiceState to listOf("clipping"),
+    ) {
+        foreground = `var`("--warning")
+    }
 
     VoxKBImeUi.VoiceProcessing.elementName {
         foreground = `var`("--on-background")
         fontSize = fontSize(14.sp)
+    }
+    VoxKBImeUi.VoiceProcessing.elementName(
+        VoxKBImeUi.Attr.VoiceState to listOf("error"),
+    ) {
+        foreground = `var`("--error")
     }
 
     VoxKBImeUi.VoiceTranscriptBox.elementName {

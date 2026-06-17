@@ -10,7 +10,6 @@ on:
       - ".dockerignore"
       - ".editorconfig"
       - "fastlane/**"
-      - "AI_POLICY.md"
       - "CODE_OF_CONDUCT.md"
       - "CONTRIBUTING.md"
       - "LICENSE"

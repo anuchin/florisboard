@@ -45,7 +45,5 @@ body:
           required: true
         - label: "I have read and understood the [contribution guidelines](https://github.com/voxkb/voxkb/blob/main/CONTRIBUTING.md)."
           required: true
-        - label: "I have read and understood the [AI policy](https://github.com/voxkb/voxkb/blob/main/AI_POLICY.md)."
-          required: true
         - label: "I have taken the time to fill in all the required details. I understand that the crash report will be dismissed otherwise."
           required: true

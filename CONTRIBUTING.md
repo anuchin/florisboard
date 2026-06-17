@@ -4,7 +4,7 @@ Thanks for considering contributing to VoxKB!
 
 There are several ways to contribute to VoxKB. This document provides some general guidelines for each type of contribution.
 
-The VoxKB community is international, as such we require all contributions, including issues, pull requests, and participation in the Matrix chat to be in English, follow the [code of conduct](https://github.com/voxkb/voxkb/blob/main/CODE_OF_CONDUCT.md), and adhere to our current [AI Policy](https://github.com/voxkb/voxkb/blob/main/AI_POLICY.md). Contributions not adhering to these requirements will be dismissed. Thanks for making the VoxKB community an inclusive and safe space for everyone!
+The VoxKB community is international, as such we require all contributions, including issues, pull requests, and participation in the Matrix chat to be in English and follow the [code of conduct](https://github.com/voxkb/voxkb/blob/main/CODE_OF_CONDUCT.md). Contributions not adhering to these requirements will be dismissed. Thanks for making the VoxKB community an inclusive and safe space for everyone!
 
 ## Non-code contributions
 

@@ -9,4 +9,3 @@ For each change in the pull request, a workflow is run, which produces a debug a
 ## Checklist
 
 - [ ] I have read and understood the [contribution guidelines](https://github.com/voxkb/voxkb/blob/main/CONTRIBUTING.md).
-- [ ] I have read and understood the [AI policy](https://github.com/voxkb/voxkb/blob/main/AI_POLICY.md).

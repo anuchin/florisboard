@@ -68,7 +68,6 @@ import androidx.compose.material.icons.filled.Send
 import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material.icons.filled.Undo
 import androidx.compose.material.icons.outlined.AutoAwesome
-import androidx.compose.material.icons.outlined.KeyboardArrowDown
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -233,33 +232,16 @@ private fun VoiceTopBar(
         modifier = Modifier
             .fillMaxWidth()
             .height(44.dp)
-            .padding(horizontal = 16.dp),
+            .padding(horizontal = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Box {
-            SnyggButton(
-                elementName = VoxKBImeUi.VoiceTopBar.elementName,
+            SnyggChip(
+                elementName = VoxKBImeUi.VoiceChip.elementName,
                 onClick = { showDropdown = true },
-            ) {
-                SnyggIcon(
-                    elementName = VoxKBImeUi.VoiceTopBar.elementName,
-                    imageVector = Icons.Outlined.AutoAwesome,
-                    contentDescription = null,
-                    modifier = Modifier.size(14.dp),
-                )
-                Spacer(modifier = Modifier.width(4.dp))
-                SnyggText(
-                    elementName = VoxKBImeUi.VoiceTopBar.elementName,
-                    text = toneStyle.displayName(),
-                )
-                Spacer(modifier = Modifier.width(2.dp))
-                SnyggIcon(
-                    elementName = VoxKBImeUi.VoiceTopBar.elementName,
-                    imageVector = Icons.Outlined.KeyboardArrowDown,
-                    contentDescription = null,
-                    modifier = Modifier.size(14.dp),
-                )
-            }
+                imageVector = Icons.Outlined.AutoAwesome,
+                text = toneStyle.displayName(),
+            )
 
             DropdownMenu(
                 expanded = showDropdown,
@@ -268,11 +250,14 @@ private fun VoiceTopBar(
                 ToneStyle.entries.forEach { tone ->
                     DropdownMenuItem(
                         text = {
-                            androidx.compose.material3.Text(tone.displayName())
+                            SnyggText(
+                                elementName = VoxKBImeUi.VoiceChipText.elementName,
+                                text = tone.displayName(),
+                            )
                         },
                         leadingIcon = {
                             SnyggIcon(
-                                elementName = VoxKBImeUi.VoiceTopBar.elementName,
+                                elementName = VoxKBImeUi.VoiceChip.elementName,
                                 imageVector = tone.icon,
                                 contentDescription = null,
                                 modifier = Modifier.size(18.dp),
@@ -303,7 +288,7 @@ private fun VoiceTopBar(
 
         val toggleStateAttr = if (refinementEnabled)
             mapOf(VoxKBImeUi.Attr.VoiceState to listOf("selected")) else emptyMap()
-        SnyggButton(
+        SnyggChip(
             elementName = VoxKBImeUi.VoiceEnhanceToggle.elementName,
             attributes = toggleStateAttr,
             onClick = {
@@ -312,21 +297,9 @@ private fun VoiceTopBar(
                     prefs.voice.refinementEnabled.set(!current)
                 }
             },
-        ) {
-            SnyggIcon(
-                elementName = VoxKBImeUi.VoiceEnhanceToggle.elementName,
-                attributes = toggleStateAttr,
-                imageVector = Icons.Outlined.AutoAwesome,
-                contentDescription = null,
-                modifier = Modifier.size(14.dp),
-            )
-            Spacer(modifier = Modifier.width(4.dp))
-            SnyggText(
-                elementName = VoxKBImeUi.VoiceEnhanceToggle.elementName,
-                attributes = toggleStateAttr,
-                text = if (refinementEnabled) "Refine" else "Raw",
-            )
-        }
+            imageVector = Icons.Outlined.AutoAwesome,
+            text = if (refinementEnabled) "Refine" else "Raw",
+        )
 
         Spacer(modifier = Modifier.weight(1f))
 
@@ -467,14 +440,28 @@ private fun RecordingStage(
             isActive = isRecording,
         )
 
-        VoiceMicButton(
-            isRecording = isRecording,
-            onPress = onStartRecording,
-            onRelease = onStopRecording,
-            onTap = {
-                if (isRecording) onStopRecording() else onStartRecording()
-            },
-        )
+        SnyggColumn(
+            elementName = VoxKBImeUi.VoiceInputRoot.elementName,
+            modifier = Modifier.fillMaxSize(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center,
+        ) {
+            VoiceMicButton(
+                isRecording = isRecording,
+                onPress = onStartRecording,
+                onRelease = onStopRecording,
+                onTap = {
+                    if (isRecording) onStopRecording() else onStartRecording()
+                },
+            )
+            Spacer(modifier = Modifier.height(20.dp))
+            SnyggText(
+                elementName = VoxKBImeUi.VoiceProcessing.elementName,
+                text = stringResource(
+                    if (isRecording) R.string.voice__listening else R.string.voice__tap_to_start
+                ),
+            )
+        }
     }
 }
 
@@ -562,11 +549,9 @@ private fun VoiceMicButton(
     )
 
     val bgColor = micStyle.background()
-    val borderColor = if (isRecording) {
-        Color(0xFFE53935)
-    } else {
-        Color(0xFF4A90D9)
-    }
+    // Border tracks the button's own theme color so it adapts to light/dark and
+    // custom themes instead of the previous hardcoded red/blue literals.
+    val borderColor = bgColor.copy(alpha = 0.65f)
 
     val micDesc = stringResource(
         if (isRecording) R.string.voice__stop_recording else R.string.voice__start_recording
@@ -633,9 +618,13 @@ private fun VoiceWaveform(
 ) {
     val rootStyle = rememberSnyggThemeQuery(VoxKBImeUi.VoiceInputRoot.elementName)
     val waveformStyle = rememberSnyggThemeQuery(VoxKBImeUi.VoiceWaveform.elementName)
+    val waveformClipStyle = rememberSnyggThemeQuery(
+        VoxKBImeUi.VoiceWaveform.elementName,
+        attributes = mapOf(VoxKBImeUi.Attr.VoiceState to listOf("clipping")),
+    )
     val foreground = rootStyle.foreground()
-    val accentBlue = waveformStyle.foreground()
-    val warningColor = Color(0xFFE53935)
+    val activeColor = waveformStyle.foreground()
+    val clippingColor = waveformClipStyle.foreground()
 
     val barCount = WAVEFORM_BAR_COUNT
     val barWidthDp = 4.dp
@@ -663,11 +652,14 @@ private fun VoiceWaveform(
 
     LaunchedEffect(isActive) {
         if (!isActive) {
+            // Smooth ease-out decay toward zero instead of the previous per-frame
+            // multiplicative stepping, which produced visible stair-stepping.
             while (true) {
                 var allZero = true
                 for (i in 0 until barCount) {
-                    val v = displayValues[i] * 0.7f
-                    displayValues[i] = if (v < 0.005f) 0f else v
+                    val v = displayValues[i]
+                    val next = v - (v * 0.18f + 0.01f)
+                    displayValues[i] = if (next < 0.004f) 0f else next
                     if (displayValues[i] > 0f) allZero = false
                 }
                 if (allZero) break
@@ -679,8 +671,10 @@ private fun VoiceWaveform(
     Canvas(modifier = Modifier.fillMaxSize()) {
         val totalWidth = barCount * (barWidthPx + barGapPx) - barGapPx
         val startX = (size.width - totalWidth) / 2f
-        val centerY = size.height * 0.55f
-        val maxBarH = size.height * 0.25f
+        // True vertical center (was 0.55f, which sat below the mic).
+        val centerY = size.height * 0.5f
+        // Capped so bars flank the 64dp mic rather than drawing over it.
+        val maxBarH = size.height * 0.18f
 
         for (i in 0 until barCount) {
             val v = displayValues[i]
@@ -689,8 +683,8 @@ private fun VoiceWaveform(
             val x = startX + i * (barWidthPx + barGapPx)
 
             val color = when {
-                shaped > 0.68f && isActive -> warningColor.copy(alpha = 0.3f + shaped * 0.7f)
-                isActive -> accentBlue.copy(alpha = 0.3f + shaped * 0.7f)
+                shaped > 0.68f && isActive -> clippingColor.copy(alpha = 0.3f + shaped * 0.7f)
+                isActive -> activeColor.copy(alpha = 0.3f + shaped * 0.7f)
                 else -> foreground.copy(alpha = 0.12f)
             }
 
@@ -921,9 +915,11 @@ private fun ErrorStage(
 ) {
     val showSettingsCta = message.contains("not configured", ignoreCase = true) ||
         message.contains("Settings", ignoreCase = true)
+    val errorAttr = mapOf(VoxKBImeUi.Attr.VoiceState to listOf("error"))
 
     SnyggColumn(
         elementName = VoxKBImeUi.VoiceProcessing.elementName,
+        attributes = errorAttr,
         modifier = Modifier
             .fillMaxSize()
             .padding(horizontal = 24.dp),
@@ -932,13 +928,13 @@ private fun ErrorStage(
     ) {
         SnyggBox(
             elementName = VoxKBImeUi.VoiceMicButton.elementName,
-            attributes = mapOf(VoxKBImeUi.Attr.VoiceState to listOf("recording")),
+            attributes = errorAttr,
             modifier = Modifier.size(64.dp),
             contentAlignment = Alignment.Center,
         ) {
             SnyggIcon(
                 elementName = VoxKBImeUi.VoiceMicButtonIcon.elementName,
-                attributes = mapOf(VoxKBImeUi.Attr.VoiceState to listOf("recording")),
+                attributes = errorAttr,
                 imageVector = Icons.Filled.Error,
                 contentDescription = null,
                 modifier = Modifier.size(32.dp),
@@ -949,6 +945,7 @@ private fun ErrorStage(
 
         SnyggText(
             elementName = VoxKBImeUi.VoiceProcessing.elementName,
+            attributes = errorAttr,
             text = stringResource(R.string.voice__error_title),
         )
 
@@ -1071,7 +1068,9 @@ private fun VoiceBottomBar(
     val switchDesc = stringResource(R.string.voice__switch_keyboard)
     val backspaceDesc = stringResource(R.string.voice__backspace)
     val undoDesc = stringResource(R.string.voice__undo)
-    val dividerColor = Color.White.copy(alpha = 0.12f)
+    val redoDesc = stringResource(R.string.voice__redo_desc)
+    val rootStyle = rememberSnyggThemeQuery(VoxKBImeUi.VoiceInputRoot.elementName)
+    val dividerColor = rootStyle.foreground().copy(alpha = 0.12f)
 
     SnyggRow(
         elementName = VoxKBImeUi.VoiceBottomBar.elementName,
@@ -1122,7 +1121,7 @@ private fun VoiceBottomBar(
             SnyggIcon(
                 elementName = VoxKBImeUi.VoiceBottomBarButton.elementName,
                 imageVector = Icons.Filled.Refresh,
-                contentDescription = null,
+                contentDescription = redoDesc,
                 modifier = Modifier.size(16.dp),
             )
         }
