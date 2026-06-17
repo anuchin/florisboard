@@ -118,6 +118,7 @@ import com.voxkb.keyboardManager
 import dev.patrickgold.jetpref.datastore.model.collectAsState
 import com.voxkb.lib.snygg.ui.SnyggBox
 import com.voxkb.lib.snygg.ui.SnyggButton
+import com.voxkb.lib.snygg.ui.SnyggChip
 import com.voxkb.lib.snygg.ui.SnyggColumn
 import com.voxkb.lib.snygg.ui.SnyggIcon
 import com.voxkb.lib.snygg.ui.SnyggIconButton
