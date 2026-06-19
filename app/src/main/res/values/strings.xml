@@ -1262,6 +1262,19 @@
     <string name="settings__voice__transcription_group" comment="Settings group title">Transcription Settings</string>
     <string name="settings__voice__language" comment="Preference title">Language</string>
     <string name="settings__voice__auto_detect" comment="Shown when language is set to auto-detect">Auto-detect</string>
+    <string name="settings__voice__review_before_insert" comment="Preference title">Review before insert</string>
+    <string name="settings__voice__review_before_insert_summary" comment="Preference summary">Show transcript for review before inserting into the text field</string>
+    <string name="settings__voice__animation_style" comment="Preference title">Animation style</string>
+    <string name="settings__voice__animation_style_dialog" comment="Dialog title">Recording animation</string>
+    <string name="settings__voice__language_dialog" comment="Dialog title">Transcription language</string>
+    <string name="settings__voice__language_manual" comment="Label for manual language code entry">Manual code</string>
+    <string name="settings__voice__prompt_default_preview" comment="Helper showing the default prompt">Default: %1$s</string>
+    <string name="settings__voice__prompt_char_count" comment="Character counter for the prompt editor">%1$d characters</string>
+    <string name="settings__voice__model_select_placeholder" comment="Placeholder in model dropdown">Select model…</string>
+    <string name="settings__voice__models_error_generic" comment="Shown when model fetch returns nothing">No models returned</string>
+    <string name="settings__voice__style_group_tones" comment="Group header in style picker">Tones</string>
+    <string name="settings__voice__style_group_formats" comment="Group header in style picker">Formats</string>
+    <string name="settings__voice__style_group_custom" comment="Group header in style picker">Custom</string>
     <string name="settings__voice__auto_commit" comment="Preference title">Auto-commit transcription</string>
     <string name="settings__voice__auto_commit_summary" comment="Preference summary">Automatically insert transcribed text into the input field</string>
     <string name="settings__voice__refinement_group" comment="Settings group title">Text Refinement</string>

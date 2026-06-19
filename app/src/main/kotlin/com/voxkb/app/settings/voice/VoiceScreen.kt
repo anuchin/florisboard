@@ -34,17 +34,30 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.FormatListBulleted
 import androidx.compose.material.icons.filled.Mic
+import androidx.compose.material.icons.filled.School
+import androidx.compose.material.icons.filled.ShortText
+import androidx.compose.material.icons.filled.SmartToy
+import androidx.compose.material.icons.filled.Tune
+import androidx.compose.material.icons.filled.Work
+import androidx.compose.material.icons.outlined.AutoAwesome
+import androidx.compose.material.icons.outlined.Chat
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material3.Badge
 import androidx.compose.material3.Button
@@ -53,12 +66,17 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -288,11 +306,11 @@ fun VoiceScreen() = VoxKBScreen {
             )
             SwitchPreference(
                 prefs.voice.reviewBeforeInsert,
-                title = "Review before insert",
-                summary = "Show transcript for review before inserting into text field",
+                title = stringRes(R.string.settings__voice__review_before_insert),
+                summary = stringRes(R.string.settings__voice__review_before_insert_summary),
             )
             Preference(
-                title = "Animation Style",
+                title = stringRes(R.string.settings__voice__animation_style),
                 summary = animationStyle.displayName(),
                 onClick = { showAnimationStyleDialog = true },
             )
@@ -480,8 +498,29 @@ fun VoiceScreen() = VoxKBScreen {
 
     if (showLanguageDialog) {
         var languageValue by remember { mutableStateOf(language) }
+        val autoDetectLabel = stringRes(R.string.settings__voice__auto_detect)
+        val commonLanguages = remember(autoDetectLabel) {
+            listOf(
+                "" to autoDetectLabel,
+                "en" to "English",
+                "es" to "Español",
+                "fr" to "Français",
+                "de" to "Deutsch",
+                "it" to "Italiano",
+                "pt" to "Português",
+                "nl" to "Nederlands",
+                "ru" to "Русский",
+                "ja" to "日本語",
+                "ko" to "한국어",
+                "zh" to "中文",
+                "hi" to "हिन्दी",
+                "ar" to "العربية",
+                "tr" to "Türkçe",
+                "pl" to "Polski",
+            )
+        }
         JetPrefAlertDialog(
-            title = stringRes(R.string.settings__voice__language),
+            title = stringRes(R.string.settings__voice__language_dialog),
             confirmLabel = stringRes(R.string.settings__voice__save),
             onConfirm = {
                 scope.launch { prefs.voice.language.set(languageValue.trim()) }
@@ -490,37 +529,89 @@ fun VoiceScreen() = VoxKBScreen {
             dismissLabel = stringRes(R.string.settings__voice__cancel),
             onDismiss = { showLanguageDialog = false },
         ) {
-            Column {
+            Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+                // Chip grid of common languages / Auto-detect.
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 12.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    commonLanguages.chunked(3).forEach { row ->
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            row.forEach { (code, label) ->
+                                val isSelected = code == languageValue
+                                FilterChip(
+                                    selected = isSelected,
+                                    onClick = { languageValue = code },
+                                    label = { Text(label, maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                                    modifier = Modifier.weight(1f),
+                                )
+                            }
+                            if (row.size < 3) {
+                                repeat(3 - row.size) { Spacer(modifier = Modifier.weight(1f)) }
+                            }
+                        }
+                    }
+                }
+                HorizontalDivider()
+                Spacer(modifier = Modifier.height(12.dp))
                 Text(
-                    stringRes(R.string.settings__voice__language_hint),
-                    modifier = Modifier.padding(bottom = 8.dp),
+                    text = stringRes(R.string.settings__voice__language_hint),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(bottom = 4.dp),
                 )
                 Text(
-                    stringRes(R.string.settings__voice__language_auto_hint),
-                    modifier = Modifier.padding(bottom = 8.dp),
+                    text = stringRes(R.string.settings__voice__language_manual),
+                    style = MaterialTheme.typography.labelMedium,
+                    modifier = Modifier.padding(bottom = 4.dp),
                 )
-                JetPrefTextField(value = languageValue, onValueChange = { languageValue = it })
+                OutlinedTextField(
+                    value = languageValue,
+                    onValueChange = { languageValue = it },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                Text(
+                    text = stringRes(R.string.settings__voice__language_auto_hint),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 4.dp),
+                )
             }
         }
     }
 
     if (showRefinementStyleDialog) {
-        JetPrefAlertDialog(
+        OptionPickerSheet(
             title = stringRes(R.string.settings__voice__refinement_style_dialog),
-            dismissLabel = stringRes(R.string.settings__voice__cancel),
             onDismiss = { showRefinementStyleDialog = false },
         ) {
-            Column {
-                RefinementStyle.entries.forEach { style ->
-                    Preference(
-                        title = style.displayName(),
-                        summary = style.shortDescription(),
-                        onClick = {
-                            scope.launch { prefs.voice.refinementStyle.set(style) }
-                            showRefinementStyleDialog = false
-                        },
-                    )
-                }
+            StyleGroup.entries.forEach { group ->
+                Text(
+                    text = stringRes(group.labelRes),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(start = 4.dp, top = 8.dp, bottom = 4.dp),
+                )
+                RefinementStyle.entries
+                    .filter { it.group() == group }
+                    .forEach { style ->
+                        SelectableOptionRow(
+                            title = style.displayName(),
+                            subtitle = style.shortDescription(),
+                            icon = style.icon(),
+                            selected = style == refinementStyle,
+                            onClick = {
+                                scope.launch { prefs.voice.refinementStyle.set(style) }
+                                showRefinementStyleDialog = false
+                            },
+                        )
+                    }
             }
         }
     }
@@ -544,42 +635,169 @@ fun VoiceScreen() = VoxKBScreen {
             dismissLabel = stringRes(R.string.settings__voice__cancel),
             onDismiss = { showCustomPromptDialog = false },
         ) {
-            Column {
+            Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
                 Text(
                     if (isOverride) stringRes(R.string.settings__voice__customize_prompt_hint)
                     else stringRes(R.string.settings__voice__custom_prompt_hint),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(bottom = 8.dp),
                 )
                 if (isOverride && promptValue.isBlank()) {
                     Text(
-                        "Default: ${refinementStyleSnapshot.systemPrompt().take(120)}\u2026",
+                        text = stringRes(
+                            R.string.settings__voice__prompt_default_preview,
+                            refinementStyleSnapshot.systemPrompt().take(140),
+                        ),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(bottom = 8.dp),
                     )
                 }
-                JetPrefTextField(value = promptValue, onValueChange = { promptValue = it })
+                OutlinedTextField(
+                    value = promptValue,
+                    onValueChange = { promptValue = it },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = 140.dp),
+                    minLines = 4,
+                    maxLines = 8,
+                    isError = false,
+                    supportingText = {
+                        Text(
+                            text = stringRes(
+                                R.string.settings__voice__prompt_char_count,
+                                promptValue.length,
+                            ),
+                            style = MaterialTheme.typography.bodySmall,
+                        )
+                    },
+                )
             }
         }
     }
 
     if (showAnimationStyleDialog) {
-        JetPrefAlertDialog(
-            title = "Animation Style",
-            dismissLabel = stringRes(R.string.settings__voice__cancel),
+        OptionPickerSheet(
+            title = stringRes(R.string.settings__voice__animation_style_dialog),
             onDismiss = { showAnimationStyleDialog = false },
         ) {
-            Column {
-                VoiceAnimationStyle.entries.forEach { style ->
-                    Preference(
-                        title = style.displayName(),
-                        summary = style.shortDescription(),
-                        onClick = {
-                            scope.launch { prefs.voice.animationStyle.set(style) }
-                            showAnimationStyleDialog = false
-                        },
+            VoiceAnimationStyle.entries.forEach { style ->
+                SelectableOptionRow(
+                    title = style.displayName(),
+                    subtitle = style.shortDescription(),
+                    icon = Icons.Filled.AutoAwesome,
+                    selected = style == animationStyle,
+                    onClick = {
+                        scope.launch { prefs.voice.animationStyle.set(style) }
+                        showAnimationStyleDialog = false
+                    },
+                )
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun OptionPickerSheet(
+    title: String,
+    onDismiss: () -> Unit,
+    content: @Composable () -> Unit,
+) {
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .navigationBarsPadding()
+                .padding(horizontal = 8.dp)
+                .padding(bottom = 16.dp),
+        ) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 8.dp),
+            )
+            HorizontalDivider()
+            Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+                content()
+            }
+        }
+    }
+}
+
+@Composable
+private fun SelectableOptionRow(
+    title: String,
+    subtitle: String,
+    icon: ImageVector,
+    selected: Boolean,
+    onClick: () -> Unit,
+) {
+    val container = if (selected) MaterialTheme.colorScheme.secondaryContainer
+        else MaterialTheme.colorScheme.surface
+    val onContainer = if (selected) MaterialTheme.colorScheme.onSecondaryContainer
+        else MaterialTheme.colorScheme.onSurface
+
+    Surface(
+        color = container,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 8.dp, vertical = 4.dp)
+            .clip(RoundedCornerShape(16.dp))
+            .clickable(onClick = onClick),
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Surface(
+                shape = CircleShape,
+                color = if (selected) MaterialTheme.colorScheme.primary
+                    else MaterialTheme.colorScheme.surfaceVariant,
+                modifier = Modifier.size(40.dp),
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = null,
+                        tint = if (selected) MaterialTheme.colorScheme.onPrimary
+                            else MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(20.dp),
                     )
                 }
+            }
+            Spacer(modifier = Modifier.width(16.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = onContainer,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Text(
+                    text = subtitle,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = onContainer.copy(alpha = 0.75f),
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+            if (selected) {
+                Spacer(modifier = Modifier.width(12.dp))
+                Icon(
+                    imageVector = Icons.Filled.Check,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(22.dp),
+                )
             }
         }
     }
@@ -854,7 +1072,8 @@ private fun EndpointEditorDialog(
                 epModelsError = null
             } else {
                 epModels = emptyList()
-                epModelsError = result.error ?: "No models returned"
+                epModelsError = result.error
+                    ?: stringRes(R.string.settings__voice__models_error_generic)
             }
             epFetchingModels = false
         }
@@ -977,7 +1196,11 @@ private fun EndpointEditorDialog(
                         onClick = { epModelExpanded = true },
                         modifier = Modifier.fillMaxWidth(),
                     ) {
-                        Text(epModel.ifBlank { "Select model\u2026" })
+                        Text(
+                            epModel.ifBlank {
+                                stringRes(R.string.settings__voice__model_select_placeholder)
+                            },
+                        )
                     }
                     DropdownMenu(
                         expanded = epModelExpanded,
@@ -1086,4 +1309,35 @@ private fun RefinementStyle.shortDescription(): String = when (this) {
     RefinementStyle.BULLET_POINTS -> "Convert to organised bullet points"
     RefinementStyle.AGENT -> "Generate content from voice instructions"
     RefinementStyle.CUSTOM -> "Your own custom system prompt"
+}
+
+// Icons for the style picker. Mirrors the tone/format semantics of each style.
+private fun RefinementStyle.icon(): ImageVector = when (this) {
+    RefinementStyle.CLEAN_UP -> Icons.Outlined.AutoAwesome
+    RefinementStyle.CASUAL -> Icons.Outlined.Chat
+    RefinementStyle.FORMAL -> Icons.Filled.Work
+    RefinementStyle.PROFESSIONAL -> Icons.Filled.Work
+    RefinementStyle.ACADEMIC -> Icons.Filled.School
+    RefinementStyle.CONCISE -> Icons.Filled.ShortText
+    RefinementStyle.BULLET_POINTS -> Icons.Filled.FormatListBulleted
+    RefinementStyle.AGENT -> Icons.Filled.SmartToy
+    RefinementStyle.CUSTOM -> Icons.Filled.Tune
+}
+
+private enum class StyleGroup(val labelRes: Int) {
+    TONES(R.string.settings__voice__style_group_tones),
+    FORMATS(R.string.settings__voice__style_group_formats),
+    CUSTOM(R.string.settings__voice__style_group_custom),
+}
+
+private fun RefinementStyle.group(): StyleGroup = when (this) {
+    RefinementStyle.CLEAN_UP,
+    RefinementStyle.CASUAL,
+    RefinementStyle.FORMAL,
+    RefinementStyle.PROFESSIONAL,
+    RefinementStyle.ACADEMIC,
+    RefinementStyle.CONCISE -> StyleGroup.TONES
+    RefinementStyle.BULLET_POINTS,
+    RefinementStyle.AGENT -> StyleGroup.FORMATS
+    RefinementStyle.CUSTOM -> StyleGroup.CUSTOM
 }
