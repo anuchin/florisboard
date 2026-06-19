@@ -645,7 +645,7 @@ fun VoiceScreen() = VoxKBScreen {
                 )
                 if (isOverride && promptValue.isBlank()) {
                     Text(
-                        text = stringRes(
+                        text = stringResource(
                             R.string.settings__voice__prompt_default_preview,
                             refinementStyleSnapshot.systemPrompt().take(140),
                         ),
@@ -665,7 +665,7 @@ fun VoiceScreen() = VoxKBScreen {
                     isError = false,
                     supportingText = {
                         Text(
-                            text = stringRes(
+                            text = stringResource(
                                 R.string.settings__voice__prompt_char_count,
                                 promptValue.length,
                             ),
@@ -1059,6 +1059,7 @@ private fun EndpointEditorDialog(
     var epFetchingModels by remember { mutableStateOf(false) }
     var epModelExpanded by remember { mutableStateOf(false) }
     var epModelsError by remember { mutableStateOf<String?>(null) }
+    val modelsErrorGeneric = stringRes(R.string.settings__voice__models_error_generic)
 
     fun doFetchModels() {
         if (epUrl.isBlank() || epApiKey.isBlank()) return
@@ -1072,8 +1073,7 @@ private fun EndpointEditorDialog(
                 epModelsError = null
             } else {
                 epModels = emptyList()
-                epModelsError = result.error
-                    ?: stringRes(R.string.settings__voice__models_error_generic)
+                epModelsError = result.error ?: modelsErrorGeneric
             }
             epFetchingModels = false
         }
