@@ -232,7 +232,7 @@ private fun VoiceTopBar(
         elementName = VoxKBImeUi.VoiceTopBar.elementName,
         modifier = Modifier
             .fillMaxWidth()
-            .height(44.dp)
+            .height(48.dp)
             .padding(horizontal = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -290,7 +290,7 @@ private fun VoiceTopBar(
         val toggleStateAttr = if (refinementEnabled)
             mapOf(VoxKBImeUi.Attr.VoiceState to listOf("selected")) else emptyMap()
         SnyggChip(
-            elementName = VoxKBImeUi.VoiceEnhanceToggle.elementName,
+            elementName = VoxKBImeUi.VoiceChip.elementName,
             attributes = toggleStateAttr,
             onClick = {
                 coroutineScope.launch {
@@ -503,11 +503,11 @@ private fun PulseRings() {
         label = "ring_2",
     )
 
-    val minRadiusDp = 32.dp
-    val maxRadiusDp = 60.dp
+    val minRadiusDp = 38.dp
+    val maxRadiusDp = 78.dp
     val density = LocalDensity.current
 
-    Canvas(modifier = Modifier.size(120.dp)) {
+    Canvas(modifier = Modifier.size(160.dp)) {
         val minR = with(density) { minRadiusDp.toPx() }
         val maxR = with(density) { maxRadiusDp.toPx() }
         val strokeW = with(density) { 2.dp.toPx() }
@@ -516,7 +516,8 @@ private fun PulseRings() {
             val normalized = progress.coerceIn(0f, 1f)
             if (normalized <= 0f) continue
             val radius = minR + normalized * (maxR - minR)
-            val alpha = (1f - normalized) * 0.4f
+            // Ease the fade so rings dissolve more gracefully than a linear ramp.
+            val alpha = (1f - normalized).let { it * it } * 0.45f
             drawCircle(
                 color = ringColor.copy(alpha = alpha),
                 radius = radius,
@@ -559,7 +560,7 @@ private fun VoiceMicButton(
     )
 
     Box(
-        modifier = Modifier.size(120.dp),
+        modifier = Modifier.size(160.dp),
         contentAlignment = Alignment.Center,
     ) {
         if (isRecording) {
@@ -568,7 +569,7 @@ private fun VoiceMicButton(
 
         Box(
             modifier = Modifier
-                .size(64.dp)
+                .size(72.dp)
                 .scale(scale)
                 .drawBehind {
                     drawCircle(color = bgColor)
@@ -606,7 +607,7 @@ private fun VoiceMicButton(
                 attributes = stateAttr,
                 imageVector = if (isRecording) Icons.Filled.Stop else Icons.Filled.Mic,
                 contentDescription = null,
-                modifier = Modifier.size(28.dp),
+                modifier = Modifier.size(32.dp),
             )
         }
     }
@@ -888,11 +889,13 @@ private fun SuccessStage(
             }
             SnyggButton(
                 elementName = VoxKBImeUi.VoiceActionKey.elementName,
+                attributes = mapOf(VoxKBImeUi.Attr.VoiceState to listOf("primary")),
                 onClick = onInsert,
                 modifier = Modifier.weight(1.2f),
             ) {
                 SnyggIcon(
                     elementName = VoxKBImeUi.VoiceActionKey.elementName,
+                    attributes = mapOf(VoxKBImeUi.Attr.VoiceState to listOf("primary")),
                     imageVector = Icons.Filled.Send,
                     contentDescription = null,
                     modifier = Modifier.size(15.dp),
@@ -900,6 +903,7 @@ private fun SuccessStage(
                 Spacer(modifier = Modifier.width(6.dp))
                 SnyggText(
                     elementName = VoxKBImeUi.VoiceActionKey.elementName,
+                    attributes = mapOf(VoxKBImeUi.Attr.VoiceState to listOf("primary")),
                     text = stringResource(R.string.voice__insert),
                 )
             }
@@ -1077,7 +1081,7 @@ private fun VoiceBottomBar(
         elementName = VoxKBImeUi.VoiceBottomBar.elementName,
         modifier = Modifier
             .fillMaxWidth()
-            .height(52.dp)
+            .height(56.dp)
             .padding(horizontal = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -1134,13 +1138,16 @@ private fun VoiceBottomBar(
                 .background(dividerColor)
         )
 
+        val abcAttr = mapOf(VoxKBImeUi.Attr.VoiceState to listOf("primary"))
         SnyggButton(
             elementName = VoxKBImeUi.VoiceBottomBarButton.elementName,
+            attributes = abcAttr,
             onClick = { keyboardManager.activeState.imeUiMode = ImeUiMode.TEXT },
             modifier = Modifier.weight(1.6f).fillMaxHeight().padding(4.dp),
         ) {
             SnyggIcon(
                 elementName = VoxKBImeUi.VoiceBottomBarButton.elementName,
+                attributes = abcAttr,
                 imageVector = Icons.Filled.Keyboard,
                 contentDescription = switchDesc,
                 modifier = Modifier.size(18.dp),
@@ -1148,6 +1155,7 @@ private fun VoiceBottomBar(
             Spacer(modifier = Modifier.width(6.dp))
             SnyggText(
                 elementName = VoxKBImeUi.VoiceBottomBarButton.elementName,
+                attributes = abcAttr,
                 text = stringResource(R.string.voice__abc),
             )
         }

@@ -44,7 +44,11 @@ val VoxKBImeThemeBaseStyle = SnyggStylesheet.v2 {
         "--on-surface" to rgbaColor(255, 255, 255)
         "--error" to rgbaColor(211, 47, 47)
         "--on-error" to rgbaColor(255, 255, 255)
+        "--error-container" to rgbaColor(249, 236, 236)
+        "--on-error-container" to rgbaColor(65, 14, 11)
         "--warning" to rgbaColor(255, 152, 0)
+        "--voice-surface" to rgbaColor(0, 0, 0, 0.10f)
+        "--voice-surface-variant" to rgbaColor(255, 255, 255, 0.06f)
 
         "--shape" to roundedCornerShape(8.dp)
         "--shape-variant" to roundedCornerShape(12.dp)
@@ -403,29 +407,40 @@ val VoxKBImeThemeBaseStyle = SnyggStylesheet.v2 {
     }
 
     VoxKBImeUi.VoiceTopBar.elementName {
-        background = rgbaColor(0, 0, 0, 0f)
+        // M3 surfaceContainer-style tonal layer for the header band.
+        background = `var`("--voice-surface")
         foreground = `var`("--on-background")
-        padding = padding(0.dp, 0.dp, 24.dp, 0.dp)
+        padding = padding(0.dp, 0.dp, 0.dp, 0.dp)
     }
 
     VoxKBImeUi.VoiceChip.elementName {
-        background = `var`("--background-variant")
+        // M3 FilterChip (unselected) — outlined-ish neutral pill.
+        background = `var`("--voice-surface-variant")
         foreground = `var`("--on-background")
         fontSize = fontSize(12.sp)
-        padding = padding(4.dp, 10.dp, 4.dp, 10.dp)
+        padding = padding(6.dp, 12.dp, 6.dp, 12.dp)
         shape = roundedCornerShape(50)
         textMaxLines = textMaxLines(1)
+    }
+    VoxKBImeUi.VoiceChip.elementName(
+        VoxKBImeUi.Attr.VoiceState to listOf("selected"),
+    ) {
+        // M3 FilterChip selected — primary tonal fill.
+        background = `var`("--primary")
+        foreground = `var`("--on-primary")
     }
 
     VoxKBImeUi.VoiceChipText.elementName {
         fontSize = fontSize(12.sp)
+        fontWeight = fontWeight(FontWeight.Medium)
     }
 
     VoxKBImeUi.VoiceMicButton.elementName {
+        // Elevated FAB-style focal point.
         background = `var`("--primary")
         foreground = `var`("--on-primary")
         shape = circleShape()
-        shadowElevation = size(4.dp)
+        shadowElevation = size(8.dp)
     }
     VoxKBImeUi.VoiceMicButton.elementName(
         VoxKBImeUi.Attr.VoiceState to listOf("recording"),
@@ -447,7 +462,12 @@ val VoxKBImeThemeBaseStyle = SnyggStylesheet.v2 {
     VoxKBImeUi.VoiceMicButtonIcon.elementName(
         VoxKBImeUi.Attr.VoiceState to listOf("recording"),
     ) {
-        foreground = rgbaColor(255, 255, 255)
+        foreground = `var`("--on-error")
+    }
+    VoxKBImeUi.VoiceMicButtonIcon.elementName(
+        VoxKBImeUi.Attr.VoiceState to listOf("error"),
+    ) {
+        foreground = `var`("--on-error")
     }
 
     VoxKBImeUi.VoiceWaveform.elementName {
@@ -472,11 +492,12 @@ val VoxKBImeThemeBaseStyle = SnyggStylesheet.v2 {
     VoxKBImeUi.VoiceProcessing.elementName(
         VoxKBImeUi.Attr.VoiceState to listOf("error"),
     ) {
-        foreground = `var`("--error")
+        foreground = `var`("--on-error-container")
     }
 
     VoxKBImeUi.VoiceTranscriptBox.elementName {
-        background = `var`("--surface")
+        // M3 OutlinedCard-style surface for the transcript.
+        background = `var`("--voice-surface-variant")
         foreground = `var`("--on-surface")
         fontSize = fontSize(16.sp)
         padding = padding(16.dp)
@@ -489,10 +510,11 @@ val VoxKBImeThemeBaseStyle = SnyggStylesheet.v2 {
     }
 
     VoxKBImeUi.VoiceActionKey.elementName {
-        background = `var`("--surface")
+        // M3 FilledTonalButton.
+        background = `var`("--voice-surface-variant")
         foreground = `var`("--on-surface")
         fontSize = fontSize(14.sp)
-        padding = padding(8.dp, 0.dp)
+        padding = padding(10.dp, 0.dp)
         shape = `var`("--shape")
         textMaxLines = textMaxLines(1)
     }
@@ -500,19 +522,34 @@ val VoxKBImeThemeBaseStyle = SnyggStylesheet.v2 {
         background = `var`("--primary")
         foreground = `var`("--on-primary")
     }
+    // Primary action (Insert/Generate) — M3 FilledButton emphasis.
+    VoxKBImeUi.VoiceActionKey.elementName(
+        VoxKBImeUi.Attr.VoiceState to listOf("primary"),
+    ) {
+        background = `var`("--primary")
+        foreground = `var`("--on-primary")
+    }
 
     VoxKBImeUi.VoiceBottomBar.elementName {
-        background = rgbaColor(0, 0, 0, 0f)
+        // M3 surfaceContainer-style tonal layer for the footer band.
+        background = `var`("--voice-surface")
         foreground = `var`("--on-background")
     }
 
     VoxKBImeUi.VoiceBottomBarButton.elementName {
-        background = `var`("--surface")
+        background = `var`("--voice-surface-variant")
         foreground = `var`("--on-surface")
         shape = `var`("--shape-variant")
         fontSize = fontSize(14.sp)
     }
     VoxKBImeUi.VoiceBottomBarButton.elementName(selector = SnyggSelector.PRESSED) {
+        background = `var`("--primary")
+        foreground = `var`("--on-primary")
+    }
+    // M3 FilledButton emphasis for the primary switch-to-keyboard action.
+    VoxKBImeUi.VoiceBottomBarButton.elementName(
+        VoxKBImeUi.Attr.VoiceState to listOf("primary"),
+    ) {
         background = `var`("--primary")
         foreground = `var`("--on-primary")
     }
