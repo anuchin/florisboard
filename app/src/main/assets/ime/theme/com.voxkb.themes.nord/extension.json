@@ -1,0 +1,23 @@
+{
+  "$": "ime.extension.theme",
+  "meta": {
+    "id": "com.voxkb.themes.nord",
+    "version": "0.1.0",
+    "title": "Nord themes",
+    "description": "An arctic, north-bluish color palette by Arctic Ice Studio",
+    "maintainers": [
+      "voxkb"
+    ],
+    "license": "apache-2.0"
+  },
+  "themes": [
+    {
+      "id": "nord",
+      "label": "Nord",
+      "authors": [
+        "Arctic Ice Studio"
+      ],
+      "isNight": true
+    }
+  ]
+}

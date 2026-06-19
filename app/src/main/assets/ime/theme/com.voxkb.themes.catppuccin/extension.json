@@ -1,0 +1,25 @@
+{
+  "$": "ime.extension.theme",
+  "meta": {
+    "id": "com.voxkb.themes.catppuccin",
+    "version": "0.1.0",
+    "title": "Catppuccin themes",
+    "description": "Soothing pastel themes from the Catppuccin palette (Mocha, Latte)",
+    "maintainers": [ "voxkb" ],
+    "license": "apache-2.0"
+  },
+  "themes": [
+    {
+      "id": "catppuccin_mocha",
+      "label": "Catppuccin Mocha",
+      "authors": [ "Catppuccin" ],
+      "isNight": true
+    },
+    {
+      "id": "catppuccin_latte",
+      "label": "Catppuccin Latte",
+      "authors": [ "Catppuccin" ],
+      "isNight": false
+    }
+  ]
+}

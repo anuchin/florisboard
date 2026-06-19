@@ -497,13 +497,72 @@
   },
 
   "voice-mic-button": {
-    "background": "var(--surface)",
-    "foreground": "var(--on-surface)"
+    "background": "var(--primary)",
+    "foreground": "var(--on-primary)",
+    "shape": "circle()",
+    "shadow-elevation": "8dp"
   },
   "voice-mic-button[voicestate=`recording`]": {
-    "background": "#ff5252"
+    "background": "#ff5252",
+    "foreground": "#ffffff"
+  },
+  "voice-mic-button[voicestate=`error`]": {
+    "background": "#ff5252",
+    "foreground": "#ffffff"
   },
   "voice-waveform": {
-    "foreground": "var(--on-surface)"
+    "foreground": "var(--primary)"
+  },
+  "voice-waveform[voicestate=`clipping`]": {
+    "foreground": "#ff9800"
+  },
+  "voice-top-bar": {
+    "background": "rgba(0, 0, 0, 0.10)",
+    "foreground": "var(--on-background)"
+  },
+  "voice-bottom-bar": {
+    "background": "rgba(0, 0, 0, 0.10)",
+    "foreground": "var(--on-background)"
+  },
+  "voice-chip": {
+    "background": "rgba(255, 255, 255, 0.06)",
+    "foreground": "var(--on-background)",
+    "font-size": "12sp",
+    "padding": "6dp 12dp 6dp 12dp",
+    "shape": "var(--shape-chip)",
+    "text-max-lines": "1"
+  },
+  "voice-chip[voicestate=`selected`]": {
+    "background": "var(--primary)",
+    "foreground": "var(--on-primary)"
+  },
+  "voice-transcript-box": {
+    "background": "rgba(255, 255, 255, 0.06)",
+    "foreground": "var(--on-surface)",
+    "font-size": "16sp",
+    "padding": "16dp",
+    "shape": "var(--shape-variant)"
+  },
+  "voice-action-key": {
+    "background": "rgba(255, 255, 255, 0.06)",
+    "foreground": "var(--on-surface)",
+    "font-size": "14sp",
+    "padding": "10dp 0dp",
+    "shape": "var(--shape)",
+    "text-max-lines": "1"
+  },
+  "voice-action-key[voicestate=`primary`]": {
+    "background": "var(--primary)",
+    "foreground": "var(--on-primary)"
+  },
+  "voice-bottom-bar-button": {
+    "background": "rgba(255, 255, 255, 0.06)",
+    "foreground": "var(--on-surface)",
+    "shape": "var(--shape-variant)",
+    "font-size": "14sp"
+  },
+  "voice-bottom-bar-button[voicestate=`primary`]": {
+    "background": "var(--primary)",
+    "foreground": "var(--on-primary)"
   }
 }

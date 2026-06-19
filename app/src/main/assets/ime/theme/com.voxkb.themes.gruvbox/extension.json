@@ -1,0 +1,31 @@
+{
+  "$": "ime.extension.theme",
+  "meta": {
+    "id": "com.voxkb.themes.gruvbox",
+    "version": "0.1.0",
+    "title": "Gruvbox themes",
+    "description": "Retro groove color scheme (dark and light)",
+    "maintainers": [
+      "voxkb"
+    ],
+    "license": "apache-2.0"
+  },
+  "themes": [
+    {
+      "id": "gruvbox_dark",
+      "label": "Gruvbox Dark",
+      "authors": [
+        "Gruvbox"
+      ],
+      "isNight": true
+    },
+    {
+      "id": "gruvbox_light",
+      "label": "Gruvbox Light",
+      "authors": [
+        "Gruvbox"
+      ],
+      "isNight": false
+    }
+  ]
+}

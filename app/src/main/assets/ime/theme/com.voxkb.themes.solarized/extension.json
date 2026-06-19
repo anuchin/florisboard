@@ -1,0 +1,31 @@
+{
+  "$": "ime.extension.theme",
+  "meta": {
+    "id": "com.voxkb.themes.solarized",
+    "version": "0.1.0",
+    "title": "Solarized themes",
+    "description": "Ethan Schoonover's precision palette for both light and dark",
+    "maintainers": [
+      "voxkb"
+    ],
+    "license": "apache-2.0"
+  },
+  "themes": [
+    {
+      "id": "solarized_dark",
+      "label": "Solarized Dark",
+      "authors": [
+        "Ethan Schoonover"
+      ],
+      "isNight": true
+    },
+    {
+      "id": "solarized_light",
+      "label": "Solarized Light",
+      "authors": [
+        "Ethan Schoonover"
+      ],
+      "isNight": false
+    }
+  ]
+}
