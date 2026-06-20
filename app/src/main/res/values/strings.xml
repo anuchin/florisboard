@@ -1233,12 +1233,34 @@
     <string name="voice__refine_toggle_off" comment="Label when refinement is disabled in top bar">Raw</string>
 
     <!-- Voice settings screen -->
-    <string name="settings__voice__title" comment="Title of Voice Input settings screen">Voice Input</string>
+    <string name="settings__voice__title" comment="Title of Voice & AI settings screen">Voice &amp; AI</string>
     <string name="settings__voice__provider_group" comment="Settings group title">Provider</string>
     <string name="settings__voice__speech_to_text_provider" comment="Preference title">Speech-to-Text Provider</string>
     <string name="settings__voice__provider_openai">OpenAI</string>
     <string name="settings__voice__provider_groq">Groq</string>
     <string name="settings__voice__provider_custom">Custom</string>
+    <string name="settings__voice__status_ready" comment="Status banner: voice is configured">Voice ready</string>
+    <string name="settings__voice__status_ready_with" comment="Status banner: voice is configured with a provider, %s is the provider name">Voice ready · %s</string>
+    <string name="settings__voice__status_not_ready" comment="Status banner: no STT provider configured">Pick a speech-to-text provider to start</string>
+    <string name="settings__voice__status_refinement_on" comment="Status banner: AI refinement is enabled">AI refinement on</string>
+    <string name="settings__voice__section_stt" comment="Section header">Speech-to-Text</string>
+    <string name="settings__voice__section_stt_summary" comment="Section subtitle">Required — converts your voice to text</string>
+    <string name="settings__voice__section_transcription" comment="Section header">Transcription</string>
+    <string name="settings__voice__section_ai" comment="Section header">AI Refinement</string>
+    <string name="settings__voice__section_ai_summary_off" comment="Section subtitle when AI refinement is off">Optional — polish your speech with AI after transcription</string>
+    <string name="settings__voice__section_ai_summary_on" comment="Section subtitle when AI refinement is on">Cleaning up your speech with AI after transcription</string>
+    <string name="settings__voice__add_provider" comment="Button to add a speech-to-text provider">Add speech-to-text provider</string>
+    <string name="settings__voice__add_ai_model" comment="Button to add an AI model for refinement">Add AI model</string>
+    <string name="settings__voice__pick_provider" comment="Dialog title for provider picker">Pick a provider</string>
+    <string name="settings__voice__pick_ai_model" comment="Dialog title for AI model picker">Pick an AI provider</string>
+    <string name="settings__voice__enter_api_key_for" comment="Label above API key field, %s is the provider name">Enter your %s API key</string>
+    <string name="settings__voice__get_key_at" comment="Link to provider's key page, %s is the URL">Get one at %s</string>
+    <string name="settings__voice__test_connection" comment="Button to validate the API key/connection">Test connection</string>
+    <string name="settings__voice__connecting" comment="Button label while testing">Testing…</string>
+    <string name="settings__voice__advanced" comment="Link to reveal advanced/custom endpoint fields">Advanced (custom endpoint)</string>
+    <string name="settings__voice__active_badge" comment="Badge on the active provider">Active</string>
+    <string name="settings__voice__set_active" comment="Action to make a provider the active one">Set active</string>
+    <string name="settings__voice__model_label" comment="Label for the model field, shown in advanced/details">Model</string>
     <string name="settings__voice__provider_openai_summary" comment="Provider description">Uses the official OpenAI Whisper API</string>
     <string name="settings__voice__provider_groq_summary" comment="Provider description">Uses Groq\'s hosted Whisper models</string>
     <string name="settings__voice__provider_custom_summary" comment="Provider description">Provide your own OpenAI-compatible endpoint</string>

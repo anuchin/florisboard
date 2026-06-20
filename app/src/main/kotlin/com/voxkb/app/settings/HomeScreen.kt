@@ -148,7 +148,7 @@ fun HomeScreen() = VoxKBScreen {
         )
         Preference(
             icon = Icons.Default.Mic,
-            title = "Voice Input",
+            title = stringRes(R.string.settings__voice__title),
             onClick = { navController.navigate(Routes.Settings.Voice) },
         )
         Preference(

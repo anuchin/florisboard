@@ -66,6 +66,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -149,11 +150,13 @@ fun VoiceScreen() = VoxKBScreen {
     var preselectedSttPreset by remember { mutableStateOf<ProviderPreset?>(null) }
     var editingEndpoint by remember { mutableStateOf<SavedEndpoint?>(null) }
     var showDeleteEndpointConfirm by remember { mutableStateOf<SavedEndpoint?>(null) }
+    var showAdvancedSttEditor by remember { mutableStateOf(false) }
 
     var showAddLlmEndpointDialog by remember { mutableStateOf(false) }
     var preselectedLlmPreset by remember { mutableStateOf<ProviderPreset?>(null) }
     var editingLlmEndpoint by remember { mutableStateOf<SavedEndpoint?>(null) }
     var showDeleteLlmEndpointConfirm by remember { mutableStateOf<SavedEndpoint?>(null) }
+    var showAdvancedLlmEditor by remember { mutableStateOf(false) }
 
     var showLanguageDialog by remember { mutableStateOf(false) }
     var showRefinementStyleDialog by remember { mutableStateOf(false) }
@@ -165,42 +168,12 @@ fun VoiceScreen() = VoxKBScreen {
     content {
         val hasMicPermission = context.checkCallingOrSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED
 
-        if (hasMicPermission) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(20.dp)
-                        .background(
-                            color = MaterialTheme.colorScheme.primary,
-                            shape = CircleShape,
-                        ),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Icon(
-                        imageVector = Icons.Filled.Check,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onPrimary,
-                        modifier = Modifier.size(12.dp),
-                    )
-                }
-                Text(
-                    text = stringResource(R.string.settings__voice__microphone_granted),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.primary,
-                )
-            }
-        } else {
+        if (!hasMicPermission) {
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp, vertical = 8.dp),
-                shape = RoundedCornerShape(12.dp),
+                shape = RoundedCornerShape(16.dp),
                 colors = CardDefaults.cardColors(
                     containerColor = MaterialTheme.colorScheme.errorContainer,
                 ),
@@ -215,38 +188,50 @@ fun VoiceScreen() = VoxKBScreen {
                         imageVector = Icons.Filled.Mic,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.onErrorContainer,
-                        modifier = Modifier.size(24.dp),
+                        modifier = Modifier.size(22.dp),
                     )
                     Spacer(modifier = Modifier.width(12.dp))
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = stringResource(R.string.settings__voice__grant_microphone),
+                            text = stringRes(R.string.settings__voice__grant_microphone),
                             style = MaterialTheme.typography.titleSmall,
                             color = MaterialTheme.colorScheme.onErrorContainer,
                         )
                         Text(
-                            text = stringResource(R.string.settings__voice__microphone_required),
+                            text = stringRes(R.string.settings__voice__microphone_required),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onErrorContainer.copy(alpha = 0.8f),
                         )
                     }
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Button(
-                        onClick = {
-                            val intent = Intent(context, VoxKBAppActivity::class.java).apply {
-                                flags = Intent.FLAG_ACTIVITY_NEW_TASK
-                                action = "REQUEST_RECORD_AUDIO"
-                            }
-                            context.startActivity(intent)
-                        },
-                    ) {
+                    FilledTonalButton(onClick = {
+                        val intent = Intent(context, VoxKBAppActivity::class.java).apply {
+                            flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                            action = "REQUEST_RECORD_AUDIO"
+                        }
+                        context.startActivity(intent)
+                    }) {
                         Text(stringRes(R.string.settings__voice__grant_microphone))
                     }
                 }
             }
         }
 
-        PreferenceGroup(title = stringRes(R.string.settings__voice__saved_endpoints_group)) {
+        // Status banner — single at-a-glance answer to "is voice ready?".
+        val activeSttEndpoint = savedEndpoints.find { it.id == activeEndpointId }
+        val sttReady = activeSttEndpoint != null
+        val refinementEnabledState by prefs.voice.refinementEnabled.collectAsState()
+        StatusBanner(
+            isReady = sttReady,
+            providerName = activeSttEndpoint?.name,
+            refinementOn = refinementEnabledState,
+            onAddProvider = {
+                preselectedSttPreset = null
+                showAddEndpointDialog = true
+            },
+        )
+
+        // --- Section 1: Speech-to-Text (required core) ---
+        PreferenceGroup(title = stringRes(R.string.settings__voice__section_stt)) {
             if (savedEndpoints.isEmpty()) {
                 EmptyEndpointsHint(
                     message = stringRes(R.string.settings__voice__no_saved_endpoints_summary)
@@ -270,7 +255,7 @@ fun VoiceScreen() = VoxKBScreen {
                 }
             }
             Preference(
-                title = stringRes(R.string.settings__voice__add_endpoint),
+                title = stringRes(R.string.settings__voice__add_provider),
                 icon = Icons.Filled.Add,
                 onClick = {
                     preselectedSttPreset = null
@@ -279,20 +264,7 @@ fun VoiceScreen() = VoxKBScreen {
             )
         }
 
-        val activeSttPresetIds = savedEndpoints.mapNotNull { ep ->
-            STT_PRESETS.find { it.baseUrl == ep.baseUrl }?.id
-        }
-        PreferenceGroup(title = stringRes(R.string.settings__voice__stt_quick_add)) {
-            ProviderPresetGrid(
-                presets = STT_PRESETS,
-                activePresetIds = activeSttPresetIds,
-                onSelect = { preset ->
-                    preselectedSttPreset = preset
-                    showAddEndpointDialog = true
-                },
-            )
-        }
-
+        // --- Section 2: Transcription ---
         PreferenceGroup(title = stringRes(R.string.settings__voice__transcription_group)) {
             Preference(
                 title = stringRes(R.string.settings__voice__language),
@@ -316,12 +288,27 @@ fun VoiceScreen() = VoxKBScreen {
             )
         }
 
-        PreferenceGroup(title = stringRes(R.string.settings__voice__llm_provider_group)) {
-            if (llmSavedEndpoints.isEmpty()) {
-                EmptyEndpointsHint(
-                    message = stringRes(R.string.settings__voice__no_llm_endpoints_summary)
-                )
-            } else {
+        // --- Section 3: AI Refinement (optional; LLM nested under it) ---
+        PreferenceGroup(title = stringRes(R.string.settings__voice__refinement_group)) {
+            SwitchPreference(
+                prefs.voice.refinementEnabled,
+                title = stringRes(R.string.settings__voice__enable_refinement),
+                summary = stringRes(
+                    if (refinementEnabledState) R.string.settings__voice__section_ai_summary_on
+                    else R.string.settings__voice__section_ai_summary_off
+                ),
+            )
+            // AI model (LLM endpoint) lives under refinement — it only exists to serve it.
+            Preference(
+                title = stringRes(R.string.settings__voice__add_ai_model),
+                icon = Icons.Filled.Add,
+                onClick = {
+                    preselectedLlmPreset = null
+                    showAddLlmEndpointDialog = true
+                },
+                visibleIf = { prefs.voice.refinementEnabled isEqualTo true },
+            )
+            if (llmSavedEndpoints.isNotEmpty()) {
                 llmSavedEndpoints.forEach { endpoint ->
                     val isActive = endpoint.id == llmActiveEndpointId
                     EndpointRow(
@@ -339,36 +326,6 @@ fun VoiceScreen() = VoxKBScreen {
                     )
                 }
             }
-            Preference(
-                title = stringRes(R.string.settings__voice__add_llm_endpoint),
-                icon = Icons.Filled.Add,
-                onClick = {
-                    preselectedLlmPreset = null
-                    showAddLlmEndpointDialog = true
-                },
-            )
-        }
-
-        val activeLlmPresetIds = llmSavedEndpoints.mapNotNull { ep ->
-            LLM_PRESETS.find { it.baseUrl == ep.baseUrl }?.id
-        }
-        PreferenceGroup(title = stringRes(R.string.settings__voice__llm_quick_add)) {
-            ProviderPresetGrid(
-                presets = LLM_PRESETS,
-                activePresetIds = activeLlmPresetIds,
-                onSelect = { preset ->
-                    preselectedLlmPreset = preset
-                    showAddLlmEndpointDialog = true
-                },
-            )
-        }
-
-        PreferenceGroup(title = stringRes(R.string.settings__voice__refinement_group)) {
-            SwitchPreference(
-                prefs.voice.refinementEnabled,
-                title = stringRes(R.string.settings__voice__enable_refinement),
-                summary = stringRes(R.string.settings__voice__enable_refinement_summary),
-            )
             SwitchPreference(
                 prefs.voice.refinementAutoRefine,
                 title = stringRes(R.string.settings__voice__auto_refine),
@@ -398,7 +355,55 @@ fun VoiceScreen() = VoxKBScreen {
         }
     }
 
-    if (showAddEndpointDialog || editingEndpoint != null) {
+    if (showAddEndpointDialog && editingEndpoint == null) {
+        AddProviderDialog(
+            presets = STT_PRESETS,
+            isLlm = false,
+            validateEndpoint = { url, key -> WhisperApiClient(url, key).validateApiKey() },
+            onSave = { endpoint ->
+                val current = SavedEndpoint.deserializeList(prefs.voice.savedEndpoints.get())
+                scope.launch {
+                    prefs.voice.savedEndpoints.set(SavedEndpoint.serializeList(current + endpoint))
+                    prefs.voice.activeEndpointId.set(endpoint.id)
+                }
+            },
+            onAdvanced = {
+                showAddEndpointDialog = false
+                preselectedSttPreset = null
+                showAdvancedSttEditor = true
+            },
+            onDismiss = {
+                showAddEndpointDialog = false
+                preselectedSttPreset = null
+            },
+        )
+    }
+
+    if (showAddLlmEndpointDialog && editingLlmEndpoint == null) {
+        AddProviderDialog(
+            presets = LLM_PRESETS,
+            isLlm = true,
+            validateEndpoint = { url, key -> LlmApiClient(url, key, "").validateApiKey() },
+            onSave = { endpoint ->
+                val current = SavedEndpoint.deserializeList(prefs.voice.llmSavedEndpoints.get())
+                scope.launch {
+                    prefs.voice.llmSavedEndpoints.set(SavedEndpoint.serializeList(current + endpoint))
+                    prefs.voice.llmActiveEndpointId.set(endpoint.id)
+                }
+            },
+            onAdvanced = {
+                showAddLlmEndpointDialog = false
+                preselectedLlmPreset = null
+                showAdvancedLlmEditor = true
+            },
+            onDismiss = {
+                showAddLlmEndpointDialog = false
+                preselectedLlmPreset = null
+            },
+        )
+    }
+
+    if (editingEndpoint != null || showAdvancedSttEditor) {
         EndpointEditorDialog(
             isEdit = editingEndpoint != null,
             existingEndpoint = editingEndpoint,
@@ -421,6 +426,7 @@ fun VoiceScreen() = VoxKBScreen {
                 showAddEndpointDialog = false
                 editingEndpoint = null
                 preselectedSttPreset = null
+                showAdvancedSttEditor = false
             },
             editTitle = stringRes(R.string.settings__voice__edit_endpoint),
             addTitle = stringRes(R.string.settings__voice__add_endpoint_dialog),
@@ -447,7 +453,7 @@ fun VoiceScreen() = VoxKBScreen {
         )
     }
 
-    if (showAddLlmEndpointDialog || editingLlmEndpoint != null) {
+    if (editingLlmEndpoint != null || showAdvancedLlmEditor) {
         EndpointEditorDialog(
             isEdit = editingLlmEndpoint != null,
             existingEndpoint = editingLlmEndpoint,
@@ -470,6 +476,7 @@ fun VoiceScreen() = VoxKBScreen {
                 showAddLlmEndpointDialog = false
                 editingLlmEndpoint = null
                 preselectedLlmPreset = null
+                showAdvancedLlmEditor = false
             },
             editTitle = stringRes(R.string.settings__voice__edit_llm_endpoint),
             addTitle = stringRes(R.string.settings__voice__add_llm_endpoint_dialog),
@@ -698,6 +705,259 @@ fun VoiceScreen() = VoxKBScreen {
     }
 }
 
+@Composable
+private fun StatusBanner(
+    isReady: Boolean,
+    providerName: String?,
+    refinementOn: Boolean,
+    onAddProvider: () -> Unit,
+) {
+    val container = if (isReady) MaterialTheme.colorScheme.primaryContainer
+        else MaterialTheme.colorScheme.errorContainer
+    val onContainer = if (isReady) MaterialTheme.colorScheme.onPrimaryContainer
+        else MaterialTheme.colorScheme.onErrorContainer
+    val icon = if (isReady) Icons.Filled.Check else Icons.Filled.Mic
+    val title = if (isReady) {
+        if (providerName != null) stringResource(R.string.settings__voice__status_ready_with, providerName)
+        else stringResource(R.string.settings__voice__status_ready)
+    } else {
+        stringResource(R.string.settings__voice__status_not_ready)
+    }
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = container),
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = onContainer,
+                modifier = Modifier.size(22.dp),
+            )
+            Spacer(modifier = Modifier.width(12.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleSmall,
+                    color = onContainer,
+                )
+                if (isReady && refinementOn) {
+                    Text(
+                        text = stringResource(R.string.settings__voice__status_refinement_on),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = onContainer.copy(alpha = 0.8f),
+                    )
+                }
+            }
+            if (!isReady) {
+                FilledTonalButton(onClick = onAddProvider) {
+                    Text(stringResource(R.string.settings__voice__add_provider))
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Simplified add-provider flow for preset providers: pick a provider, then enter
+ * just the API key. Base URL and model are auto-filled from the preset and hidden
+ * from the user. A small "Advanced" toggle reveals the full endpoint editor for
+ * self-hosted / custom providers.
+ */
+@Composable
+private fun AddProviderDialog(
+    presets: List<ProviderPreset>,
+    isLlm: Boolean,
+    validateEndpoint: suspend (baseUrl: String, apiKey: String) -> ValidationResult,
+    onSave: (SavedEndpoint) -> Unit,
+    onAdvanced: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val scope = rememberCoroutineScope()
+    val context = LocalContext.current
+    var pickedPreset by remember { mutableStateOf<ProviderPreset?>(null) }
+    var apiKey by remember { mutableStateOf("") }
+    var validating by remember { mutableStateOf(false) }
+    var validationResult by remember { mutableStateOf<ValidationResult?>(null) }
+    val pickTitle = if (isLlm) stringRes(R.string.settings__voice__pick_ai_model)
+        else stringRes(R.string.settings__voice__pick_provider)
+
+    JetPrefAlertDialog(
+        title = pickedPreset?.name ?: pickTitle,
+        confirmLabel = stringRes(R.string.settings__voice__save),
+        onConfirm = {
+            val preset = pickedPreset ?: return@JetPrefAlertDialog
+            onSave(
+                SavedEndpoint(
+                    id = java.util.UUID.randomUUID().toString(),
+                    name = preset.name,
+                    baseUrl = preset.baseUrl,
+                    apiKey = apiKey.trim(),
+                    model = preset.defaultModel,
+                    presetId = preset.id,
+                )
+            )
+            onDismiss()
+        },
+        dismissLabel = stringRes(R.string.settings__voice__cancel),
+        onDismiss = onDismiss,
+        confirmEnabled = pickedPreset != null &&
+            (apiKey.isNotBlank() || pickedPreset?.requiresApiKey == false),
+    ) {
+        Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+            if (pickedPreset == null) {
+                // Step 1: pick a provider (icon + name only, no taglines/links).
+                presets.forEach { preset ->
+                    Surface(
+                        color = MaterialTheme.colorScheme.surface,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 4.dp)
+                            .clip(RoundedCornerShape(16.dp))
+                            .clickable { pickedPreset = preset },
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Icon(
+                                imageVector = ImageVector.vectorResource(preset.iconRes),
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSurface,
+                                modifier = Modifier.size(28.dp),
+                            )
+                            Spacer(modifier = Modifier.width(16.dp))
+                            Text(
+                                text = preset.name,
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.onSurface,
+                            )
+                        }
+                    }
+                }
+                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+                Text(
+                    text = stringRes(R.string.settings__voice__advanced),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(12.dp))
+                        .clickable { onAdvanced() }
+                        .padding(12.dp),
+                )
+            } else {
+                // Step 2: just the API key.
+                val preset = pickedPreset!!
+                Row(
+                    modifier = Modifier.padding(bottom = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Icon(
+                        imageVector = ImageVector.vectorResource(preset.iconRes),
+                        contentDescription = null,
+                        modifier = Modifier.size(24.dp),
+                        tint = MaterialTheme.colorScheme.onSurface,
+                    )
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Text(
+                        text = stringResource(
+                            R.string.settings__voice__enter_api_key_for, preset.name,
+                        ),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                }
+                if (preset.requiresApiKey) {
+                    OutlinedTextField(
+                        value = apiKey,
+                        onValueChange = {
+                            apiKey = it
+                            validationResult = null
+                        },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    preset.docsUrl?.let { url ->
+                        Text(
+                            text = stringResource(R.string.settings__voice__get_key_at, url),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier
+                                .padding(top = 8.dp)
+                                .clickable { context.launchUrl(url) },
+                        )
+                    }
+                } else {
+                    Text(
+                        text = stringResource(R.string.settings__voice__no_api_key_needed),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+                OutlinedButton(
+                    onClick = {
+                        validating = true
+                        validationResult = null
+                        scope.launch {
+                            validationResult = validateEndpoint(preset.baseUrl, apiKey.trim())
+                            validating = false
+                        }
+                    },
+                    enabled = !validating &&
+                        (apiKey.isNotBlank() || !preset.requiresApiKey),
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text(
+                        if (validating) stringRes(R.string.settings__voice__connecting)
+                        else stringRes(R.string.settings__voice__test_connection),
+                    )
+                }
+                AnimatedVisibility(
+                    visible = validationResult != null,
+                    enter = fadeIn() + expandVertically(),
+                    exit = fadeOut() + shrinkVertically(),
+                ) {
+                    validationResult?.let { result ->
+                        Text(
+                            text = if (result.isSuccess)
+                                stringRes(R.string.settings__voice__connection_successful)
+                            else
+                                result.errorMessage
+                                    ?: stringRes(R.string.settings__voice__validation_failed),
+                            color = if (result.isSuccess) MaterialTheme.colorScheme.primary
+                                else MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.bodySmall,
+                            modifier = Modifier.padding(top = 8.dp),
+                        )
+                    }
+                }
+
+                // Let the user pick a different provider.
+                Text(
+                    text = stringRes(R.string.settings__voice__pick_provider),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier
+                        .padding(top = 12.dp)
+                        .clickable { pickedPreset = null },
+                )
+            }
+        }
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun OptionPickerSheet(
@@ -803,122 +1063,6 @@ private fun SelectableOptionRow(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun ProviderPresetGrid(
-    presets: List<ProviderPreset>,
-    activePresetIds: List<String>,
-    onSelect: (ProviderPreset) -> Unit,
-) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        presets.chunked(2).forEach { rowPresets ->
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                rowPresets.forEach { preset ->
-                    val alreadyAdded = preset.id in activePresetIds
-                    ProviderPresetCard(
-                        preset = preset,
-                        alreadyAdded = alreadyAdded,
-                        modifier = Modifier.weight(1f),
-                        onClick = { onSelect(preset) },
-                    )
-                }
-                if (rowPresets.size == 1) Spacer(modifier = Modifier.weight(1f))
-            }
-        }
-    }
-}
-
-@Composable
-private fun ProviderPresetCard(
-    preset: ProviderPreset,
-    alreadyAdded: Boolean,
-    modifier: Modifier = Modifier,
-    onClick: () -> Unit,
-) {
-    val borderColor = if (alreadyAdded)
-        MaterialTheme.colorScheme.primary
-    else
-        MaterialTheme.colorScheme.outlineVariant
-
-    Card(
-        modifier = modifier
-            .clickable(onClick = onClick)
-            .border(
-                width = if (alreadyAdded) 1.5.dp else 0.5.dp,
-                color = borderColor,
-                shape = RoundedCornerShape(12.dp),
-            ),
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = if (alreadyAdded)
-                MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.15f)
-            else
-                MaterialTheme.colorScheme.surface,
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(12.dp),
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween,
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Icon(
-                    imageVector = ImageVector.vectorResource(preset.iconRes),
-                    contentDescription = "${preset.name} logo",
-                    modifier = Modifier.size(28.dp),
-                    tint = MaterialTheme.colorScheme.onSurface,
-                )
-                if (alreadyAdded) {
-                    Box(
-                        modifier = Modifier
-                            .size(18.dp)
-                            .background(
-                                color = MaterialTheme.colorScheme.primary,
-                                shape = CircleShape,
-                            ),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Icon(
-                            imageVector = Icons.Filled.Check,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onPrimary,
-                            modifier = Modifier.size(11.dp),
-                        )
-                    }
-                }
-            }
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = preset.name,
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.onSurface,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-            Text(
-                text = preset.tagline,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-            )
-        }
-    }
-}
-
 @Composable
 private fun EndpointRow(
     endpoint: SavedEndpoint,
@@ -974,7 +1118,7 @@ private fun EndpointRow(
                     }
                 }
                 Text(
-                    text = "${endpoint.baseUrl} \u00b7 ${endpoint.model}",
+                    text = endpoint.model,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
