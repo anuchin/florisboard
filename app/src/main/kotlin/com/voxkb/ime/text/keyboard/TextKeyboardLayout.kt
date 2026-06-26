@@ -118,7 +118,9 @@ fun TextKeyboardLayout(
         evaluator.state.keyVariation != KeyVariation.PASSWORD
     val glideShowTrail by prefs.glide.showTrail.collectAsState()
     val glideTrailStyle = rememberSnyggThemeQuery(VoxKBImeUi.GlideTrail.elementName)
-    val glideTrailColor = glideTrailStyle.foreground(default = Color.Green)
+    // Fallback only — the GlideTrail rule's foreground normally resolves to the
+    // themed primary. Avoid the previous jarring Color.Green default.
+    val glideTrailColor = glideTrailStyle.foreground(default = Color(0xFF4CAF50))
 
     val controller = remember { TextKeyboardLayoutController(context) }.also {
         it.keyboard = keyboard

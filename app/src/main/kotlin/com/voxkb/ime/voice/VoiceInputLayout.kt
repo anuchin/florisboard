@@ -53,20 +53,17 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBackIosNew
-import androidx.compose.material.icons.filled.ArrowForwardIos
+import androidx.compose.material.icons.automirrored.filled.KeyboardReturn
+import androidx.compose.material.icons.automirrored.filled.Redo
+import androidx.compose.material.icons.automirrored.filled.Undo
+import androidx.compose.material.icons.automirrored.outlined.Backspace
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.Keyboard
 import androidx.compose.material.icons.filled.Mic
-import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material.icons.filled.Send
 import androidx.compose.material.icons.filled.Stop
-import androidx.compose.material.icons.filled.Undo
 import androidx.compose.material.icons.outlined.AutoAwesome
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
@@ -92,8 +89,6 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
@@ -102,9 +97,6 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.dp
 import com.voxkb.VoxKBImeService
 import com.voxkb.R
@@ -202,8 +194,10 @@ private fun VoiceInputLayoutContent(modifier: Modifier) {
             VoiceBottomBar(
                 keyboardManager = keyboardManager,
                 onBackspace = { keyboardManager.inputEventDispatcher.sendDownUp(TextKeyData.DELETE) },
-                onUndo = { voiceInputManager.clearLastTranscription() },
-                onRedo = { voiceInputManager.startRecording() },
+                onUndo = { voiceInputManager.undoLastInsert() },
+                onRedo = { voiceInputManager.redoInsert() },
+                canUndo = uiState.canUndo,
+                canRedo = uiState.canRedo,
             )
         }
     }
@@ -240,7 +234,9 @@ private fun VoiceTopBar(
             SnyggChip(
                 elementName = VoxKBImeUi.VoiceChip.elementName,
                 onClick = { showDropdown = true },
-                imageVector = Icons.Outlined.AutoAwesome,
+                // Use the selected tone's own glyph so the chip reflects the active voice,
+                // rather than a generic sparkle on every tone.
+                imageVector = toneStyle.icon,
                 text = toneStyle.displayName(),
             )
 
@@ -378,17 +374,6 @@ private fun VoiceStage(
                 onCancel = { manager.cancel() },
             )
             VoiceInputState.INSERTING -> AutoInsertStage(uiState = uiState)
-            VoiceInputState.SUCCESS -> SuccessStage(
-                uiState = uiState,
-                refinementEnabled = manager.isRefinementEnabled(),
-                onTextChange = { manager.updateTranscript(it) },
-                onInsert = { manager.commitText() },
-                onRedo = { manager.startRecording() },
-                onRefine = { manager.refineText() },
-                onToggleRawRefined = { manager.toggleRefined() },
-                onDismiss = { manager.reset() },
-                isAgentMode = uiState.isAgentMode,
-            )
             VoiceInputState.ERROR -> ErrorStage(
                 message = uiState.errorMessage.ifBlank { stringResource(R.string.voice__error_title) },
                 onRetry = { manager.startRecording() },
@@ -410,16 +395,24 @@ private fun VoiceStage(
 
 @Composable
 private fun AutoInsertStage(uiState: VoiceInputUiState) {
-    SnyggBox(
+    SnyggColumn(
         elementName = VoxKBImeUi.VoiceInputRoot.elementName,
-        modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center,
+        modifier = Modifier.fillMaxSize().padding(horizontal = 32.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
     ) {
         SnyggText(
-            elementName = VoxKBImeUi.VoiceInputRoot.elementName,
+            elementName = VoxKBImeUi.VoiceProcessing.elementName,
             text = if (uiState.done) stringResource(R.string.voice__done)
                    else stringResource(R.string.voice__inserting),
         )
+        if (uiState.done) {
+            Spacer(modifier = Modifier.height(8.dp))
+            SnyggText(
+                elementName = VoxKBImeUi.VoiceInputRoot.elementName,
+                text = stringResource(R.string.voice__inserted_undo_hint),
+            )
+        }
     }
 }
 
@@ -447,19 +440,27 @@ private fun RecordingStage(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center,
         ) {
+            // Guard: a tap when already pressed-to-record must toggle off, not start again.
+            // A tap from idle starts; both paths route through the same toggle so an idle
+            // press+quick-release starts exactly once.
             VoiceMicButton(
                 isRecording = isRecording,
-                onPress = onStartRecording,
+                onToggle = { if (isRecording) onStopRecording() else onStartRecording() },
                 onRelease = onStopRecording,
-                onTap = {
-                    if (isRecording) onStopRecording() else onStartRecording()
-                },
             )
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(28.dp))
             SnyggText(
                 elementName = VoxKBImeUi.VoiceProcessing.elementName,
                 text = stringResource(
                     if (isRecording) R.string.voice__listening else R.string.voice__tap_to_start
+                ),
+            )
+            Spacer(modifier = Modifier.height(6.dp))
+            SnyggText(
+                elementName = VoxKBImeUi.VoiceInputRoot.elementName,
+                text = stringResource(
+                    if (isRecording) R.string.voice__listening_sublabel
+                    else R.string.voice__tap_to_start_sublabel
                 ),
             )
         }
@@ -531,9 +532,8 @@ private fun PulseRings() {
 @Composable
 private fun VoiceMicButton(
     isRecording: Boolean,
-    onPress: () -> Unit,
+    onToggle: () -> Unit,
     onRelease: () -> Unit,
-    onTap: () -> Unit,
 ) {
     val stateAttr = mapOf(VoxKBImeUi.Attr.VoiceState to listOf(if (isRecording) "recording" else "idle"))
     val micStyle = rememberSnyggThemeQuery(
@@ -542,8 +542,11 @@ private fun VoiceMicButton(
     )
     val currentIsRecording by rememberUpdatedState(isRecording)
     var pressed by remember { mutableStateOf(false) }
+    // True only between the press start (from idle) and the release, so a quick tap
+    // doesn't fire start twice (once on press, once on tap).
+    var pressStartedRecording by remember { mutableStateOf(false) }
 
-    val targetScale = if (pressed) 0.94f else 1.0f
+    val targetScale = if (pressed) 0.92f else 1.0f
     val scale by animateFloatAsState(
         targetValue = targetScale,
         animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
@@ -553,14 +556,14 @@ private fun VoiceMicButton(
     val bgColor = micStyle.background()
     // Border tracks the button's own theme color so it adapts to light/dark and
     // custom themes instead of the previous hardcoded red/blue literals.
-    val borderColor = bgColor.copy(alpha = 0.65f)
+    val borderColor = bgColor.copy(alpha = 0.55f)
 
     val micDesc = stringResource(
         if (isRecording) R.string.voice__stop_recording else R.string.voice__start_recording
     )
 
     Box(
-        modifier = Modifier.size(160.dp),
+        modifier = Modifier.size(168.dp),
         contentAlignment = Alignment.Center,
     ) {
         if (isRecording) {
@@ -569,7 +572,7 @@ private fun VoiceMicButton(
 
         Box(
             modifier = Modifier
-                .size(72.dp)
+                .size(88.dp)
                 .scale(scale)
                 .drawBehind {
                     drawCircle(color = bgColor)
@@ -586,18 +589,31 @@ private fun VoiceMicButton(
                         val down = awaitFirstDown(requireUnconsumed = false)
                         pressed = true
                         val pressStart = System.currentTimeMillis()
-                        if (!currentIsRecording) {
-                            onPress()
+                        val startedIdle = !currentIsRecording
+                        pressStartedRecording = startedIdle
+                        if (startedIdle) {
+                            // Press-to-talk from idle starts recording immediately.
+                            onToggle()
                         }
                         val up = waitForUpOrCancellation()
                         pressed = false
-                        if (up == null) return@awaitEachGesture
+                        if (up == null) {
+                            // Gesture cancelled (e.g. finger slid off). If we started
+                            // recording on press (press-to-talk), stop it so it doesn't
+                            // run forever; a tap-to-toggle recording is left as-is.
+                            if (pressStartedRecording) onRelease()
+                            pressStartedRecording = false
+                            return@awaitEachGesture
+                        }
                         val pressDuration = System.currentTimeMillis() - pressStart
-                        if (pressDuration < 200L) {
-                            onTap()
+                        if (startedIdle && pressDuration < 200L) {
+                            // Quick tap from idle: recording already started on press,
+                            // so we DO NOT toggle again — this was the double-start bug.
                         } else {
+                            // Long-press release, or a tap while already recording: stop.
                             onRelease()
                         }
+                        pressStartedRecording = false
                     }
                 },
             contentAlignment = Alignment.Center,
@@ -607,7 +623,7 @@ private fun VoiceMicButton(
                 attributes = stateAttr,
                 imageVector = if (isRecording) Icons.Filled.Stop else Icons.Filled.Mic,
                 contentDescription = null,
-                modifier = Modifier.size(32.dp),
+                modifier = Modifier.size(36.dp),
             )
         }
     }
@@ -747,166 +763,6 @@ private fun ProcessingStage(
                 elementName = VoxKBImeUi.VoiceActionKey.elementName,
                 text = stringResource(R.string.voice__cancel),
             )
-        }
-    }
-}
-
-@Composable
-private fun SuccessStage(
-    uiState: VoiceInputUiState,
-    refinementEnabled: Boolean,
-    onTextChange: (String) -> Unit,
-    onInsert: () -> Unit,
-    onRedo: () -> Unit,
-    onRefine: () -> Unit,
-    onToggleRawRefined: () -> Unit,
-    onDismiss: () -> Unit,
-    isAgentMode: Boolean,
-) {
-    val text = uiState.transcribedText
-    val hasRawAndRefined = uiState.rawTranscribedText.isNotBlank() && uiState.refinedText.isNotBlank()
-    val transcriptStyle = rememberSnyggThemeQuery(VoxKBImeUi.VoiceTranscriptBox.elementName)
-
-    SnyggColumn(
-        elementName = VoxKBImeUi.VoiceInputRoot.elementName,
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(horizontal = 24.dp, vertical = 8.dp),
-    ) {
-        SnyggRow(
-            elementName = VoxKBImeUi.VoiceInputRoot.elementName,
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            SnyggText(
-                elementName = VoxKBImeUi.VoiceTranscriptBox.elementName,
-                text = when {
-                    isAgentMode && uiState.isRefined -> stringResource(R.string.voice__generated_result)
-                    isAgentMode -> stringResource(R.string.voice__instruction)
-                    uiState.isRefined -> stringResource(R.string.voice__refined_transcript)
-                    else -> stringResource(R.string.voice__transcript)
-                },
-            )
-            Spacer(modifier = Modifier.weight(1f))
-            SnyggText(
-                elementName = VoxKBImeUi.VoiceInputRoot.elementName,
-                text = stringResource(R.string.voice__word_count, countWords(text)),
-            )
-        }
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        SnyggBox(
-            elementName = VoxKBImeUi.VoiceTranscriptBox.elementName,
-            modifier = Modifier
-                .weight(1f)
-                .fillMaxWidth(),
-        ) {
-            Box(modifier = Modifier.padding(16.dp)) {
-                if (text.isBlank()) {
-                    SnyggText(
-                        elementName = VoxKBImeUi.VoiceTranscriptBox.elementName,
-                        text = stringResource(R.string.voice__empty_result),
-                    )
-                } else {
-                    BasicTextField(
-                        value = text,
-                        onValueChange = onTextChange,
-                        textStyle = TextStyle(color = transcriptStyle.foreground()),
-                        cursorBrush = SolidColor(transcriptStyle.foreground()),
-                        keyboardOptions = KeyboardOptions(
-                            capitalization = KeyboardCapitalization.Sentences,
-                            imeAction = ImeAction.Default,
-                        ),
-                        modifier = Modifier.fillMaxSize(),
-                    )
-                }
-            }
-        }
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        SnyggRow(
-            elementName = VoxKBImeUi.VoiceActionBar.elementName,
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            SnyggButton(
-                elementName = VoxKBImeUi.VoiceActionKey.elementName,
-                onClick = onRedo,
-                modifier = Modifier.weight(1f),
-            ) {
-                SnyggIcon(
-                    elementName = VoxKBImeUi.VoiceActionKey.elementName,
-                    imageVector = Icons.Filled.Refresh,
-                    contentDescription = null,
-                    modifier = Modifier.size(15.dp),
-                )
-                Spacer(modifier = Modifier.width(6.dp))
-                SnyggText(
-                    elementName = VoxKBImeUi.VoiceActionKey.elementName,
-                    text = stringResource(R.string.voice__redo),
-                )
-            }
-            if (refinementEnabled && !uiState.isRefined) {
-                SnyggButton(
-                    elementName = VoxKBImeUi.VoiceActionKey.elementName,
-                    onClick = onRefine,
-                    modifier = Modifier.weight(1f),
-                ) {
-                    SnyggIcon(
-                        elementName = VoxKBImeUi.VoiceActionKey.elementName,
-                        imageVector = if (isAgentMode) Icons.Filled.Send else Icons.Outlined.AutoAwesome,
-                        contentDescription = null,
-                        modifier = Modifier.size(15.dp),
-                    )
-                    Spacer(modifier = Modifier.width(6.dp))
-                    SnyggText(
-                        elementName = VoxKBImeUi.VoiceActionKey.elementName,
-                        text = if (isAgentMode) stringResource(R.string.voice__generate)
-                               else stringResource(R.string.voice__refine),
-                    )
-                }
-            }
-            if (hasRawAndRefined) {
-                SnyggButton(
-                    elementName = VoxKBImeUi.VoiceActionKey.elementName,
-                    onClick = onToggleRawRefined,
-                    modifier = Modifier.weight(1f),
-                ) {
-                    SnyggText(
-                        elementName = VoxKBImeUi.VoiceActionKey.elementName,
-                        text = if (isAgentMode) {
-                            if (uiState.isRefined) stringResource(R.string.voice__instruction)
-                            else stringResource(R.string.voice__generated_result)
-                        } else {
-                            if (uiState.isRefined) stringResource(R.string.voice__raw)
-                            else stringResource(R.string.voice__refined)
-                        },
-                    )
-                }
-            }
-            SnyggButton(
-                elementName = VoxKBImeUi.VoiceActionKey.elementName,
-                attributes = mapOf(VoxKBImeUi.Attr.VoiceState to listOf("primary")),
-                onClick = onInsert,
-                modifier = Modifier.weight(1.2f),
-            ) {
-                SnyggIcon(
-                    elementName = VoxKBImeUi.VoiceActionKey.elementName,
-                    attributes = mapOf(VoxKBImeUi.Attr.VoiceState to listOf("primary")),
-                    imageVector = Icons.Filled.Send,
-                    contentDescription = null,
-                    modifier = Modifier.size(15.dp),
-                )
-                Spacer(modifier = Modifier.width(6.dp))
-                SnyggText(
-                    elementName = VoxKBImeUi.VoiceActionKey.elementName,
-                    attributes = mapOf(VoxKBImeUi.Attr.VoiceState to listOf("primary")),
-                    text = stringResource(R.string.voice__insert),
-                )
-            }
         }
     }
 }
@@ -1068,6 +924,8 @@ private fun VoiceBottomBar(
     onBackspace: () -> Unit,
     onUndo: () -> Unit,
     onRedo: () -> Unit,
+    canUndo: Boolean,
+    canRedo: Boolean,
 ) {
     val enterDesc = stringResource(R.string.voice__enter)
     val switchDesc = stringResource(R.string.voice__switch_keyboard)
@@ -1092,9 +950,9 @@ private fun VoiceBottomBar(
         ) {
             SnyggIcon(
                 elementName = VoxKBImeUi.VoiceBottomBarButton.elementName,
-                imageVector = Icons.Filled.ArrowBackIosNew,
+                imageVector = Icons.AutoMirrored.Outlined.Backspace,
                 contentDescription = backspaceDesc,
-                modifier = Modifier.size(16.dp),
+                modifier = Modifier.size(20.dp),
             )
         }
 
@@ -1108,26 +966,28 @@ private fun VoiceBottomBar(
         SnyggIconButton(
             elementName = VoxKBImeUi.VoiceBottomBarButton.elementName,
             modifier = Modifier.weight(1f).fillMaxHeight().padding(4.dp),
+            enabled = canUndo,
             onClick = onUndo,
         ) {
             SnyggIcon(
                 elementName = VoxKBImeUi.VoiceBottomBarButton.elementName,
-                imageVector = Icons.Filled.Undo,
+                imageVector = Icons.AutoMirrored.Filled.Undo,
                 contentDescription = undoDesc,
-                modifier = Modifier.size(16.dp),
+                modifier = Modifier.size(20.dp),
             )
         }
 
         SnyggIconButton(
             elementName = VoxKBImeUi.VoiceBottomBarButton.elementName,
             modifier = Modifier.weight(1f).fillMaxHeight().padding(4.dp),
+            enabled = canRedo,
             onClick = onRedo,
         ) {
             SnyggIcon(
                 elementName = VoxKBImeUi.VoiceBottomBarButton.elementName,
-                imageVector = Icons.Filled.Refresh,
+                imageVector = Icons.AutoMirrored.Filled.Redo,
                 contentDescription = redoDesc,
-                modifier = Modifier.size(16.dp),
+                modifier = Modifier.size(20.dp),
             )
         }
 
@@ -1174,9 +1034,9 @@ private fun VoiceBottomBar(
         ) {
             SnyggIcon(
                 elementName = VoxKBImeUi.VoiceBottomBarButton.elementName,
-                imageVector = Icons.Filled.ArrowForwardIos,
+                imageVector = Icons.AutoMirrored.Filled.KeyboardReturn,
                 contentDescription = enterDesc,
-                modifier = Modifier.size(16.dp),
+                modifier = Modifier.size(20.dp),
             )
         }
     }
@@ -1204,9 +1064,4 @@ private fun rememberOpenVoiceSettings(): () -> Unit {
             runCatching { ctx.startActivity(intent) }
         }
     }
-}
-
-private fun countWords(text: String): Int {
-    if (text.isBlank()) return 0
-    return text.trim().split(Regex("\\s+")).size
 }

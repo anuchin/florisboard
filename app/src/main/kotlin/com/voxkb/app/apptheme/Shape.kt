@@ -21,7 +21,9 @@ import androidx.compose.material3.Shapes
 import androidx.compose.ui.unit.dp
 
 val Shapes = Shapes(
-    small = RoundedCornerShape(4.dp),
-    medium = RoundedCornerShape(4.dp),
-    large = RoundedCornerShape(0.dp),
+    // Material 3 default corner radii, so cards/buttons/dialogs match the spec
+    // instead of the previous near-square (4dp) values.
+    small = RoundedCornerShape(8.dp),
+    medium = RoundedCornerShape(12.dp),
+    large = RoundedCornerShape(28.dp),
 )

@@ -19,6 +19,8 @@ package com.voxkb.ime.voice
 import android.content.Context
 import com.voxkb.app.VoxKBPreferenceStore
 import com.voxkb.editorInstance
+import com.voxkb.ime.editor.OperationScope
+import com.voxkb.ime.editor.OperationUnit
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -37,7 +39,6 @@ enum class VoiceInputState {
     PROCESSING,
     REFINING,
     INSERTING,
-    SUCCESS,
     ERROR,
     PERMISSION_REQUIRED,
 }
@@ -57,6 +58,10 @@ data class VoiceInputUiState(
     val modelLabel: String = "",
     val languageLabel: String = "Auto",
     val done: Boolean = false,
+    /** Whether the last auto-insert can be undone (i.e. text is currently in the editor). */
+    val canUndo: Boolean = false,
+    /** Whether a previously undone insert can be redone. */
+    val canRedo: Boolean = false,
 )
 
 const val AMPLITUDE_HISTORY_SIZE = 36
@@ -75,6 +80,15 @@ class VoiceInputManager(context: Context) {
     private var autoInsertJob: Job? = null
     private var recordingStartMs: Long = 0L
     private var durationTickJob: Job? = null
+
+    /**
+     * One-level local undo stack for the last auto-inserted dictated text.
+     * - [lastInsertedText] holds the exact string that was committed.
+     * - [lastInsertUndone] flips to true after [undoLastInsert], enabling [redoInsert].
+     * Reset whenever a new recording starts.
+     */
+    private var lastInsertedText: String = ""
+    private var lastInsertUndone: Boolean = false
 
     fun hasRecordAudioPermission(): Boolean {
         return appContext.checkCallingOrSelfPermission(android.Manifest.permission.RECORD_AUDIO) ==
@@ -97,6 +111,10 @@ class VoiceInputManager(context: Context) {
             _uiState.value = _uiState.value.copy(state = VoiceInputState.PERMISSION_REQUIRED)
             return
         }
+
+        // Starting a fresh dictation invalidates any previous insert's undo/redo state.
+        lastInsertedText = ""
+        lastInsertUndone = false
 
         // If a job is in flight, cancel it cleanly.
         activeJob?.cancel()
@@ -195,9 +213,12 @@ class VoiceInputManager(context: Context) {
             val rawText = result.text
             val style = prefs.voice.refinementStyle.get()
             val isAgent = style.isAgent
-            val shouldReview = prefs.voice.reviewBeforeInsert.get()
 
-            if (rawText.isEmpty()) return
+            if (rawText.isEmpty()) {
+                // Nothing recognizable — return to idle without inserting anything.
+                _uiState.value = VoiceInputUiState()
+                return
+            }
 
             if (prefs.voice.refinementEnabled.get()) {
                 _uiState.value = _uiState.value.copy(
@@ -205,35 +226,9 @@ class VoiceInputManager(context: Context) {
                     rawTranscribedText = rawText,
                     isAgentMode = isAgent,
                 )
-                refineText(rawText, autoInsert = !shouldReview)
-            } else if (shouldReview) {
-                _uiState.value = _uiState.value.copy(
-                    state = VoiceInputState.SUCCESS,
-                    transcribedText = rawText,
-                    rawTranscribedText = rawText,
-                    isRefined = false,
-                    isAgentMode = isAgent,
-                )
+                refineText(rawText)
             } else {
-                _uiState.value = _uiState.value.copy(
-                    state = VoiceInputState.INSERTING,
-                    transcribedText = rawText,
-                    rawTranscribedText = rawText,
-                    isRefined = false,
-                    isAgentMode = isAgent,
-                    done = false,
-                )
-                scope.launch {
-                    delay(400)
-                    val text = _uiState.value.transcribedText
-                    if (text.isNotEmpty()) {
-                        val toCommit = if (!text.endsWith(' ') && !text.endsWith('\n')) "$text " else text
-                        editorInstance.commitText(toCommit)
-                    }
-                    _uiState.value = _uiState.value.copy(done = true)
-                    delay(700)
-                    reset()
-                }.also { autoInsertJob = it }
+                autoInsert(rawText, rawText, isRefined = false, isAgent = isAgent)
             }
         } catch (e: CancellationException) {
             throw e
@@ -245,7 +240,48 @@ class VoiceInputManager(context: Context) {
         }
     }
 
-    fun refineText(text: String? = null, autoInsert: Boolean = true) {
+    /**
+     * Commits [displayText] (the polished text, or the raw transcript when refinement is off)
+     * into the editor and stages it for one-level undo. [rawText] is retained for diagnostics.
+     */
+    private fun autoInsert(
+        displayText: String,
+        rawText: String,
+        isRefined: Boolean,
+        isAgent: Boolean,
+    ) {
+        _uiState.value = _uiState.value.copy(
+            state = VoiceInputState.INSERTING,
+            transcribedText = displayText,
+            rawTranscribedText = rawText,
+            refinedText = if (isRefined) displayText else "",
+            isRefined = isRefined,
+            isAgentMode = isAgent,
+            done = false,
+        )
+        autoInsertJob = scope.launch {
+            delay(400)
+            val toCommit = withTrailingSpace(displayText)
+            if (toCommit.isNotEmpty()) {
+                editorInstance.commitText(toCommit)
+                lastInsertedText = toCommit
+                lastInsertUndone = false
+            }
+            _uiState.value = _uiState.value.copy(done = true, canUndo = toCommit.isNotEmpty(), canRedo = false)
+            delay(700)
+            // Return to idle but preserve the undo/redo flags so the bottom bar stays usable.
+            _uiState.value = _uiState.value.copy(
+                state = VoiceInputState.IDLE,
+                amplitude = 0f,
+                durationMs = 0L,
+            )
+        }
+    }
+
+    private fun withTrailingSpace(text: String): String =
+        if (text.isNotEmpty() && !text.endsWith(' ') && !text.endsWith('\n')) "$text " else text
+
+    fun refineText(text: String? = null) {
         val rawText = text ?: _uiState.value.rawTranscribedText
         if (rawText.isBlank()) return
 
@@ -270,35 +306,7 @@ class VoiceInputManager(context: Context) {
             try {
                 val llmClient = buildLlmClient()
                 val refined = llmClient.refineText(rawText, effectivePrompt)
-                if (autoInsert) {
-                    _uiState.value = _uiState.value.copy(
-                        state = VoiceInputState.INSERTING,
-                        transcribedText = refined,
-                        rawTranscribedText = rawText,
-                        refinedText = refined,
-                        isRefined = true,
-                        isAgentMode = isAgent,
-                        done = false,
-                    )
-                    delay(400)
-                    val toCommit = refined
-                    if (toCommit.isNotEmpty()) {
-                        val text2 = if (!toCommit.endsWith(' ') && !toCommit.endsWith('\n')) "$toCommit " else toCommit
-                        editorInstance.commitText(text2)
-                    }
-                    _uiState.value = _uiState.value.copy(done = true)
-                    delay(700)
-                    reset()
-                } else {
-                    _uiState.value = _uiState.value.copy(
-                        state = VoiceInputState.SUCCESS,
-                        transcribedText = refined,
-                        rawTranscribedText = rawText,
-                        refinedText = refined,
-                        isRefined = true,
-                        isAgentMode = isAgent,
-                    )
-                }
+                autoInsert(refined, rawText, isRefined = true, isAgent = isAgent)
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
@@ -314,41 +322,38 @@ class VoiceInputManager(context: Context) {
         }
     }
 
-    fun toggleRefined() {
-        val current = _uiState.value
-        if (current.rawTranscribedText.isBlank() || current.refinedText.isBlank()) return
-        val showingRefined = current.isRefined
-        _uiState.value = current.copy(
-            transcribedText = if (showingRefined) current.rawTranscribedText else current.refinedText,
-            isRefined = !showingRefined,
-        )
+    /**
+     * Removes exactly the text that was last auto-inserted (one level of undo).
+     * Selects backwards over [lastInsertedText] characters then deletes them, so
+     * the user's surrounding typed text is never touched.
+     */
+    fun undoLastInsert() {
+        if (!canUndo()) return
+        val text = lastInsertedText
+        if (text.isEmpty()) return
+        val length = text.length
+        // Select the last `length` characters before the cursor, then delete them.
+        // setSelectionSurrounding establishes the selection; deleteBackwards on a
+        // selection removes it. This mirrors the keyboard's own delete path.
+        editorInstance.setSelectionSurrounding(length, OperationUnit.CHARACTERS, OperationScope.BEFORE_CURSOR)
+        editorInstance.deleteBackwards(OperationUnit.CHARACTERS)
+        lastInsertUndone = true
+        _uiState.value = _uiState.value.copy(canUndo = false, canRedo = true)
     }
 
-    fun updateTranscript(text: String) {
-        _uiState.value = _uiState.value.copy(transcribedText = text)
+    /** Re-inserts the previously undone dictated text (one level of redo). */
+    fun redoInsert() {
+        if (!canRedo()) return
+        val text = lastInsertedText
+        if (text.isEmpty()) return
+        editorInstance.commitText(text)
+        lastInsertUndone = false
+        _uiState.value = _uiState.value.copy(canUndo = true, canRedo = false)
     }
 
-    fun clearLastTranscription() {
-        val current = _uiState.value
-        if (current.state == VoiceInputState.SUCCESS && current.transcribedText.isNotBlank()) {
-            _uiState.value = current.copy(
-                transcribedText = "",
-                rawTranscribedText = "",
-                refinedText = "",
-                isRefined = false,
-                state = VoiceInputState.IDLE,
-            )
-        }
-    }
+    fun canUndo(): Boolean = lastInsertedText.isNotEmpty() && !lastInsertUndone
 
-    fun commitText(appendSpace: Boolean = true) {
-        val raw = _uiState.value.transcribedText
-        if (raw.isNotEmpty()) {
-            val text = if (appendSpace && !raw.endsWith(' ') && !raw.endsWith('\n')) "$raw " else raw
-            editorInstance.commitText(text)
-        }
-        reset()
-    }
+    fun canRedo(): Boolean = lastInsertedText.isNotEmpty() && lastInsertUndone
 
     fun reset() {
         stopDurationTicker()
@@ -357,6 +362,8 @@ class VoiceInputManager(context: Context) {
         autoInsertJob?.cancel()
         autoInsertJob = null
         audioRecorder?.clearHistory()
+        lastInsertedText = ""
+        lastInsertUndone = false
         _uiState.value = VoiceInputUiState()
     }
 

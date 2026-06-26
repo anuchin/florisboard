@@ -20,6 +20,9 @@ import android.graphics.Paint
 import android.graphics.Typeface
 import android.util.TypedValue
 import android.widget.TextView
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
@@ -65,6 +68,7 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
@@ -407,14 +411,31 @@ private fun EmojiKey(
     val base = emojiSet.base(withSkinTone = preferredSkinTone)
     val variations = emojiSet.variations(withoutSkinTone = preferredSkinTone)
     var showVariantsBox by remember { mutableStateOf(false) }
+    var isPressed by remember { mutableStateOf(false) }
+
+    // Springy press scale so emoji keys feel tactile (M3 expressive touch).
+    val pressScale by animateFloatAsState(
+        targetValue = if (isPressed) 0.88f else 1f,
+        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
+        label = "emoji-press",
+    )
 
     SnyggBox(VoxKBImeUi.MediaEmojiKey.elementName,
+        attributes = emptyMap(),
+        selector = if (isPressed) SnyggSelector.PRESSED else SnyggSelector.NONE,
         modifier = Modifier
             .aspectRatio(1f)
+            .graphicsLayer { scaleX = pressScale; scaleY = pressScale }
             .pointerInput(Unit) {
                 detectTapGestures(
                     onPress = {
+                        isPressed = true
                         inputFeedbackController.keyPress(TextKeyData.UNSPECIFIED)
+                        try {
+                            tryAwaitRelease()
+                        } finally {
+                            isPressed = false
+                        }
                     },
                     onTap = {
                         onEmojiInput(base)

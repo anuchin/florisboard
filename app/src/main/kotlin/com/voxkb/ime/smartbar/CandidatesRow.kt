@@ -16,6 +16,9 @@
 
 package com.voxkb.ime.smartbar
 
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.waitForUpOrCancellation
@@ -33,6 +36,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.PointerEventTimeoutCancellationException
 import androidx.compose.ui.input.pointer.PointerInputChange
 import androidx.compose.ui.input.pointer.pointerInput
@@ -155,11 +159,19 @@ private fun CandidateItem(
     val attributes = mapOf("auto-commit" to if (candidate.isEligibleForAutoCommit) 1 else 0)
     val selector = if (isPressed) SnyggSelector.PRESSED else SnyggSelector.NONE
 
+    // Subtle springy scale on press for a tactile M3 feel.
+    val pressScale by animateFloatAsState(
+        targetValue = if (isPressed) 0.94f else 1f,
+        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
+        label = "candidate-press",
+    )
+
     SnyggRow(
         elementName = elementName,
         attributes = attributes,
         selector = selector,
         modifier = modifier
+            .graphicsLayer { scaleX = pressScale; scaleY = pressScale }
             .pointerInput(Unit) {
                 awaitEachGesture {
                     val down = awaitFirstDown()

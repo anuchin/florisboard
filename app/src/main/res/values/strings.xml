@@ -1184,7 +1184,9 @@
     <!-- Voice input IME overlay -->
     <string name="voice__close" comment="Content description for close button in voice input overlay">Close</string>
     <string name="voice__listening" comment="Status text shown while actively recording audio">Listening… tap to stop</string>
+    <string name="voice__listening_sublabel" comment="Subtitle under the listening status">Speak naturally — your words are inserted automatically</string>
     <string name="voice__tap_to_start" comment="Idle state prompt for voice input">Tap to start · hold to talk</string>
+    <string name="voice__tap_to_start_sublabel" comment="Subtitle under the idle prompt">Dictate and your text is inserted, polished if Refine is on</string>
     <string name="voice__transcribing" comment="Label shown while audio is being transcribed">Transcribing…</string>
     <string name="voice__sending_to" comment="Sublabel during transcription, %s is the provider name">Sending to %s</string>
     <string name="voice__refining" comment="Label shown while text is being refined by LLM">Refining…</string>
@@ -1192,7 +1194,7 @@
     <string name="voice__generating" comment="Label shown while agent mode is generating a response">Generating…</string>
     <string name="voice__generating_sublabel" comment="Sublabel during agent generation">Fulfilling your request</string>
     <string name="voice__cancel" comment="Cancel button label">Cancel</string>
-    <string name="voice__redo" comment="Redo recording button label">Redo</string>/new
+    <string name="voice__redo" comment="Redo button label, re-inserts the previously removed dictated text">Redo</string>
     <string name="voice__refine" comment="Refine text button label">Refine</string>
     <string name="voice__insert" comment="Insert transcribed text button label">Insert</string>
     <string name="voice__raw" comment="Toggle to show raw (unrefined) transcript">Raw</string>
@@ -1215,8 +1217,9 @@
     <string name="voice__enter" comment="Content description for enter button">Enter</string>
     <string name="voice__paste" comment="Content description for paste button">Paste</string>
     <string name="voice__space" comment="Label for space button">Space</string>
-    <string name="voice__undo" comment="Content description for undo button">Undo</string>
-    <string name="voice__redo_desc" comment="Content description for redo button">Redo recording</string>
+    <string name="voice__undo" comment="Content description for undo button; removes the just-inserted dictated text">Undo</string>
+    <string name="voice__redo_desc" comment="Content description for redo button; re-inserts the removed dictated text">Redo insert</string>
+    <string name="voice__inserted_undo_hint" comment="Status line shown briefly after text is inserted, tells the user they can undo">Inserted · tap Undo to remove</string>
     <string name="voice__switch_keyboard" comment="Content description for switch to keyboard button">Switch to keyboard</string>
     <string name="voice__abc" comment="Label on button to switch back to text keyboard">ABC</string>
     <string name="voice__enhance" comment="Label for the enhance/refinement toggle">Enhance</string>
@@ -1233,7 +1236,7 @@
     <string name="voice__refine_toggle_off" comment="Label when refinement is disabled in top bar">Raw</string>
 
     <!-- Voice settings screen -->
-    <string name="settings__voice__title" comment="Title of Voice & AI settings screen">Voice &amp; AI</string>
+    <string name="settings__voice__title" comment="Title of Voice &amp; AI settings screen">Voice &amp; AI</string>
     <string name="settings__voice__provider_group" comment="Settings group title">Provider</string>
     <string name="settings__voice__speech_to_text_provider" comment="Preference title">Speech-to-Text Provider</string>
     <string name="settings__voice__provider_openai">OpenAI</string>

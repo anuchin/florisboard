@@ -29,29 +29,33 @@ import com.voxkb.lib.snygg.SnyggStylesheet
 
 val VoxKBImeThemeBaseStyle = SnyggStylesheet.v2 {
     defines {
-        "--primary" to rgbaColor(76, 175, 80)
-        "--primary-variant" to rgbaColor(56, 142, 60)
-        "--secondary" to rgbaColor(245, 124, 0)
-        "--secondary-variant" to rgbaColor(230, 81, 0)
-        "--background" to rgbaColor(33, 33, 33)
-        "--background-variant" to rgbaColor(44, 44, 44)
-        "--surface" to rgbaColor(66, 66, 66)
-        "--surface-variant" to rgbaColor(97, 97, 97)
+        // Material You color roles. Because every rule below references these via
+        // var(--...), swapping the @defines block here makes the entire default
+        // keyboard theme follow the system Material You scheme (light/dark resolved
+        // automatically against the dynamic color scheme provided by ProvideSnyggTheme).
+        "--primary" to dynamicDarkColor("primary")
+        "--primary-variant" to dynamicDarkColor("primaryContainer")
+        "--secondary" to dynamicDarkColor("tertiary")
+        "--secondary-variant" to dynamicDarkColor("tertiaryContainer")
+        "--background" to dynamicDarkColor("surface")
+        "--background-variant" to dynamicDarkColor("surfaceContainerLow")
+        "--surface" to dynamicDarkColor("surfaceContainer")
+        "--surface-variant" to dynamicDarkColor("surfaceContainerHigh")
 
-        "--on-primary" to rgbaColor(240, 240, 240)
-        "--on-background" to rgbaColor(255, 255, 255)
-        "--on-background-disabled" to rgbaColor(80, 80, 80)
-        "--on-surface" to rgbaColor(255, 255, 255)
-        "--error" to rgbaColor(211, 47, 47)
-        "--on-error" to rgbaColor(255, 255, 255)
-        "--error-container" to rgbaColor(249, 236, 236)
-        "--on-error-container" to rgbaColor(65, 14, 11)
-        "--warning" to rgbaColor(255, 152, 0)
-        "--voice-surface" to rgbaColor(0, 0, 0, 0.10f)
-        "--voice-surface-variant" to rgbaColor(255, 255, 255, 0.06f)
+        "--on-primary" to dynamicDarkColor("onPrimary")
+        "--on-background" to dynamicDarkColor("onBackground")
+        "--on-background-disabled" to dynamicDarkColor("outlineVariant")
+        "--on-surface" to dynamicDarkColor("onSurface")
+        "--error" to dynamicDarkColor("error")
+        "--on-error" to dynamicDarkColor("onError")
+        "--error-container" to dynamicDarkColor("errorContainer")
+        "--on-error-container" to dynamicDarkColor("onErrorContainer")
+        "--warning" to dynamicDarkColor("tertiary")
+        "--voice-surface" to dynamicDarkColor("surfaceContainer")
+        "--voice-surface-variant" to dynamicDarkColor("surfaceContainerHigh")
 
-        "--shape" to roundedCornerShape(8.dp)
-        "--shape-variant" to roundedCornerShape(12.dp)
+        "--shape" to roundedCornerShape(12.dp)
+        "--shape-variant" to roundedCornerShape(16.dp)
     }
 
     VoxKBImeUi.Window.elementName {
@@ -63,7 +67,6 @@ val VoxKBImeThemeBaseStyle = SnyggStylesheet.v2 {
         background = `var`("--surface")
         foreground = `var`("--on-surface")
         fontSize = fontSize(22.sp)
-        shadowElevation = size(2.dp)
         shape = `var`("--shape")
         textMaxLines = textMaxLines(1)
     }
@@ -142,13 +145,13 @@ val VoxKBImeThemeBaseStyle = SnyggStylesheet.v2 {
     }
     VoxKBImeUi.SmartbarExtendedActionsToggle.elementName {
         background = rgbaColor(0, 0, 0, 0f)
-        foreground = rgbaColor(144, 144, 144)
+        foreground = `var`("--on-background")
         margin = padding(6.dp)
         shape = circleShape()
     }
     VoxKBImeUi.SmartbarActionKey.elementName {
         background = rgbaColor(0, 0, 0, 0f)
-        foreground = rgbaColor(220, 220, 220)
+        foreground = `var`("--on-background")
         shape = `var`("--shape")
     }
     VoxKBImeUi.SmartbarActionKey.elementName(selector = SnyggSelector.DISABLED) {
@@ -231,7 +234,7 @@ val VoxKBImeThemeBaseStyle = SnyggStylesheet.v2 {
         fontSize = fontSize(14.sp)
         margin = padding(4.dp)
         padding = padding(8.dp, 0.dp)
-        shape = rectangleShape()
+        shape = `var`("--shape")
         textMaxLines = textMaxLines(1)
         textOverflow = textOverflow(TextOverflow.Ellipsis)
     }
@@ -245,11 +248,11 @@ val VoxKBImeThemeBaseStyle = SnyggStylesheet.v2 {
     }
     VoxKBImeUi.SmartbarCandidateClip.elementName {
         background = rgbaColor(0, 0, 0, 0f)
-        foreground = rgbaColor(220, 220, 220)
+        foreground = `var`("--on-background")
         fontSize = fontSize(14.sp)
         margin = padding(4.dp)
         padding = padding(8.dp, 0.dp)
-        shape = roundedCornerShape(8)
+        shape = `var`("--shape")
         textMaxLines = textMaxLines(1)
         textOverflow = textOverflow(TextOverflow.Ellipsis)
     }
@@ -261,7 +264,7 @@ val VoxKBImeThemeBaseStyle = SnyggStylesheet.v2 {
         margin = padding(0.dp, 0.dp, 4.dp, 0.dp)
     }
     VoxKBImeUi.SmartbarCandidateSpacer.elementName {
-        foreground = rgbaColor(255, 255, 255, 0.25f)
+        foreground = `var`("--on-background-disabled")
     }
 
     VoxKBImeUi.ClipboardHeader.elementName {
@@ -370,8 +373,8 @@ val VoxKBImeThemeBaseStyle = SnyggStylesheet.v2 {
     }
 
     VoxKBImeUi.OneHandedPanel.elementName {
-        background = rgbaColor(27, 94, 32)
-        foreground = rgbaColor(238, 238, 238)
+        background = `var`("--primary")
+        foreground = `var`("--on-primary")
     }
 
     VoxKBImeUi.SubtypePanel.elementName {
