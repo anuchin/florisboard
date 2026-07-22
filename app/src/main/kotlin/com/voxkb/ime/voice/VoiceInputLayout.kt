@@ -567,6 +567,9 @@ private fun RecordingStage(
     val isRecording = state == VoiceInputState.RECORDING
     val prefs by VoxKBPreferenceStore
     val animationStyle by prefs.voice.animationStyle.collectAsState()
+    val refinementEnabled by prefs.voice.refinementEnabled.collectAsState()
+    val refinementStyle by prefs.voice.refinementStyle.collectAsState()
+    val isAgentMode = refinementEnabled && refinementStyle == RefinementStyle.AGENT
 
     Box(
         modifier = Modifier.fillMaxSize(),
@@ -611,7 +614,12 @@ private fun RecordingStage(
             SnyggText(
                 elementName = VoxKBImeUi.VoiceProcessing.elementName,
                 text = stringResource(
-                    if (isRecording) R.string.voice__listening else R.string.voice__tap_to_start
+                    when {
+                        isAgentMode && !isRecording -> R.string.voice__agent_tap_hint
+                        isAgentMode -> R.string.voice__agent_listening
+                        isRecording -> R.string.voice__listening
+                        else -> R.string.voice__tap_to_start
+                    }
                 ),
             )
             Spacer(modifier = Modifier.height(6.dp))

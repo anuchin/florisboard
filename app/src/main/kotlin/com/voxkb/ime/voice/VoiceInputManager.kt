@@ -332,7 +332,6 @@ class VoiceInputManager(context: Context) {
             done = false,
         )
         autoInsertJob = scope.launch {
-            delay(400)
             val toCommit = withTrailingSpace(displayText)
             if (toCommit.isNotEmpty()) {
                 editorInstance.commitText(toCommit)

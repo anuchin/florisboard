@@ -1187,6 +1187,8 @@
     <string name="voice__listening_sublabel" comment="Subtitle under the listening status">Speak naturally — your words are inserted automatically</string>
     <string name="voice__tap_to_start" comment="Idle state prompt for voice input">Tap to start · hold to talk</string>
     <string name="voice__tap_to_start_sublabel" comment="Subtitle under the idle prompt">Dictate and your text is inserted, polished if Refine is on</string>
+    <string name="voice__agent_tap_hint" comment="Idle prompt when Agent mode is active">Tap and speak your instruction</string>
+    <string name="voice__agent_listening" comment="Status text while recording in Agent mode">Listening to your instruction…</string>
     <string name="voice__transcribing" comment="Label shown while audio is being transcribed">Transcribing…</string>
     <string name="voice__sending_to" comment="Sublabel during transcription, %s is the provider name">Sending to %s</string>
     <string name="voice__refining" comment="Label shown while text is being refined by LLM">Refining…</string>
