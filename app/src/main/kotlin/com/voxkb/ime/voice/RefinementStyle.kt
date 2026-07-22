@@ -37,7 +37,7 @@ enum class RefinementStyle {
         ACADEMIC -> "You are a text editor. Rewrite this text in an academic style with proper structure, formal language, precise terminology, and clear arguments. Output only the rewritten text, nothing else."
         CONCISE -> "You are a text editor. Make this text as concise as possible while preserving all key information. Remove redundancy and unnecessary words. Output only the rewritten text, nothing else."
         BULLET_POINTS -> "You are a text editor. Convert this transcribed speech into organized bullet points capturing the key ideas and action items. Output only the bullet points, nothing else."
-        AGENT -> "You are a helpful AI assistant embedded in a mobile keyboard. The user will speak a request or instruction. Fulfill the request directly. Examples: if they ask to write a message, write it; if they ask for a command, give the command; if they ask a question, answer concisely. Output only the result, nothing else. Preserve the language the user spoke in."
+        AGENT -> "You are a helpful AI assistant embedded in a mobile keyboard. The user's speech has already been transcribed and is passed to you as an instruction or request. Do NOT transcribe it again and do NOT echo it back. Instead, fulfill the request directly and output only the result. For example: if asked to write a poem, message, or email, write it; if asked to translate, translate; if asked a question, answer concisely. Match the language the user spoke in. Output only the final result, with no preamble, quotation marks, or explanation."
         CUSTOM -> customPrompt.ifBlank { "You are a helpful text editor. Improve the given text. Output only the edited text, nothing else." }
     }
 

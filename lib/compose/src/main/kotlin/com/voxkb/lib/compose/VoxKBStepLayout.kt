@@ -34,7 +34,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
@@ -60,11 +60,11 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 
-private val StepHeaderPaddingVertical = 8.dp
-private val StepHeaderNumberBoxSize = 40.dp
-private val StepHeaderNumberBoxPaddingEnd = 16.dp
-private val StepHeaderTextBoxHeight = 32.dp
-private val StepHeaderTextInnerPaddingHorizontal = 16.dp
+private val StepHeaderPaddingVertical = 6.dp
+private val StepHeaderNumberBoxSize = 36.dp
+private val StepHeaderNumberBoxPaddingEnd = 12.dp
+private val StepHeaderTextBoxHeight = 44.dp
+private val StepHeaderTextInnerPaddingHorizontal = 14.dp
 
 data class VoxKBStep(
     val id: Int,
@@ -86,8 +86,10 @@ class VoxKBStepLayoutScope(
         Text(
             modifier = modifier,
             text = text,
-            textAlign = TextAlign.Justify,
+            textAlign = TextAlign.Start,
             fontStyle = fontStyle,
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }
 
@@ -100,7 +102,8 @@ class VoxKBStepLayoutScope(
         Button(
             modifier = modifier
                 .align(Alignment.CenterHorizontally)
-                .padding(top = 16.dp),
+                .fillMaxWidth()
+                .padding(top = 20.dp),
             colors = ButtonDefaults.buttonColors(
                 containerColor = primaryColor,
             ),
@@ -228,7 +231,7 @@ private fun ColumnScope.Step(
         val onBackground = MaterialTheme.colorScheme.onSurface
         Box(
             modifier = Modifier
-                .padding(start = 56.dp)
+            .padding(start = 48.dp, top = 6.dp, bottom = 10.dp)
                 .drawBehind {
                     val strokeWidth = 2.dp
                     val x = -(StepHeaderNumberBoxPaddingEnd + (StepHeaderNumberBoxSize / 2 - strokeWidth / 2))
@@ -263,6 +266,7 @@ private fun StepHeader(
 ) {
     Row(
         modifier = modifier
+            .fillMaxWidth()
             .padding(vertical = StepHeaderPaddingVertical),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -270,8 +274,8 @@ private fun StepHeader(
             modifier = Modifier
                 .padding(end = StepHeaderNumberBoxPaddingEnd)
                 .size(StepHeaderNumberBoxSize)
-                .clip(CircleShape)
-                .background(backgroundColor),
+            .clip(RoundedCornerShape(12.dp))
+            .background(backgroundColor),
         ) {
             Text(
                 modifier = Modifier.align(Alignment.Center),
@@ -284,8 +288,8 @@ private fun StepHeader(
             modifier = Modifier
                 .height(StepHeaderTextBoxHeight)
                 .weight(1.0f)
-                .clip(CircleShape)
-                .background(backgroundColor),
+            .clip(RoundedCornerShape(14.dp))
+            .background(backgroundColor.copy(alpha = if (backgroundColor.alpha < 0.5f) 0.18f else 0.14f)),
         ) {
             Text(
                 modifier = Modifier
@@ -294,7 +298,8 @@ private fun StepHeader(
                 text = title,
                 overflow = TextOverflow.Ellipsis,
                 maxLines = 1,
-                color = contentColor,
+                color = MaterialTheme.colorScheme.onSurface,
+                style = MaterialTheme.typography.titleSmall,
             )
         }
     }

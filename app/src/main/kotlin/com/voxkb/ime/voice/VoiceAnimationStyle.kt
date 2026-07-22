@@ -17,12 +17,14 @@
 package com.voxkb.ime.voice
 
 enum class VoiceAnimationStyle {
+    WAVEFORM_BARS,
     RIPPLE_RINGS,
     WAVE_CIRCLE,
     GLOWING_ORB,
     PARTICLE_BURST;
 
     fun displayName(): String = when (this) {
+        WAVEFORM_BARS -> "Waveform Bars"
         RIPPLE_RINGS -> "Ripple Rings"
         WAVE_CIRCLE -> "Wave Circle"
         GLOWING_ORB -> "Glowing Orb"
@@ -30,6 +32,7 @@ enum class VoiceAnimationStyle {
     }
 
     fun shortDescription(): String = when (this) {
+        WAVEFORM_BARS -> "Bars that rise with your voice"
         RIPPLE_RINGS -> "Classic pulsing rings"
         WAVE_CIRCLE -> "Circular waveform"
         GLOWING_ORB -> "Pulsating glow"

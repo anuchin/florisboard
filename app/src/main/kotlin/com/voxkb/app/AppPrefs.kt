@@ -53,7 +53,6 @@ import com.voxkb.ime.text.key.UtilityKeyAction
 import com.voxkb.ime.voice.RefinementStyle
 import com.voxkb.ime.voice.SavedEndpoint
 import com.voxkb.ime.voice.VoiceAnimationStyle
-import com.voxkb.ime.voice.ToneStyle
 import com.voxkb.ime.voice.VoiceProvider
 import com.voxkb.ime.text.keyboard.TextKeyData
 import com.voxkb.ime.theme.ThemeMode
@@ -833,11 +832,7 @@ abstract class VoxKBPreferenceModel : PreferenceModel() {
         )
         val animationStyle = enum(
             key = "voice__animation_style",
-            default = VoiceAnimationStyle.RIPPLE_RINGS,
-        )
-        val toneStyle = enum(
-            key = "voice__tone_style",
-            default = ToneStyle.CASUAL,
+            default = VoiceAnimationStyle.WAVEFORM_BARS,
         )
         val reviewBeforeInsert = boolean(
             key = "voice__review_before_insert",

@@ -16,8 +16,6 @@
 
 package com.voxkb.ime.voice
 
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
@@ -28,6 +26,7 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import java.util.concurrent.TimeUnit
+
 
 class WhisperApiClient(
     private val baseUrl: String,
@@ -42,30 +41,30 @@ class WhisperApiClient(
 
     private val json = Json { ignoreUnknownKeys = true }
 
-    override suspend fun transcribe(audioBytes: ByteArray, config: TranscriptionConfig): TranscriptionResult =
-        withContext(Dispatchers.IO) {
-            val requestBody = MultipartBody.Builder()
-                .setType(MultipartBody.FORM)
-                .addFormDataPart("file", "audio.wav", audioBytes.toRequestBody("audio/wav".toMediaType()))
-                .addFormDataPart("model", config.model)
-                .apply {
-                    if (config.language.isNotEmpty()) {
-                        addFormDataPart("language", config.language)
-                    }
+    override suspend fun transcribe(audioBytes: ByteArray, config: TranscriptionConfig): TranscriptionResult {
+        val requestBody = MultipartBody.Builder()
+            .setType(MultipartBody.FORM)
+            .addFormDataPart("file", "audio.wav", audioBytes.toRequestBody("audio/wav".toMediaType()))
+            .addFormDataPart("model", config.model)
+            .apply {
+                if (config.language.isNotEmpty()) {
+                    addFormDataPart("language", config.language)
                 }
-                .build()
+            }
+            .build()
 
-            val request = Request.Builder()
-                .url("$baseUrl/v1/audio/transcriptions")
-                .addHeader("Authorization", "Bearer $apiKey")
-                .post(requestBody)
-                .build()
+        val request = Request.Builder()
+            .url(joinApiUrl(baseUrl, "v1/audio/transcriptions"))
+            .addHeader("Authorization", "Bearer $apiKey")
+            .post(requestBody)
+            .build()
 
-            val response = client.newCall(request).execute()
-            val responseBody = response.body?.string() ?: throw Exception("Empty response from API")
+        val response = client.newCall(request).awaitResponse()
+        return response.use {
+            val responseBody = it.body?.string() ?: throw Exception("Empty response from API")
 
-            if (!response.isSuccessful) {
-                throw Exception("API error ${response.code}: $responseBody")
+            if (!it.isSuccessful) {
+                throw Exception("API error ${it.code}: $responseBody")
             }
 
             val jsonResponse = json.parseToJsonElement(responseBody).jsonObject
@@ -73,43 +72,45 @@ class WhisperApiClient(
                 text = jsonResponse["text"]?.jsonPrimitive?.content ?: "",
             )
         }
+    }
 
-    override suspend fun validateApiKey(): ValidationResult =
-        withContext(Dispatchers.IO) {
-            try {
-                val request = Request.Builder()
-                    .url("$baseUrl/v1/models")
-                    .addHeader("Authorization", "Bearer $apiKey")
-                    .get()
-                    .build()
+    override suspend fun validateApiKey(): ValidationResult {
+        val request = Request.Builder()
+            .url(joinApiUrl(baseUrl, "v1/models"))
+            .addHeader("Authorization", "Bearer $apiKey")
+            .get()
+            .build()
 
-                val response = client.newCall(request).execute()
-                if (response.isSuccessful) {
+        return try {
+            val response = client.newCall(request).awaitResponse()
+            response.use {
+                if (it.isSuccessful) {
                     ValidationResult(isSuccess = true)
                 } else {
-                    val body = response.body?.string() ?: "Unknown error"
-                    ValidationResult(isSuccess = false, errorMessage = "API returned ${response.code}: $body")
+                    val body = it.body?.string() ?: "Unknown error"
+                    ValidationResult(isSuccess = false, errorMessage = "API returned ${it.code}: $body")
                 }
-            } catch (e: Exception) {
-                ValidationResult(isSuccess = false, errorMessage = e.message ?: "Connection failed")
             }
+        } catch (e: Exception) {
+            ValidationResult(isSuccess = false, errorMessage = e.message ?: "Connection failed")
         }
+    }
 
-    suspend fun fetchModels(): ModelsResult =
-        withContext(Dispatchers.IO) {
-            try {
-                val request = Request.Builder()
-                    .url("$baseUrl/v1/models")
-                    .addHeader("Authorization", "Bearer $apiKey")
-                    .get()
-                    .build()
+    suspend fun fetchModels(): ModelsResult {
+        val request = Request.Builder()
+            .url(joinApiUrl(baseUrl, "v1/models"))
+            .addHeader("Authorization", "Bearer $apiKey")
+            .get()
+            .build()
 
-                val response = client.newCall(request).execute()
-                val responseBody = response.body?.string()
-                    ?: return@withContext ModelsResult(emptyList(), "Empty response")
+        return try {
+            val response = client.newCall(request).awaitResponse()
+            response.use {
+                val responseBody = it.body?.string()
+                    ?: return@use ModelsResult(emptyList(), "Empty response")
 
-                if (!response.isSuccessful) {
-                    return@withContext ModelsResult(emptyList(), "API returned ${response.code}")
+                if (!it.isSuccessful) {
+                    return@use ModelsResult(emptyList(), "API returned ${it.code}")
                 }
 
                 val jsonResponse = json.parseToJsonElement(responseBody).jsonObject
@@ -119,8 +120,10 @@ class WhisperApiClient(
                 }?.sorted() ?: emptyList()
 
                 ModelsResult(modelIds)
-            } catch (e: Exception) {
-                ModelsResult(emptyList(), e.message ?: "Connection failed")
             }
+        } catch (e: Exception) {
+            ModelsResult(emptyList(), e.message ?: "Connection failed")
         }
+    }
+
 }

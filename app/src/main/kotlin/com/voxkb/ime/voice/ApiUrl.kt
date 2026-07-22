@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2021-2025 The VoxKB Contributors
+ * Copyright (C) 2025 The VoxKB Contributors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,16 +14,14 @@
  * limitations under the License.
  */
 
-package com.voxkb.app.apptheme
+package com.voxkb.ime.voice
 
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Shapes
-import androidx.compose.ui.unit.dp
-
-val Shapes = Shapes(
-    extraSmall = RoundedCornerShape(8.dp),
-    small = RoundedCornerShape(12.dp),
-    medium = RoundedCornerShape(20.dp),
-    large = RoundedCornerShape(28.dp),
-    extraLarge = RoundedCornerShape(36.dp),
-)
+internal fun joinApiUrl(baseUrl: String, path: String): String {
+    val cleanBase = baseUrl.trimEnd('/')
+    val cleanPath = path.trimStart('/')
+    return if (cleanBase.endsWith("/v1") && cleanPath.startsWith("v1/")) {
+        "$cleanBase/${cleanPath.removePrefix("v1/")}"
+    } else {
+        "$cleanBase/$cleanPath"
+    }
+}

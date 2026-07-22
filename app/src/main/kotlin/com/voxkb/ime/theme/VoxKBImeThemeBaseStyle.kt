@@ -45,6 +45,7 @@ val VoxKBImeThemeBaseStyle = SnyggStylesheet.v2 {
         "--on-primary" to dynamicDarkColor("onPrimary")
         "--on-background" to dynamicDarkColor("onBackground")
         "--on-background-disabled" to dynamicDarkColor("outlineVariant")
+        "--outline" to dynamicDarkColor("outline")
         "--on-surface" to dynamicDarkColor("onSurface")
         "--error" to dynamicDarkColor("error")
         "--on-error" to dynamicDarkColor("onError")
@@ -368,6 +369,14 @@ val VoxKBImeThemeBaseStyle = SnyggStylesheet.v2 {
         shape = `var`("--shape")
     }
     VoxKBImeUi.CoderToolbarButton.elementName(selector = SnyggSelector.PRESSED) {
+        background = `var`("--surface-variant")
+        foreground = `var`("--on-surface")
+    }
+    // Active sticky modifier (Ctrl/Shift/Alt locked on) — primary fill
+    // so it's visually distinct from a momentary press.
+    VoxKBImeUi.CoderToolbarButton.elementName(
+        VoxKBImeUi.Attr.VoiceState to listOf("active"),
+    ) {
         background = `var`("--primary")
         foreground = `var`("--on-primary")
     }
@@ -503,8 +512,16 @@ val VoxKBImeThemeBaseStyle = SnyggStylesheet.v2 {
         background = `var`("--voice-surface-variant")
         foreground = `var`("--on-surface")
         fontSize = fontSize(16.sp)
-        padding = padding(16.dp)
+        borderColor = `var`("--outline")
+        borderWidth = size(1.dp)
         shape = `var`("--shape-variant")
+    }
+    VoxKBImeUi.VoiceTranscriptBox.elementName(
+        VoxKBImeUi.Attr.VoiceState to listOf("text"),
+    ) {
+        // Remove the card border/padding from the inline transcript text.
+        borderWidth = size(0.dp)
+        padding = padding(0.dp)
     }
 
     VoxKBImeUi.VoiceActionBar.elementName {

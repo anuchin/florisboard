@@ -58,10 +58,11 @@ fun TextInputLayout(
             .fillMaxWidth()
             .wrapContentHeight(),
     ) {
-        Smartbar()
         val coderToolbarEnabled by prefs.keyboard.coderToolbarEnabled.collectAsState()
         if (coderToolbarEnabled) {
             CoderToolbar()
+        } else {
+            Smartbar()
         }
         if (state.isActionsOverflowVisible) {
             QuickActionsOverflowPanel()

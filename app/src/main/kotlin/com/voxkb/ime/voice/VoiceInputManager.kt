@@ -19,25 +19,25 @@ package com.voxkb.ime.voice
 import android.content.Context
 import com.voxkb.app.VoxKBPreferenceStore
 import com.voxkb.editorInstance
-import com.voxkb.ime.editor.OperationScope
 import com.voxkb.ime.editor.OperationUnit
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
-import com.voxkb.lib.kotlin.collectIn
 
 enum class VoiceInputState {
     IDLE,
     RECORDING,
     PROCESSING,
     REFINING,
+    REVIEW,
     INSERTING,
     ERROR,
     PERMISSION_REQUIRED,
@@ -50,6 +50,7 @@ data class VoiceInputUiState(
     val refinedText: String = "",
     val isRefined: Boolean = false,
     val isAgentMode: Boolean = false,
+    val reviewText: String = "",
     val errorMessage: String = "",
     val amplitude: Float = 0f,
     val amplitudeHistory: List<Float> = List(AMPLITUDE_HISTORY_SIZE) { 0f },
@@ -90,6 +91,13 @@ class VoiceInputManager(context: Context) {
     private var lastInsertedText: String = ""
     private var lastInsertUndone: Boolean = false
 
+    /** Active coroutine jobs collecting recorder amplitude flows. */
+    private val amplitudeJobs = mutableListOf<Job>()
+
+    /** Absolute editor positions of the last auto-inserted text, used for safe undo. */
+    private var insertionStart: Int = -1
+    private var insertionEnd: Int = -1
+
     fun hasRecordAudioPermission(): Boolean {
         return appContext.checkCallingOrSelfPermission(android.Manifest.permission.RECORD_AUDIO) ==
             android.content.pm.PackageManager.PERMISSION_GRANTED
@@ -106,6 +114,15 @@ class VoiceInputManager(context: Context) {
         }
     }
 
+    fun destroy() {
+        stopDurationTicker()
+        activeJob?.cancel()
+        autoInsertJob?.cancel()
+        amplitudeJobs.forEach { it.cancel() }
+        audioRecorder?.stop()
+        scope.cancel()
+    }
+
     fun startRecording() {
         if (!hasRecordAudioPermission()) {
             _uiState.value = _uiState.value.copy(state = VoiceInputState.PERMISSION_REQUIRED)
@@ -119,7 +136,10 @@ class VoiceInputManager(context: Context) {
         // If a job is in flight, cancel it cleanly.
         activeJob?.cancel()
         activeJob = null
+        amplitudeJobs.forEach { it.cancel() }
+        amplitudeJobs.clear()
 
+        val (provider, model, language) = snapshotProviderInfo()
         val recorder = AudioRecorder(appContext)
         audioRecorder = recorder
         recordingStartMs = System.currentTimeMillis()
@@ -129,6 +149,9 @@ class VoiceInputManager(context: Context) {
             amplitudeHistory = List(AMPLITUDE_HISTORY_SIZE) { 0f },
             durationMs = 0L,
             errorMessage = "",
+            providerLabel = provider,
+            modelLabel = model,
+            languageLabel = language,
         )
         startDurationTicker()
 
@@ -143,6 +166,8 @@ class VoiceInputManager(context: Context) {
                 transcribe(wavBytes)
             } catch (e: CancellationException) {
                 stopDurationTicker()
+                amplitudeJobs.forEach { it.cancel() }
+                amplitudeJobs.clear()
                 _uiState.value = _uiState.value.copy(
                     state = VoiceInputState.IDLE,
                     amplitude = 0f,
@@ -150,6 +175,8 @@ class VoiceInputManager(context: Context) {
                 )
             } catch (e: Exception) {
                 stopDurationTicker()
+                amplitudeJobs.forEach { it.cancel() }
+                amplitudeJobs.clear()
                 _uiState.value = VoiceInputUiState(
                     state = VoiceInputState.ERROR,
                     errorMessage = sanitizeError(e),
@@ -157,12 +184,15 @@ class VoiceInputManager(context: Context) {
             }
         }
 
-        recorder.amplitude.collectIn(scope) { amp ->
-            _uiState.value = _uiState.value.copy(amplitude = amp)
-        }
-        recorder.amplitudeHistory.collectIn(scope) { history ->
-            _uiState.value = _uiState.value.copy(amplitudeHistory = history)
-        }
+        amplitudeJobs.clear()
+        amplitudeJobs.add(scope.launch {
+            recorder.amplitude.collect { amp -> _uiState.value = _uiState.value.copy(amplitude = amp) }
+        })
+        amplitudeJobs.add(scope.launch {
+            recorder.amplitudeHistory.collect { history ->
+                _uiState.value = _uiState.value.copy(amplitudeHistory = history)
+            }
+        })
     }
 
     fun stopRecording() {
@@ -180,6 +210,8 @@ class VoiceInputManager(context: Context) {
             VoiceInputState.RECORDING -> {
                 audioRecorder?.stop()
                 activeJob?.cancel()
+                amplitudeJobs.forEach { it.cancel() }
+                amplitudeJobs.clear()
                 stopDurationTicker()
                 _uiState.value = _uiState.value.copy(
                     state = VoiceInputState.IDLE,
@@ -249,7 +281,24 @@ class VoiceInputManager(context: Context) {
         rawText: String,
         isRefined: Boolean,
         isAgent: Boolean,
+        forceCommit: Boolean = false,
     ) {
+        val shouldReview = !forceCommit &&
+            (prefs.voice.reviewBeforeInsert.get() || !prefs.voice.autoCommit.get())
+        if (shouldReview) {
+            _uiState.value = _uiState.value.copy(
+                state = VoiceInputState.REVIEW,
+                transcribedText = displayText,
+                rawTranscribedText = rawText,
+                refinedText = if (isRefined) displayText else "",
+                isRefined = isRefined,
+                isAgentMode = isAgent,
+                reviewText = displayText,
+                done = false,
+            )
+            return
+        }
+
         _uiState.value = _uiState.value.copy(
             state = VoiceInputState.INSERTING,
             transcribedText = displayText,
@@ -264,6 +313,9 @@ class VoiceInputManager(context: Context) {
             val toCommit = withTrailingSpace(displayText)
             if (toCommit.isNotEmpty()) {
                 editorInstance.commitText(toCommit)
+                val selEnd = editorInstance.activeContent.selection.end
+                insertionStart = selEnd - toCommit.length
+                insertionEnd = selEnd
                 lastInsertedText = toCommit
                 lastInsertUndone = false
             }
@@ -278,6 +330,23 @@ class VoiceInputManager(context: Context) {
         }
     }
 
+
+    fun commitReview() {
+        val text = _uiState.value.reviewText
+        if (text.isBlank()) { reset(); return }
+        autoInsert(
+            displayText = text,
+            rawText = _uiState.value.rawTranscribedText,
+            isRefined = _uiState.value.isRefined,
+            isAgent = _uiState.value.isAgentMode,
+            forceCommit = true,
+        )
+    }
+
+    fun discardReview() {
+        reset()
+    }
+
     private fun withTrailingSpace(text: String): String =
         if (text.isNotEmpty() && !text.endsWith(' ') && !text.endsWith('\n')) "$text " else text
 
@@ -287,12 +356,9 @@ class VoiceInputManager(context: Context) {
 
         val style = prefs.voice.refinementStyle.get()
         val customPrompt = prefs.voice.refinementCustomPrompt.get()
-        val tonePrompt = prefs.voice.toneStyle.get().systemPrompt()
-        val effectivePrompt = when {
-            style == RefinementStyle.CUSTOM && customPrompt.isNotBlank() -> customPrompt
-            style == RefinementStyle.CUSTOM -> customPrompt.ifBlank { tonePrompt }
-            customPrompt.isNotBlank() -> customPrompt
-            else -> tonePrompt
+        val effectivePrompt = when (style) {
+            RefinementStyle.CUSTOM -> customPrompt.ifBlank { style.systemPrompt() }
+            else -> style.systemPrompt()
         }
 
         val isAgent = style.isAgent
@@ -331,11 +397,19 @@ class VoiceInputManager(context: Context) {
         if (!canUndo()) return
         val text = lastInsertedText
         if (text.isEmpty()) return
-        val length = text.length
-        // Select the last `length` characters before the cursor, then delete them.
-        // setSelectionSurrounding establishes the selection; deleteBackwards on a
-        // selection removes it. This mirrors the keyboard's own delete path.
-        editorInstance.setSelectionSurrounding(length, OperationUnit.CHARACTERS, OperationScope.BEFORE_CURSOR)
+        // Verify the text at the recorded range still matches.
+        val content = editorInstance.activeContent
+        val rangeStart = insertionStart.coerceIn(0, content.text.length)
+        val rangeEnd = insertionEnd.coerceIn(rangeStart, content.text.length)
+        val actualText = content.text.substring(rangeStart, rangeEnd)
+        if (actualText != text) {
+            // Text was edited after insert — can't safely undo.
+            _uiState.value = _uiState.value.copy(canUndo = false, canRedo = false)
+            lastInsertedText = ""
+            return
+        }
+        // Select the range and delete it.
+        editorInstance.setSelection(insertionStart, insertionEnd)
         editorInstance.deleteBackwards(OperationUnit.CHARACTERS)
         lastInsertUndone = true
         _uiState.value = _uiState.value.copy(canUndo = false, canRedo = true)
@@ -347,6 +421,9 @@ class VoiceInputManager(context: Context) {
         val text = lastInsertedText
         if (text.isEmpty()) return
         editorInstance.commitText(text)
+        val selEnd = editorInstance.activeContent.selection.end
+        insertionStart = selEnd - text.length
+        insertionEnd = selEnd
         lastInsertUndone = false
         _uiState.value = _uiState.value.copy(canUndo = true, canRedo = false)
     }
@@ -361,9 +438,13 @@ class VoiceInputManager(context: Context) {
         activeJob = null
         autoInsertJob?.cancel()
         autoInsertJob = null
+        amplitudeJobs.forEach { it.cancel() }
+        amplitudeJobs.clear()
         audioRecorder?.clearHistory()
         lastInsertedText = ""
         lastInsertUndone = false
+        insertionStart = -1
+        insertionEnd = -1
         _uiState.value = VoiceInputUiState()
     }
 
@@ -413,6 +494,7 @@ class VoiceInputManager(context: Context) {
             baseUrl = active.baseUrl.trimEnd('/'),
             apiKey = active.apiKey,
             model = active.model,
+            presetId = active.presetId,
         )
     }
 

@@ -1232,6 +1232,7 @@
     <string name="voice__inserting" comment="Label shown while auto-inserting transcribed text">Inserting…</string>
     <string name="voice__done" comment="Label shown after text is inserted successfully">Done ✓</string>
     <string name="voice__tone_label" comment="Label for tone style dropdown">Tone</string>
+    <string name="voice__mode_transcribe" comment="Voice mode that inserts the transcript without AI rewriting">Transcribe</string>
     <string name="voice__refine_toggle_on" comment="Label when refinement is enabled in top bar">Refine</string>
     <string name="voice__refine_toggle_off" comment="Label when refinement is disabled in top bar">Raw</string>
 

@@ -44,20 +44,20 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.FormatListBulleted
+import androidx.compose.material.icons.automirrored.filled.ShortText
+import androidx.compose.material.icons.automirrored.outlined.Chat
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.FormatListBulleted
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.School
-import androidx.compose.material.icons.filled.ShortText
 import androidx.compose.material.icons.filled.SmartToy
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.filled.Work
 import androidx.compose.material.icons.outlined.AutoAwesome
-import androidx.compose.material.icons.outlined.Chat
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material3.Badge
 import androidx.compose.material3.Button
@@ -92,6 +92,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import com.voxkb.R
 import com.voxkb.lib.compose.stringRes
@@ -173,9 +174,9 @@ fun VoiceScreen() = VoxKBScreen {
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp, vertical = 8.dp),
-                shape = RoundedCornerShape(16.dp),
+                shape = MaterialTheme.shapes.large,
                 colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.errorContainer,
+                    containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
                 ),
             ) {
                 Row(
@@ -187,7 +188,7 @@ fun VoiceScreen() = VoxKBScreen {
                     Icon(
                         imageVector = Icons.Filled.Mic,
                         contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onErrorContainer,
+                        tint = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.size(22.dp),
                     )
                     Spacer(modifier = Modifier.width(12.dp))
@@ -195,12 +196,12 @@ fun VoiceScreen() = VoxKBScreen {
                         Text(
                             text = stringRes(R.string.settings__voice__grant_microphone),
                             style = MaterialTheme.typography.titleSmall,
-                            color = MaterialTheme.colorScheme.onErrorContainer,
+                            color = MaterialTheme.colorScheme.onSurface,
                         )
                         Text(
                             text = stringRes(R.string.settings__voice__microphone_required),
                             style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onErrorContainer.copy(alpha = 0.8f),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
                     FilledTonalButton(onClick = {
@@ -326,12 +327,6 @@ fun VoiceScreen() = VoxKBScreen {
                     )
                 }
             }
-            SwitchPreference(
-                prefs.voice.refinementAutoRefine,
-                title = stringRes(R.string.settings__voice__auto_refine),
-                summary = stringRes(R.string.settings__voice__auto_refine_summary),
-                visibleIf = { prefs.voice.refinementEnabled isEqualTo true },
-            )
             Preference(
                 title = stringRes(R.string.settings__voice__refinement_style),
                 summary = refinementStyle.displayName(),
@@ -359,7 +354,7 @@ fun VoiceScreen() = VoxKBScreen {
         AddProviderDialog(
             presets = STT_PRESETS,
             isLlm = false,
-            validateEndpoint = { url, key -> WhisperApiClient(url, key).validateApiKey() },
+            validateEndpoint = { preset, key -> WhisperApiClient(preset.baseUrl, key).validateApiKey() },
             onSave = { endpoint ->
                 val current = SavedEndpoint.deserializeList(prefs.voice.savedEndpoints.get())
                 scope.launch {
@@ -383,7 +378,9 @@ fun VoiceScreen() = VoxKBScreen {
         AddProviderDialog(
             presets = LLM_PRESETS,
             isLlm = true,
-            validateEndpoint = { url, key -> LlmApiClient(url, key, "").validateApiKey() },
+            validateEndpoint = { preset, key ->
+                LlmApiClient(preset.baseUrl, key, preset.defaultModel, preset.id).validateApiKey()
+            },
             onSave = { endpoint ->
                 val current = SavedEndpoint.deserializeList(prefs.voice.llmSavedEndpoints.get())
                 scope.launch {
@@ -459,8 +456,12 @@ fun VoiceScreen() = VoxKBScreen {
             existingEndpoint = editingLlmEndpoint,
             preset = if (editingLlmEndpoint != null) null else preselectedLlmPreset,
             defaultModel = preselectedLlmPreset?.defaultModel ?: "gpt-4o-mini",
-            fetchModels = { url, key -> LlmApiClient(url, key, "").fetchModels() },
-            validateEndpoint = { url, key -> LlmApiClient(url, key, "").validateApiKey() },
+            fetchModels = { url, key ->
+                LlmApiClient(url, key, "", editingLlmEndpoint?.presetId.orEmpty()).fetchModels()
+            },
+            validateEndpoint = { url, key ->
+                LlmApiClient(url, key, "", editingLlmEndpoint?.presetId.orEmpty()).validateApiKey()
+            },
             onSave = { endpoint ->
                 val current = SavedEndpoint.deserializeList(prefs.voice.llmSavedEndpoints.get())
                 val updated = if (editingLlmEndpoint != null)
@@ -713,9 +714,9 @@ private fun StatusBanner(
     onAddProvider: () -> Unit,
 ) {
     val container = if (isReady) MaterialTheme.colorScheme.primaryContainer
-        else MaterialTheme.colorScheme.errorContainer
+        else MaterialTheme.colorScheme.secondaryContainer
     val onContainer = if (isReady) MaterialTheme.colorScheme.onPrimaryContainer
-        else MaterialTheme.colorScheme.onErrorContainer
+        else MaterialTheme.colorScheme.onSecondaryContainer
     val icon = if (isReady) Icons.Filled.Check else Icons.Filled.Mic
     val title = if (isReady) {
         if (providerName != null) stringResource(R.string.settings__voice__status_ready_with, providerName)
@@ -728,7 +729,7 @@ private fun StatusBanner(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 8.dp),
-        shape = RoundedCornerShape(16.dp),
+        shape = MaterialTheme.shapes.large,
         colors = CardDefaults.cardColors(containerColor = container),
     ) {
         Row(
@@ -777,7 +778,7 @@ private fun StatusBanner(
 private fun AddProviderDialog(
     presets: List<ProviderPreset>,
     isLlm: Boolean,
-    validateEndpoint: suspend (baseUrl: String, apiKey: String) -> ValidationResult,
+    validateEndpoint: suspend (preset: ProviderPreset, apiKey: String) -> ValidationResult,
     onSave: (SavedEndpoint) -> Unit,
     onAdvanced: () -> Unit,
     onDismiss: () -> Unit,
@@ -813,7 +814,7 @@ private fun AddProviderDialog(
         confirmEnabled = pickedPreset != null &&
             (apiKey.isNotBlank() || pickedPreset?.requiresApiKey == false),
     ) {
-        Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+        Column {
             if (pickedPreset == null) {
                 // Step 1: pick a provider (icon + name only, no taglines/links).
                 presets.forEach { preset ->
@@ -885,6 +886,7 @@ private fun AddProviderDialog(
                             validationResult = null
                         },
                         singleLine = true,
+                        visualTransformation = PasswordVisualTransformation(),
                         modifier = Modifier.fillMaxWidth(),
                     )
                     preset.docsUrl?.let { url ->
@@ -911,7 +913,7 @@ private fun AddProviderDialog(
                         validating = true
                         validationResult = null
                         scope.launch {
-                            validationResult = validateEndpoint(preset.baseUrl, apiKey.trim())
+                            validationResult = validateEndpoint(preset, apiKey.trim())
                             validating = false
                         }
                     },
@@ -1301,7 +1303,13 @@ private fun EndpointEditorDialog(
                     style = MaterialTheme.typography.labelMedium,
                     modifier = Modifier.padding(bottom = 4.dp),
                 )
-                JetPrefTextField(value = epApiKey, onValueChange = { epApiKey = it })
+                OutlinedTextField(
+                    value = epApiKey,
+                    onValueChange = { epApiKey = it },
+                    singleLine = true,
+                    visualTransformation = PasswordVisualTransformation(),
+                    modifier = Modifier.fillMaxWidth(),
+                )
                 Spacer(modifier = Modifier.height(8.dp))
             } else {
                 Text(
@@ -1458,12 +1466,12 @@ private fun RefinementStyle.shortDescription(): String = when (this) {
 // Icons for the style picker. Mirrors the tone/format semantics of each style.
 private fun RefinementStyle.icon(): ImageVector = when (this) {
     RefinementStyle.CLEAN_UP -> Icons.Outlined.AutoAwesome
-    RefinementStyle.CASUAL -> Icons.Outlined.Chat
+    RefinementStyle.CASUAL -> Icons.AutoMirrored.Outlined.Chat
     RefinementStyle.FORMAL -> Icons.Filled.Work
     RefinementStyle.PROFESSIONAL -> Icons.Filled.Work
     RefinementStyle.ACADEMIC -> Icons.Filled.School
-    RefinementStyle.CONCISE -> Icons.Filled.ShortText
-    RefinementStyle.BULLET_POINTS -> Icons.Filled.FormatListBulleted
+    RefinementStyle.CONCISE -> Icons.AutoMirrored.Filled.ShortText
+    RefinementStyle.BULLET_POINTS -> Icons.AutoMirrored.Filled.FormatListBulleted
     RefinementStyle.AGENT -> Icons.Filled.SmartToy
     RefinementStyle.CUSTOM -> Icons.Filled.Tune
 }
