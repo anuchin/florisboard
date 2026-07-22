@@ -55,10 +55,13 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.FormatListBulleted
 import androidx.compose.material.icons.automirrored.filled.KeyboardReturn
 import androidx.compose.material.icons.automirrored.filled.Redo
+import androidx.compose.material.icons.automirrored.filled.ShortText
 import androidx.compose.material.icons.automirrored.filled.Undo
 import androidx.compose.material.icons.automirrored.outlined.Backspace
+import androidx.compose.material.icons.automirrored.outlined.Chat
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Error
@@ -67,6 +70,7 @@ import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.SmartToy
 import androidx.compose.material.icons.filled.Stop
+import androidx.compose.material.icons.filled.Work
 import androidx.compose.material.icons.outlined.AutoAwesome
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -363,6 +367,12 @@ private enum class VoicePanelMode(val style: RefinementStyle?) {
 }
 
 private fun RefinementStyle.modeIcon(): ImageVector = when (this) {
+    RefinementStyle.CLEAN_UP -> Icons.Outlined.AutoAwesome
+    RefinementStyle.CASUAL -> Icons.AutoMirrored.Outlined.Chat
+    RefinementStyle.FORMAL -> Icons.Filled.Work
+    RefinementStyle.PROFESSIONAL -> Icons.Filled.Work
+    RefinementStyle.CONCISE -> Icons.AutoMirrored.Filled.ShortText
+    RefinementStyle.BULLET_POINTS -> Icons.AutoMirrored.Filled.FormatListBulleted
     RefinementStyle.AGENT -> Icons.Filled.SmartToy
     else -> Icons.Outlined.AutoAwesome
 }
