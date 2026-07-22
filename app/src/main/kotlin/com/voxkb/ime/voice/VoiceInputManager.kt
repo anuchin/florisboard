@@ -41,6 +41,7 @@ enum class VoiceInputState {
     INSERTING,
     ERROR,
     PERMISSION_REQUIRED,
+    SETUP_REQUIRED,
 }
 
 data class VoiceInputUiState(
@@ -63,6 +64,10 @@ data class VoiceInputUiState(
     val canUndo: Boolean = false,
     /** Whether a previously undone insert can be redone. */
     val canRedo: Boolean = false,
+    /** Shown in SETUP_REQUIRED: human-readable reason. */
+    val setupMessage: String = "",
+    /** Whether the user can fall back to raw transcription (STT ok, only LLM missing). */
+    val canUseTranscribeOnly: Boolean = false,
 )
 
 const val AMPLITUDE_HISTORY_SIZE = 36
@@ -99,7 +104,7 @@ class VoiceInputManager(context: Context) {
     private var insertionEnd: Int = -1
 
     fun hasRecordAudioPermission(): Boolean {
-        return appContext.checkCallingOrSelfPermission(android.Manifest.permission.RECORD_AUDIO) ==
+        return appContext.checkSelfPermission(android.Manifest.permission.RECORD_AUDIO) ==
             android.content.pm.PackageManager.PERMISSION_GRANTED
     }
 
@@ -126,6 +131,24 @@ class VoiceInputManager(context: Context) {
     fun startRecording() {
         if (!hasRecordAudioPermission()) {
             _uiState.value = _uiState.value.copy(state = VoiceInputState.PERMISSION_REQUIRED)
+            return
+        }
+
+        // Up-front configuration gate: never record audio that can't be processed.
+        // Surface exactly what's missing so the user can fix it before dictating.
+        val sttReady = findActiveSttEndpoint() != null
+        val refinementOn = prefs.voice.refinementEnabled.get()
+        val llmReady = !refinementOn || findActiveLlmEndpoint() != null
+        if (!sttReady || !llmReady) {
+            _uiState.value = _uiState.value.copy(
+                state = VoiceInputState.SETUP_REQUIRED,
+                setupMessage = if (!sttReady) {
+                    "Add a speech-to-text provider to use voice typing."
+                } else {
+                    "AI refinement is on, but no AI model is configured."
+                },
+                canUseTranscribeOnly = sttReady,
+            )
             return
         }
 
@@ -347,6 +370,17 @@ class VoiceInputManager(context: Context) {
         reset()
     }
 
+    /**
+     * Recovery from SETUP_REQUIRED when only the AI model is missing: turns off
+     * refinement and returns to idle so the user can dictate immediately.
+     */
+    fun useTranscribeOnly() {
+        scope.launch {
+            prefs.voice.refinementEnabled.set(false)
+            _uiState.value = VoiceInputUiState()
+        }
+    }
+
     private fun withTrailingSpace(text: String): String =
         if (text.isNotEmpty() && !text.endsWith(' ') && !text.endsWith('\n')) "$text " else text
 
@@ -426,6 +460,16 @@ class VoiceInputManager(context: Context) {
         insertionEnd = selEnd
         lastInsertUndone = false
         _uiState.value = _uiState.value.copy(canUndo = true, canRedo = false)
+    }
+
+    /**
+     * Recovery path for when AI refinement fails: commits the raw transcript
+     * as-is so the user never loses their dictation. Skips review and refinement.
+     */
+    fun insertRawTranscript() {
+        val raw = _uiState.value.rawTranscribedText
+        if (raw.isBlank()) { reset(); return }
+        autoInsert(raw, raw, isRefined = false, isAgent = false, forceCommit = true)
     }
 
     fun canUndo(): Boolean = lastInsertedText.isNotEmpty() && !lastInsertUndone

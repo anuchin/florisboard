@@ -85,6 +85,7 @@ class VoxKBAppActivity : ComponentActivity() {
     private var showAppIcon = true
     private var resourcesContext by mutableStateOf(this as Context)
     private var intentToBeHandled by mutableStateOf<Intent?>(null)
+    private var launchedForPermission = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         // Splash screen should be installed before calling super.onCreate()
@@ -168,12 +169,28 @@ class VoxKBAppActivity : ComponentActivity() {
             return
         }
         if (intent.action == "REQUEST_RECORD_AUDIO") {
+            launchedForPermission = true
             requestPermissions(arrayOf(Manifest.permission.RECORD_AUDIO), 1001)
             return
         }
         intentToBeHandled = null
     }
 
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<String>,
+        grantResults: IntArray,
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        // The activity only asks for RECORD_AUDIO (code 1001) on the IME's behalf,
+        // since a service can't show the system permission dialog itself. Once
+        // resolved (granted or denied), return the user to the field they were in.
+        if (requestCode == 1001 && launchedForPermission) {
+            launchedForPermission = false
+            finish()
+        }
+    }
     @Composable
     private fun AppContent() {
         val navController = rememberNavController()

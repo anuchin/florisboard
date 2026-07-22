@@ -167,7 +167,7 @@ fun VoiceScreen() = VoxKBScreen {
     val language by prefs.voice.language.collectAsState()
 
     content {
-        val hasMicPermission = context.checkCallingOrSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED
+        val hasMicPermission = context.checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED
 
         if (!hasMicPermission) {
             Card(

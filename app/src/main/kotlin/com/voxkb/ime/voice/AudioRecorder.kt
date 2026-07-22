@@ -47,7 +47,7 @@ class AudioRecorder(private val context: Context) {
     )
 
     fun hasRecordAudioPermission(): Boolean {
-        return context.checkCallingOrSelfPermission(android.Manifest.permission.RECORD_AUDIO) ==
+        return context.checkSelfPermission(android.Manifest.permission.RECORD_AUDIO) ==
             android.content.pm.PackageManager.PERMISSION_GRANTED
     }
 

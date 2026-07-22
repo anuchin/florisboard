@@ -1210,6 +1210,10 @@
     <string name="voice__dismiss" comment="Dismiss button on error screen">Dismiss</string>
     <string name="voice__open_settings" comment="Button to open voice settings from error screen">Open Settings</string>
     <string name="voice__try_again" comment="Retry button on error screen">Try again</string>
+    <string name="voice__raw_transcript_hint" comment="Shown above the raw transcript when AI refinement failed">AI refinement failed — your dictation is preserved below.</string>
+    <string name="voice__use_raw_transcript" comment="Insert the raw transcript after AI refinement failed">Insert raw transcript</string>
+    <string name="voice__setup_title" comment="Title when voice input needs configuration">Set up voice input</string>
+    <string name="voice__use_transcribe_only" comment="Turn off AI refinement and dictate raw text">Use transcription only</string>
     <string name="voice__permission_title" comment="Title when microphone permission is needed">Microphone access needed</string>
     <string name="voice__permission_description" comment="Explanation for why microphone permission is needed">VoxKB needs microphone access to transcribe your speech. Audio is sent only to the provider you configured.</string>
     <string name="voice__grant_permission" comment="Button to grant microphone permission">Grant permission</string>

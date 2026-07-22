@@ -48,6 +48,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -63,6 +64,7 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.Keyboard
 import androidx.compose.material.icons.filled.Mic
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.SmartToy
 import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material.icons.outlined.AutoAwesome
@@ -419,8 +421,10 @@ private fun VoiceStage(
             VoiceInputState.INSERTING -> AutoInsertStage(uiState = uiState)
             VoiceInputState.ERROR -> ErrorStage(
                 message = uiState.errorMessage.ifBlank { stringResource(R.string.voice__error_title) },
+                rawTranscript = uiState.rawTranscribedText,
                 onRetry = { manager.startRecording() },
                 onDismiss = { manager.reset() },
+                onInsertRaw = { manager.insertRawTranscript() },
                 onOpenSettings = openSettings,
             )
             VoiceInputState.PERMISSION_REQUIRED -> PermissionStage(
@@ -431,6 +435,12 @@ private fun VoiceStage(
                     }
                     ctx.startActivity(intent)
                 },
+            )
+            VoiceInputState.SETUP_REQUIRED -> SetupStage(
+                message = uiState.setupMessage,
+                canUseTranscribeOnly = uiState.canUseTranscribeOnly,
+                onOpenSettings = openSettings,
+                onUseTranscribeOnly = { manager.useTranscribeOnly() },
             )
         }
     }
@@ -1080,8 +1090,10 @@ private fun ProcessingStage(
 @Composable
 private fun ErrorStage(
     message: String,
+    rawTranscript: String,
     onRetry: () -> Unit,
     onDismiss: () -> Unit,
+    onInsertRaw: () -> Unit,
     onOpenSettings: () -> Unit,
 ) {
     val showSettingsCta = message.contains("not configured", ignoreCase = true) ||
@@ -1128,6 +1140,40 @@ private fun ErrorStage(
             modifier = Modifier.widthIn(max = 320.dp),
         )
 
+        if (rawTranscript.isNotBlank()) {
+            Spacer(modifier = Modifier.height(16.dp))
+
+            SnyggText(
+                elementName = VoxKBImeUi.VoiceProcessing.elementName,
+                text = stringResource(R.string.voice__raw_transcript_hint),
+                modifier = Modifier.widthIn(max = 320.dp),
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            SnyggBox(
+                elementName = VoxKBImeUi.VoiceTranscriptBox.elementName,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .widthIn(max = 320.dp)
+                    .heightIn(max = 84.dp),
+            ) {
+                SelectionContainer(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(12.dp)
+                        .verticalScroll(rememberScrollState()),
+                ) {
+                    SnyggText(
+                        elementName = VoxKBImeUi.VoiceTranscriptBox.elementName,
+                        attributes = mapOf(VoxKBImeUi.Attr.VoiceState to listOf("text")),
+                        text = rawTranscript,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
+            }
+        }
+
         Spacer(modifier = Modifier.height(28.dp))
 
         SnyggRow(
@@ -1151,6 +1197,20 @@ private fun ErrorStage(
                     SnyggText(
                         elementName = VoxKBImeUi.VoiceActionKey.elementName,
                         text = stringResource(R.string.voice__open_settings),
+                    )
+                }
+            }
+            if (rawTranscript.isNotBlank()) {
+                val primaryAttr = mapOf(VoxKBImeUi.Attr.VoiceState to listOf("primary"))
+                SnyggButton(
+                    elementName = VoxKBImeUi.VoiceActionKey.elementName,
+                    attributes = primaryAttr,
+                    onClick = onInsertRaw,
+                ) {
+                    SnyggText(
+                        elementName = VoxKBImeUi.VoiceActionKey.elementName,
+                        attributes = primaryAttr,
+                        text = stringResource(R.string.voice__use_raw_transcript),
                     )
                 }
             }
@@ -1224,6 +1284,82 @@ private fun PermissionStage(
                 elementName = VoxKBImeUi.VoiceActionKey.elementName,
                 text = stringResource(R.string.voice__grant_permission),
             )
+        }
+    }
+}
+
+@Composable
+private fun SetupStage(
+    message: String,
+    canUseTranscribeOnly: Boolean,
+    onOpenSettings: () -> Unit,
+    onUseTranscribeOnly: () -> Unit,
+) {
+    SnyggColumn(
+        elementName = VoxKBImeUi.VoiceProcessing.elementName,
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = 24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
+    ) {
+        SnyggBox(
+            elementName = VoxKBImeUi.VoiceMicButton.elementName,
+            modifier = Modifier.size(64.dp),
+            contentAlignment = Alignment.Center,
+        ) {
+            SnyggIcon(
+                elementName = VoxKBImeUi.VoiceMicButtonIcon.elementName,
+                imageVector = Icons.Filled.Settings,
+                contentDescription = null,
+                modifier = Modifier.size(28.dp),
+            )
+        }
+
+        Spacer(modifier = Modifier.height(20.dp))
+
+        SnyggText(
+            elementName = VoxKBImeUi.VoiceProcessing.elementName,
+            text = stringResource(R.string.voice__setup_title),
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        SnyggText(
+            elementName = VoxKBImeUi.VoiceProcessing.elementName,
+            text = message,
+            modifier = Modifier.widthIn(max = 320.dp),
+        )
+
+        Spacer(modifier = Modifier.height(28.dp))
+
+        SnyggRow(
+            elementName = VoxKBImeUi.VoiceActionBar.elementName,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            val primaryAttr = mapOf(VoxKBImeUi.Attr.VoiceState to listOf("primary"))
+            SnyggButton(
+                elementName = VoxKBImeUi.VoiceActionKey.elementName,
+                attributes = primaryAttr,
+                onClick = onOpenSettings,
+            ) {
+                SnyggText(
+                    elementName = VoxKBImeUi.VoiceActionKey.elementName,
+                    attributes = primaryAttr,
+                    text = stringResource(R.string.voice__open_settings),
+                )
+            }
+            if (canUseTranscribeOnly) {
+                SnyggButton(
+                    elementName = VoxKBImeUi.VoiceActionKey.elementName,
+                    onClick = onUseTranscribeOnly,
+                ) {
+                    SnyggText(
+                        elementName = VoxKBImeUi.VoiceActionKey.elementName,
+                        text = stringResource(R.string.voice__use_transcribe_only),
+                    )
+                }
+            }
         }
     }
 }
