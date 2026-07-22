@@ -21,6 +21,9 @@ import android.content.Intent
 import android.net.Uri
 import android.view.KeyEvent
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.Spring
@@ -105,8 +108,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
-import androidx.compose.animation.slideInHorizontally
-import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
@@ -137,7 +138,7 @@ import com.voxkb.lib.snygg.ui.SnyggRow
 import com.voxkb.lib.snygg.ui.SnyggText
 import com.voxkb.lib.snygg.ui.rememberSnyggThemeQuery
 
-private const val STATE_TRANSITION_MS = 320
+private const val STATE_TRANSITION_MS = 220
 private const val PULSE_CYCLE_MS = 1800
 private const val WAVEFORM_BAR_COUNT = 36
 
@@ -388,13 +389,13 @@ private fun VoiceStage(
     AnimatedContent(
         targetState = uiState.state,
         transitionSpec = {
-            (fadeIn(tween(STATE_TRANSITION_MS)) +
-                slideInHorizontally(tween(STATE_TRANSITION_MS)) { it / 4 } +
-                scaleIn(initialScale = 0.96f, animationSpec = tween(STATE_TRANSITION_MS)))
+            // Calm crossfade with a whisper of scale. No horizontal slide — on the
+            // rapid RECORDING->PROCESSING->REFINING->IDLE chain, sliding read as jarring.
+            (fadeIn(tween(STATE_TRANSITION_MS, easing = FastOutSlowInEasing)) +
+                scaleIn(initialScale = 0.97f, animationSpec = tween(STATE_TRANSITION_MS, easing = FastOutSlowInEasing)))
                 .togetherWith(
-                    fadeOut(tween(STATE_TRANSITION_MS)) +
-                        slideOutHorizontally(tween(STATE_TRANSITION_MS)) { it / 4 } +
-                        scaleOut(targetScale = 1.04f, animationSpec = tween(STATE_TRANSITION_MS))
+                    fadeOut(tween(STATE_TRANSITION_MS, easing = FastOutSlowInEasing)) +
+                        scaleOut(targetScale = 1.03f, animationSpec = tween(STATE_TRANSITION_MS, easing = FastOutSlowInEasing))
                 )
         },
         label = "voice-stage",
@@ -816,7 +817,11 @@ private fun VoiceMicButton(
         label = "mic-press",
     )
 
-    val bgColor = micStyle.background()
+    val bgColor by animateColorAsState(
+        targetValue = micStyle.background(),
+        animationSpec = tween(220, easing = FastOutSlowInEasing),
+        label = "mic-bg",
+    )
     // Border tracks the button's own theme color so it adapts to light/dark and
     // custom themes instead of the previous hardcoded red/blue literals.
     val borderColor = bgColor.copy(alpha = 0.55f)
@@ -830,7 +835,11 @@ private fun VoiceMicButton(
         modifier = Modifier.size(168.dp),
         contentAlignment = Alignment.Center,
     ) {
-        if (isRecording) {
+        AnimatedVisibility(
+            visible = isRecording,
+            enter = fadeIn(tween(220, easing = FastOutSlowInEasing)),
+            exit = fadeOut(tween(220, easing = FastOutSlowInEasing)),
+        ) {
             // Soft outer glow behind the mic.
             Box(
                 modifier = Modifier
@@ -920,13 +929,15 @@ private fun VoiceMicButton(
                 },
             contentAlignment = Alignment.Center,
         ) {
-            SnyggIcon(
-                elementName = VoxKBImeUi.VoiceMicButtonIcon.elementName,
-                attributes = stateAttr,
-                imageVector = if (isRecording) Icons.Filled.Stop else Icons.Filled.Mic,
-                contentDescription = null,
-                modifier = Modifier.size(36.dp),
-            )
+            Crossfade(targetState = isRecording, animationSpec = tween(180), label = "mic-icon") { recording ->
+                SnyggIcon(
+                    elementName = VoxKBImeUi.VoiceMicButtonIcon.elementName,
+                    attributes = stateAttr,
+                    imageVector = if (recording) Icons.Filled.Stop else Icons.Filled.Mic,
+                    contentDescription = null,
+                    modifier = Modifier.size(36.dp),
+                )
+            }
         }
     }
 }
